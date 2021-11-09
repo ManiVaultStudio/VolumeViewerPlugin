@@ -1,7 +1,7 @@
 #include "DimensionAction.h"
 #include "RendererSettingsAction.h"
 #include "ViewerWidget.h"
-#include "Viewer3DPlugin.h"
+#include "VolumeViewerPlugin.h"
 #include <QtCore>
 #include <QtDebug>
 #include <QFileDialog>

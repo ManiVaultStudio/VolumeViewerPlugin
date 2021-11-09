@@ -15,7 +15,7 @@
 #include <QVTKOpenGLWidget.h>
 #include <vtkSmartVolumeMapper.h>   
 
-class Viewer3DPlugin;
+class VolumeViewerPlugin;
 using namespace hdps;
 
 class ViewerWidget : public QWidget
@@ -23,7 +23,7 @@ class ViewerWidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit ViewerWidget(Viewer3DPlugin& viewer3DPlugin, QWidget* parent = nullptr);
+    explicit ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* parent = nullptr);
     ~ViewerWidget();
 
     /** Set inital data in the viewerWidget  
@@ -67,7 +67,7 @@ private:
 
 
 protected:
-    Viewer3DPlugin& _viewer3DPlugin;
+    VolumeViewerPlugin& _VolumeViewerPlugin;
 };
 
 #endif // ViewerWidget_H

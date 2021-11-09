@@ -7,7 +7,7 @@
 using namespace hdps::gui;
 
 class RendererSettingsAction;
-class Viewer3DPlugin;
+class VolumeViewerPlugin;
 class ViewerWidget;
 
 /**

@@ -40,17 +40,17 @@ namespace hdps {
  *
  * @author Mitchell M. de Boer
  */
-class Viewer3DPlugin : public ViewPlugin
+class VolumeViewerPlugin : public ViewPlugin
 {
     Q_OBJECT
 
 public:
     /** Constructor */
-    Viewer3DPlugin(const hdps::plugin::PluginFactory* factory);
+    VolumeViewerPlugin(const hdps::plugin::PluginFactory* factory);
 
 public: // Inherited from ViewPlugin
 
-    ~Viewer3DPlugin() override = default;
+    ~VolumeViewerPlugin() override = default;
 
     /** Initializes the plugin */
     void init() override;
@@ -120,24 +120,24 @@ private:
  * Image viewer plugin factory class
  * A factory for creating image viewer plugin instances
  */
-class Viewer3DPluginFactory : public ViewPluginFactory
+class VolumeViewerPluginFactory : public ViewPluginFactory
 {
     Q_INTERFACES(hdps::plugin::ViewPluginFactory hdps::plugin::PluginFactory)
         Q_OBJECT
-        Q_PLUGIN_METADATA(IID "nl.tudelft.Viewer3DPlugin" FILE "Viewer3DPlugin.json")
+        Q_PLUGIN_METADATA(IID "nl.tudelft.VolumeViewerPlugin" FILE "VolumeViewerPlugin.json")
 
 public:
     /** Default constructor */
-    Viewer3DPluginFactory() {}
+    VolumeViewerPluginFactory() {}
 
     /** Destructor */
-    ~Viewer3DPluginFactory() override {}
+    ~VolumeViewerPluginFactory() override {}
 
     /** Returns the plugin icon */
     QIcon getIcon() const override;
 
     /** Creates an image viewer plugin instance */
-    Viewer3DPlugin* produce() override;
+    VolumeViewerPlugin* produce() override;
 
     hdps::DataTypes supportedDataTypes() const override;
 };

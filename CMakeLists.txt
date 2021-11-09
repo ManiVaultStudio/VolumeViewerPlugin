@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12.0)
 
-set(PROJECT "Viewer3DPlugin")
+set(PROJECT "VolumeViewerPlugin")
 
 PROJECT(${PROJECT})
 
@@ -29,8 +29,8 @@ file(TO_CMAKE_PATH $ENV{HDPS_INSTALL_DIR} INSTALL_DIR)
 
 set(PLUGIN
 	src/Common.h
-	src/Viewer3DPlugin.h
-	src/Viewer3DPlugin.cpp
+	src/VolumeViewerPlugin.h
+	src/VolumeViewerPlugin.cpp
 )
 
 

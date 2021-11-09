@@ -3,7 +3,7 @@
 /** Plugin headers */
 #include <ViewerWidget.h>
 #include <RendererSettingsAction.h>
-#include <Viewer3DPlugin.h>
+#include <VolumeViewerPlugin.h>
 /** HDPS headers */
 #include <util/DatasetRef.h>
 #include <PointData.h>
@@ -31,7 +31,7 @@ using namespace hdps;
 using namespace hdps::gui;
 
 
-ViewerWidget::ViewerWidget(Viewer3DPlugin& viewer3DPlugin, QWidget* parent) :
+ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* parent) :
 	QWidget(parent),
 	mRenderWindow(vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New()),
 	mRenderer(vtkSmartPointer<vtkRenderer>::New()),
@@ -39,7 +39,7 @@ ViewerWidget::ViewerWidget(Viewer3DPlugin& viewer3DPlugin, QWidget* parent) :
 	mInteractorStyle(vtkSmartPointer<vtkInteractorStyle>::New()),
 	numDimensions(),
 	numPoints(),
-	_viewer3DPlugin(viewer3DPlugin),
+	_VolumeViewerPlugin(VolumeViewerPlugin),
 	_openGLWidget()
 
 {
@@ -123,7 +123,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points points, int chosenDim
 	// Call renderData
 	ViewerWidget::renderData( planeCollection,  imageData, interpolationOption, colorMap);
 
-	// Return the imData object for later use in Viewer3DPlugin
+	// Return the imData object for later use in VolumeViewerPlugin
 	return imData;
 }
 	
@@ -135,7 +135,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	color->AddRGBPoint(0, 0, 0, 0);
 
 	
-	auto& colorMapAction = _viewer3DPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
+	auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
 
 	auto colorMapImage = colorMapAction.getColorMapImage();
 

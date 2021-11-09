@@ -5,7 +5,7 @@
 #include <QMimeData>
 #include <QLayout>
 /** Plugin headers*/
-#include "Viewer3DPlugin.h"
+#include "VolumeViewerPlugin.h"
 #include "ViewerWidget.h"
 #include <widgets/DropWidget.h>
 /** HDPS headers*/
@@ -19,7 +19,7 @@
 using namespace hdps;
 using namespace hdps::gui;
 
-Viewer3DPlugin::Viewer3DPlugin(const PluginFactory* factory) :
+VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
     _viewerWidget(nullptr),
     _selectionData(vtkSmartPointer<vtkImageData>::New()),
@@ -40,7 +40,7 @@ Viewer3DPlugin::Viewer3DPlugin(const PluginFactory* factory) :
     _interpolationOption("NN")
 {}
 
-void Viewer3DPlugin::init()
+void VolumeViewerPlugin::init()
 {
     // add the viewerwidget and dropwidget to the layout
     _viewerWidget = new ViewerWidget(*this);
@@ -693,26 +693,26 @@ void Viewer3DPlugin::init()
     });
 }
 
-void Viewer3DPlugin::reInitializeLayout(QHBoxLayout layout) {
+void VolumeViewerPlugin::reInitializeLayout(QHBoxLayout layout) {
 
 }
 
-hdps::CoreInterface* Viewer3DPlugin::getCore()
+hdps::CoreInterface* VolumeViewerPlugin::getCore()
 {
     return _core;
 }
 
-QIcon Viewer3DPluginFactory::getIcon() const
+QIcon VolumeViewerPluginFactory::getIcon() const
 {
     return hdps::Application::getIconFont("FontAwesome").getIcon("images");
 }
 
-Viewer3DPlugin* Viewer3DPluginFactory::produce()
+VolumeViewerPlugin* VolumeViewerPluginFactory::produce()
 {
-    return new Viewer3DPlugin(this);
+    return new VolumeViewerPlugin(this);
 }
 
-hdps::DataTypes Viewer3DPluginFactory::supportedDataTypes() const
+hdps::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
 {
     DataTypes supportedTypes;
     supportedTypes.append(PointType);
