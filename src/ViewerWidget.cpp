@@ -24,7 +24,6 @@
 #include <vtkPointData.h>
 #include <vtkActor.h>
 #include <vtkProperty.h>
-#include <vtkGUISupportQtModule.h>
 #include <vtkCamera.h>
 
 using namespace hdps;

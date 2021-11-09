@@ -17,7 +17,7 @@ if(MSVC)
 endif(MSVC)
 
 # vtk Dir build needs to be in the same mode as hdps is to be run. (for release hdps release vtk is needed)
-set(VTK_DIR $ENV{VTK_DIR})
+#set(VTK_DIR $ENV{VTK_DIR})
 find_package(VTK REQUIRED)
 include(${VTK_USE_FILE})
 
