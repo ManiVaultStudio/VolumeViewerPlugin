@@ -130,15 +130,19 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	// Empty the renderer to avoid overlapping visualizations
 	mRenderer->RemoveAllViewProps();
 
+    // create color transfer function
 	vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
 	color->AddRGBPoint(imData[0]->GetScalarRange()[0], 0, 0, 0);
 
-    
+    // Get the colormap action
 	auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
 
+    // get the colormap image
 	auto colorMapImage = colorMapAction.getColorMapImage();
 
+    // Loop to read in colors from the colormap qimage
 	for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
+        
 		const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
 		const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
 
@@ -197,43 +201,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// add the Opacity options to volumeproperty
 			volumeProperty->SetScalarOpacity(compositeOpacity);
 			
-			//if (colorMap == "BuYlRd") {
-			//	// Set BuYlRd color segment
-			//	color->AddRGBSegment(1, 0, 0, 1, 101 / 2, 1, 1, 0);
-			//	color->AddRGBSegment(101 / 2, 1, 1, 0, 100, 1, 0, 0);
-			//}else if (colorMap == "Gray to White") {
-			//	//Set gray to white rgb segment
-			//	color->AddRGBSegment(1, 0.1, 0.1, 0.1, 100, 1, 1, 1);		
-			//}else if(colorMap == "Qualitative"){
-			//	// Set transfer funtion for values
-			//	color->AddRGBSegment(1, 0, 0, 1, 10.9, 0, 0, 1);
-			//	color->AddRGBSegment(11, 255, 165, 0, 20.8, 255, 165, 0);
-			//	color->AddRGBSegment(20.9, 0,1,0, 30.7, 0,1,0);
-			//	color->AddRGBSegment(30.8, 1, 0, 0, 40.6, 1, 0, 0);
-			//	color->AddRGBSegment(40.7, 153, 50, 204, 50.5, 153, 50, 204);
-			//	color->AddRGBSegment(50.6, 139, 69, 19, 60.4, 139, 69, 19);
-			//	color->AddRGBSegment(60.5, 219, 112, 147, 70.3, 219, 112, 147);
-			//	color->AddRGBSegment(70.4, 0.5,0.5,0.5, 80.2, 0.5,0.5,0.5);
-			//	color->AddRGBSegment(80.3, 1, 1, 1, 90.1, 1, 1, 1);
-			//	color->AddRGBSegment(90.2, 0, 1, 0, 100, 0, 1, 0);
-			//}else if(colorMap == "GnYlRd"){
-			//	// Set transfer funtion for values
-			//	color->AddRGBSegment(1, 0, 1, 0, 101 / 2, 1, 1, 0);
-			//	color->AddRGBSegment(101 / 2, 1, 1, 0, 100, 1, 0, 0);
-			//	
-			//}else if (colorMap == "Spectral"){
-			//	// Set transfer funtion for values
-			//	color->AddRGBSegment(1, 1, 0, 1, 25.75, 0, 1, 0);
-			//	color->AddRGBSegment(25.75, 0, 0, 1, 50.5, 0, 1, 0);
-			//	color->AddRGBSegment(50.5, 0, 1, 0, 76.25, 1, 1, 0);
-			//	color->AddRGBSegment(76.25, 1, 1, 0, 100, 1, 0, 0);
-			//	
-			//}
-			//else {
-			//	qDebug() << "Invalid colormap, using default BuYlRd";
-			//	color->AddRGBSegment(1, 0, 0, 1, 101 / 2, 1, 1, 0);
-			//	color->AddRGBSegment(101 / 2, 1, 1, 0, 100, 1, 0, 0);
-			//}
+			
 			// add colortransferfunction to volumeproperty
 			volumeProperty->SetColor(color);
 			
@@ -252,53 +220,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// add opacity table to volumeproperty
 			volumeProperty->SetScalarOpacity(compositeOpacity);
 
-			// create color transfer function
 			
-			/*vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
-			color->AddRGBPoint(0, 0, 0, 0);
-			color->AddRGBSegment(1, 0, 0, 1, 101 / 2, 1, 1, 0);
-			*/
-			//if (colorMap == "BuYlRd") {
-			//	// Set BuYlRd color segment
-			//	color->AddRGBSegment(1, 0, 0, 1, 101 / 2, 1, 1, 0);
-			//	color->AddRGBSegment(101 / 2, 1, 1, 0, 100, 1, 0, 0);
-			//}
-			//else if (colorMap == "Gray to White") {
-			//	//Set gray to white rgb segment
-			//	color->AddRGBSegment(1, 0.1, 0.1, 0.1, 100, 1, 1, 1);
-			//}
-			//else if (colorMap == "Qualitative") {
-			//	// Set transfer funtion for values
-			//	color->AddRGBSegment(1, 0, 0, 1, 10.9, 0, 0, 1);
-			//	color->AddRGBSegment(11, 255, 165, 0, 20.8, 255, 165, 0);
-			//	color->AddRGBSegment(20.9, 0, 1, 0, 30.7, 0, 1, 0);
-			//	color->AddRGBSegment(30.8, 1, 0, 0, 40.6, 1, 0, 0);
-			//	color->AddRGBSegment(40.7, 153, 50, 204, 50.5, 153, 50, 204);
-			//	color->AddRGBSegment(50.6, 139, 69, 19, 60.4, 139, 69, 19);
-			//	color->AddRGBSegment(60.5, 219, 112, 147, 70.3, 219, 112, 147);
-			//	color->AddRGBSegment(70.4, 0.5, 0.5, 0.5, 80.2, 0.5, 0.5, 0.5);
-			//	color->AddRGBSegment(80.3, 1, 1, 1, 90.1, 1, 1, 1);
-			//	color->AddRGBSegment(90.2, 0, 1, 0, 100, 0, 1, 0);
-			//}
-			//else if (colorMap == "GnYlRd") {
-			//	// Set transfer funtion for values
-			//	color->AddRGBSegment(1, 0, 1, 0, 101 / 2, 1, 1, 0);
-			//	color->AddRGBSegment(101 / 2, 1, 1, 0, 100, 1, 0, 0);
-
-			//}
-			//else if (colorMap == "Spectral") {
-			//	// Set transfer funtion for values
-			//	color->AddRGBSegment(1, 1, 0, 1, 25.75, 0, 1, 0);
-			//	color->AddRGBSegment(25.75, 0, 0, 1, 50.5, 0, 1, 0);
-			//	color->AddRGBSegment(50.5, 0, 1, 0, 76.25, 1, 1, 0);
-			//	color->AddRGBSegment(76.25, 1, 1, 0, 100, 1, 0, 0);
-
-			//}
-			//else {
-			//	qDebug() << "Invalid colormap, using default BuYlRd";
-			//	color->AddRGBSegment(1, 0, 0, 1, 101 / 2, 1, 1, 0);
-			//	color->AddRGBSegment(101 / 2, 1, 1, 0, 100, 1, 0, 0);
-			//}
 			// add colortransferfunction to volumeproperty
 			volumeProperty->SetColor(color);
 
