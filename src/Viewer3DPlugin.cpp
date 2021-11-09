@@ -1,0 +1,720 @@
+/** General headers*/
+#include <vector>
+/** QT headers*/
+#include <QDebug>
+#include <QMimeData>
+#include <QLayout>
+/** Plugin headers*/
+#include "Viewer3DPlugin.h"
+#include "ViewerWidget.h"
+#include <widgets/DropWidget.h>
+/** HDPS headers*/
+#include <PointData.h>
+#include <ClusterData.h>
+#include <ColorData.h>
+/** VTK headers*/
+#include <vtkPlaneCollection.h>
+#include <vtkPlane.h>
+
+using namespace hdps;
+using namespace hdps::gui;
+
+Viewer3DPlugin::Viewer3DPlugin(const PluginFactory* factory) :
+    ViewPlugin(factory),
+    _viewerWidget(nullptr),
+    _selectionData(vtkSmartPointer<vtkImageData>::New()),
+    _imageData(vtkSmartPointer<vtkImageData>::New()),
+    // initiate a planeCollection for the SlicingAction
+    _planeCollection(vtkSmartPointer<vtkPlaneCollection>::New()),
+    _points(),
+    _rendererSettingsAction(this,_viewerWidget),
+    _currentDatasetName(),
+    _dropWidget(nullptr),
+    // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
+    _planeArray(std::vector<int>(3,0)), 
+    // boolian to indicate if data is loaded for selection visualization purposes
+    _dataLoaded(false),
+    // boolian to indicate if data has been selected in a scatterplot
+    _dataSelected(false),
+    // string variable to keep track of the interpolation option with default being Nearest Neighbor
+    _interpolationOption("NN")
+{}
+
+void Viewer3DPlugin::init()
+{
+    // add the viewerwidget and dropwidget to the layout
+    _viewerWidget = new ViewerWidget(*this);
+    _dropWidget = new DropWidget(_viewerWidget);
+    
+    auto layout = new QHBoxLayout();
+
+    layout->setMargin(0);
+    layout->setSpacing(0);
+    
+    layout->addWidget(_viewerWidget,1);
+    layout->addWidget(_rendererSettingsAction.createWidget(this));
+
+    setLayout(layout);
+    
+    // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
+    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(this, "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
+
+    // Initialize the drop regions
+    _dropWidget->initialize([this](const QMimeData* mimeData) -> DropWidget::DropRegions {
+
+        // A drop widget can contain zero or more drop regions
+        DropWidget::DropRegions dropRegions;
+
+        const auto mimeText = mimeData->text();
+        const auto tokens = mimeText.split("\n");
+
+        if (tokens.count() != 2)
+            return dropRegions;
+
+        // Gather information to generate appropriate drop regions
+        const auto datasetName = tokens[0];
+        const auto dataType = DataType(tokens[1]);
+        const auto dataTypes = DataTypes({ PointType });
+        const auto currentDatasetName = _points.getDatasetName();
+
+        // Visually indicate if the dataset is of the wrong data type and thus cannot be dropped
+        if (!dataTypes.contains(dataType)) {
+            dropRegions << new DropWidget::DropRegion(this, "Incompatible data", "This type of data is not supported", false);
+        }
+        else {
+
+            // Accept points datasets drag and drop
+            if (dataType == PointType) {
+                const auto candidateDataset = getCore()->requestData<Points>(datasetName);
+                const auto candidateDatasetName = candidateDataset.getName();
+                const auto description = QString("Visualize %1 as points or density/contour map").arg(candidateDatasetName);
+
+                if (!_points.isValid()) {
+                    dropRegions << new DropWidget::DropRegion(this, "Position", description, true, [this, candidateDatasetName]() {
+                        _points.setDatasetName(candidateDatasetName);
+                    });
+                }
+                else {
+                    if (candidateDatasetName == currentDatasetName) {
+                        dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", false);
+                    }
+                    else {
+                        const auto points = getCore()->requestData<Points>(currentDatasetName);
+
+                        if (points.getNumPoints() != candidateDataset.getNumPoints()) {
+                            dropRegions << new DropWidget::DropRegion(this, "Position", description, true, [this, candidateDatasetName]() {
+                                _points.setDatasetName(candidateDatasetName);
+                            });
+                        }
+                        else {
+                            dropRegions << new DropWidget::DropRegion(this, "Position", description, true, [this, candidateDatasetName]() {
+                                _points.setDatasetName(candidateDatasetName);
+                            });
+
+
+
+                        }
+                    }
+                }
+            }
+        }
+
+        return dropRegions;
+    });
+
+    // Respond when the name of the dataset in the dataset reference changes
+    connect(&_points, &DatasetRef<Points>::datasetNameChanged, this, [this, layout](const QString& oldDatasetName, const QString& newDatasetName) {
+
+        const auto candidateDataset = getCore()->requestData<Points>(newDatasetName); // Get the dataset that is dropped in the dropwindow
+        _currentDatasetName = newDatasetName; // store the current dataset name for future operations
+        int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
+        
+        // check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0
+        if (chosenDimension > candidateDataset.getNumDimensions() - 1) {
+            // pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
+            _imageData = _viewerWidget->setData(candidateDataset, 0, _interpolationOption, _colorMap);
+        }
+        else {
+            // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
+            _imageData = _viewerWidget->setData(candidateDataset, chosenDimension, _interpolationOption, _colorMap);
+        }
+
+        // set the maximum x, y and z values for the slicing options
+        _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]); 
+        _rendererSettingsAction.getSlicingAction().getYAxisPositionAction().setMaximum(_imageData->GetDimensions()[1]);
+        _rendererSettingsAction.getSlicingAction().getZAxisPositionAction().setMaximum(_imageData->GetDimensions()[2]);
+
+        // set the maximum dimensions for the dimension 
+        _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().setMaximum(candidateDataset.getNumDimensions()-1);
+        
+        
+        // notify that data is indeed loaded into the widget
+        _dataLoaded = true;
+
+    });
+
+    
+
+
+    // When the chosenDimension in the options menu is changed reinitiate the data and rerender with the new dimension
+    connect(&this->getRendererSettingsAction().getDimensionAction().getChosenDimensionAction(), &DecimalAction::valueChanged,  this, [this](const float& value) {
+        // check if there is a dataset loaded in
+        if (_currentDatasetName != NULL) {
+            // get the value of the chosenDimension
+            int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); 
+
+            // get the currentdataset using the stored dataset name
+            const auto candidateDataset = getCore()->requestData<Points>(_currentDatasetName);
+            
+            // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
+            _imageData = _viewerWidget->setData(candidateDataset, chosenDimension, _interpolationOption, _colorMap);
+
+            if (_dataSelected) {
+                // Get points dataset
+                const auto& changedDataSet = _core->requestData<Points>(_currentDatasetName);
+
+                // Get the selection set that changed
+                const auto& selectionSet = static_cast<Points&>(changedDataSet.getSelection());
+
+                // get selectionData
+                _selectionData = _viewerWidget->setSelectedData(_core->requestData<Points>(_currentDatasetName), selectionSet.indices, chosenDimension);
+
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                imData.push_back(_selectionData);
+                    
+
+                // Render the data with the current slicing planes and selections
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption,_colorMap);
+            }
+            else {
+                _imageData = _viewerWidget->setData(candidateDataset, chosenDimension, _interpolationOption, _colorMap);
+            }
+        }
+    });
+
+    // When the enable x, y and z Slicing are changed add or remove that slicing 
+
+    // xSlicing tickbox
+    connect(&this->getRendererSettingsAction().getSlicingAction().getXAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
+        // Check if te slicing is turned on or off
+       if (toggled) {
+           // check if ther is already a x slicing plane active, if so remove it
+           if (_planeArray[0] != 0) {
+               _planeCollection->RemoveItem(_planeArray[0] - 1);
+           }
+
+           // get the x value for which the slice needs to be performed
+           int value = _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().getValue();
+           
+           // Create a clipping plane for the xvalue
+           vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+           clipPlane->SetOrigin(value, 0.0, 0.0);
+           clipPlane->SetNormal(1, 0.0, 0.0);
+           
+           // add the plane to the to the collection
+           _planeCollection->AddItem(clipPlane);
+
+           // store the index+1 of the x slicing plane
+           _planeArray[0]=_planeCollection->GetNumberOfItems();
+
+           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich 
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+           std::vector<vtkSmartPointer<vtkImageData>> imData;
+           imData.push_back(_imageData);
+           if (_dataSelected) {
+               imData.push_back(_selectionData);
+           }
+
+           // Render the data with the current slicing planes
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+       }
+       else {
+           // if the toggle is unclicked remove the xclipping plane from the collection
+           _planeCollection->RemoveItem(_planeArray[0] - 1);
+
+           // due to the removal of the xPlane, if the was not the last item in the plane collection the others will slide back,
+           // to compensate this in the index tracker the following 2 if functions are created.
+           // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
+
+           // if the xPlane index was smaller than the yplane index and the yplaneindex is present, slide the yindex back 1 spot
+           if (_planeArray[0] < _planeArray[1] && _planeArray[1] != 0) {
+               _planeArray[1] = _planeArray[1] - 1;
+           }
+           // if the xPlane index was smaller than the yPlane index and the yplaneindex is present, slide the yindex back 1 spot
+           if (_planeArray[0] < _planeArray[2] && _planeArray[2] != 0) {
+               _planeArray[2] = _planeArray[2] - 1;
+           }
+
+           // Set the xPlane index to 0  (not active)
+           _planeArray[0] = 0;
+
+
+           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+           std::vector<vtkSmartPointer<vtkImageData>> imData;
+           imData.push_back(_imageData);
+           if (_dataSelected) {
+               imData.push_back(_selectionData);
+           }
+
+           // Render the data with the current slicing planes
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+       }
+	});
+    // ySlicing tickbox
+    connect(&this->getRendererSettingsAction().getSlicingAction().getYAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
+        // Check if te slicing is turned on or off
+        if (toggled) {
+           // check if ther is already a y slicing plane active, if so remove it
+
+           if (_planeArray[1] != 0) {
+               _planeCollection->RemoveItem(_planeArray[1] - 1);
+           }
+
+           // get the y value for which the slice needs to be performed
+           int value = _rendererSettingsAction.getSlicingAction().getYAxisPositionAction().getValue();
+
+           // Create a clipping plane for the yValue
+           vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+           clipPlane->SetOrigin(0.0, value, 0.0);
+           clipPlane->SetNormal(0, 1, 0.0);
+
+           // add the plane to the to the collection
+           _planeCollection->AddItem(clipPlane);
+
+           // store the index+1 of the y slicing plane
+           _planeArray[1] = _planeCollection->GetNumberOfItems();
+
+           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich 
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+           std::vector<vtkSmartPointer<vtkImageData>> imData;
+           imData.push_back(_imageData);
+           if (_dataSelected) {
+               imData.push_back(_selectionData);
+           }
+
+           // Render the data with the current slicing planes
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+       }
+       else {
+            // if the toggle is unclicked remove the yClipping plane from the collection
+           _planeCollection->RemoveItem(_planeArray[1] - 1);
+
+           // due to the removal of the yPlane, if the was not the last item in the plane collection the others will slide back,
+           // to compensate this in the index tracker the following 2 if functions are created.
+           // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
+
+           // if the yPlane index was smaller than the xPlane index and the yplaneindex is present, slide the xIndex back 1 spot
+           if (_planeArray[1] < _planeArray[0] && _planeArray[0] != 0) {
+               _planeArray[0] = _planeArray[0] - 1;
+           }
+           // if the yPlane index was smaller than the zPlane index and the zplaneindex is present, slide the zIndex back 1 spot
+           if (_planeArray[1] < _planeArray[2] && _planeArray[2] != 0) {
+               _planeArray[2] = _planeArray[2] - 1;
+           }
+
+           // Set the yPlane index to 0  (not active)
+           _planeArray[1] = 0;
+
+           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+           std::vector<vtkSmartPointer<vtkImageData>> imData;
+           imData.push_back(_imageData);
+           if (_dataSelected) {
+               imData.push_back(_selectionData);
+           }
+
+           // Render the data with the current slicing planes
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+       }
+   });
+    // zSlicing tickbox
+    connect(&this->getRendererSettingsAction().getSlicingAction().getZAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
+        // Check if te slicing is turned on or off
+        if (toggled) {
+            // check if ther is already a z slicing plane active, if so remove it
+           if (_planeArray[2] != 0) {
+               _planeCollection->RemoveItem(_planeArray[2] - 1);
+           }
+
+           // get the z value for which the slice needs to be performed
+           int value = _rendererSettingsAction.getSlicingAction().getZAxisPositionAction().getValue();
+
+           // Create a clipping plane for the zValue
+           vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+           clipPlane->SetOrigin(0.0, 0.0, value);
+           clipPlane->SetNormal(0, 0.0, 1);
+
+           // add the plane to the to the collection
+           _planeCollection->AddItem(clipPlane);
+
+           // store the index+1 of the z slicing plane
+           _planeArray[2] = _planeCollection->GetNumberOfItems();
+
+           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+           std::vector<vtkSmartPointer<vtkImageData>> imData;
+           imData.push_back(_imageData);
+           if (_dataSelected) {
+               imData.push_back(_selectionData);
+           }
+
+           // Render the data with the current slicing planes
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+       }
+       else {
+            // if the toggle is unclicked remove the yClipping plane from the collection
+           _planeCollection->RemoveItem(_planeArray[2] - 1);
+
+           // due to the removal of the yPlane, if the was not the last item in the plane collection the others will slide back,
+          // to compensate this in the index tracker the following 2 if functions are created.
+          // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
+
+           // if the zPlane index was smaller than the xPlane index and the yplaneindex is present, slide the xIndex back 1 spot
+           if (_planeArray[2] < _planeArray[0] && _planeArray[0] != 0) {
+               _planeArray[0] = _planeArray[0] - 1;
+           }
+           // if the zPlane index was smaller than the yPlane index and the zplaneindex is present, slide the yIndex back 1 spot
+           if (_planeArray[2] < _planeArray[1] && _planeArray[1] != 0) {
+               _planeArray[1] = _planeArray[1] - 1;
+           }
+
+           // Set the zPlane index to 0  (not active)
+           _planeArray[2] = 0;
+
+           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+           std::vector<vtkSmartPointer<vtkImageData>> imData;
+           imData.push_back(_imageData);
+           if (_dataSelected) {
+               imData.push_back(_selectionData);
+           }
+
+           // Render the data with the current slicing planes
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+       }
+   });
+
+    // When the value of the x,y and z slicing sliders are changed change the slicing index if the tickbox is ticked
+
+    // xSlicing slider
+    connect(&this->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
+        // get the current value of the xSlicing tickbox
+        bool toggled = _rendererSettingsAction.getSlicingAction().getXToggled();
+
+        // if the tickbox is enabled perform the slicing change
+        if (toggled) {
+            // check if ther is already a x slicing plane active, if so remove it
+            if (_planeArray[0] != 0) {
+                _planeCollection->RemoveItem(_planeArray[0] - 1);
+            }
+
+            // convert float value to integer
+            int intValue = value;
+
+            // Create a clipping plane for the xValue
+            vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+            clipPlane->SetOrigin(intValue, 0.0, 0.0);
+            clipPlane->SetNormal(1, 0.0, 0.0);
+
+
+            // add the plane to the to the collection
+            _planeCollection->AddItem(clipPlane);
+
+            // store the index+1 of the x slicing plane
+            _planeArray[0] = _planeCollection->GetNumberOfItems();
+
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+            */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+
+            // Render the data with the current slicing planes
+            _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+        }
+    });
+    // xSlicing slider
+    connect(&this->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
+        // get the current value of the ySlicing tickbox
+        bool toggled = _rendererSettingsAction.getSlicingAction().getYToggled();
+
+        // if the tickbox is enabled perform the slicing change
+        if (toggled) {
+            // check if ther is already a y slicing plane active, if so remove it
+            if (_planeArray[1] != 0) {
+                 _planeCollection->RemoveItem(_planeArray[1] - 1);
+            }
+
+            // convert float value to integer
+            int intValue = value;
+
+            // Create a clipping plane for the yValue
+            vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+            clipPlane->SetOrigin(0.0, intValue,  0.0);
+            clipPlane->SetNormal(0.0, 1,  0.0);
+
+            // add the plane to the to the collection
+            _planeCollection->AddItem(clipPlane);
+
+            // store the index+1 of the y slicing plane
+            _planeArray[1] = _planeCollection->GetNumberOfItems();
+
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+            */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+               imData.push_back(_selectionData);
+            }
+
+            // Render the data with the current slicing planes
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
+        }
+     });
+    // xSlicing slider
+    connect(&this->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
+        // get the current value of the zSlicing tickbox
+        bool toggled = _rendererSettingsAction.getSlicingAction().getZToggled();
+        
+        // if the tickbox is enabled perform the slicing change
+        if (toggled) {
+            // check if ther is already a z slicing plane active, if so remove it
+            if (_planeArray[2] != 0) {
+                _planeCollection->RemoveItem(_planeArray[2] - 1);
+            }
+
+            // convert float value to integer
+            int intValue = value;
+
+            // Create a clipping plane for the zValue
+            vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+            clipPlane->SetOrigin(0.0, 0.0, intValue);
+            clipPlane->SetNormal(0.0, 0.0, 1);
+
+            // add the plane to the to the collection
+            _planeCollection->AddItem(clipPlane);
+
+            // store the index+1 of the y slicing plane
+            _planeArray[2] = _planeCollection->GetNumberOfItems();
+
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+            */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+
+            // Render the data with the current slicing planes
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
+        } 
+      
+    });
+
+    // Interpolation Selector
+    connect(&this->getRendererSettingsAction().getColoringAction().getInterpolationAction(), &OptionAction::currentTextChanged, this, [this](const QString& interpolType) {
+        // change the interpolation type for the colormap, nearest neighbor is best for inspecting transition from object to nonobject due to the transition artifact that appears in linear and cubic
+        // however linear and cubic give a better looking representation of a sliced object
+        std::string type = interpolType.toStdString();
+        if (type == "Nearest Neighbor") {
+            qDebug() << "Changed interpolation type to: NEAREST NEIGHBOR";
+            _interpolationOption = "NN";
+        }
+        else if (type == "Linear") {
+            
+            qDebug() <<  "Changed interpolation type to: LINEAR";
+            _interpolationOption = "LIN";
+        }
+        else if (type == "Cubic") {
+            qDebug() <<  "Changed interpolation type to: CUBIC";
+            _interpolationOption = "CUBE";
+        }
+        else {
+            qDebug() << "Invalid interpolationtype, using default Nearest Neighbor";
+            _interpolationOption = "NN";
+        }
+        if (_dataLoaded) {
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
+        }
+    });
+
+    // Colormap Selector
+    connect(&this->getRendererSettingsAction().getColoringAction().getColorAction(), &OptionAction::currentTextChanged, this, [this](const QString& colorMap) {
+        // change the interpolation type for the colormap, nearest neighbor is best for inspecting transition from object to nonobject due to the transition artifact that appears in linear and cubic
+        // however linear and cubic give a better looking representation of a sliced object
+        std::string type = colorMap.toStdString();
+        if (type == "BuYlRd") {
+            qDebug() << "Changed colormap type to: BuYlRd";
+            _colorMap = "BuYlRd";
+        }
+        else if (type == "Gray to White") {
+
+            qDebug() << "Changed interpolation type to: Gray to White";
+            _colorMap = "Gray to White";
+        }
+        else if (type == "Qualitative") {
+            qDebug() << "Changed interpolation type to: Qualitative";
+            _colorMap = "Qualitative";
+        }
+        else if (type == "GnYlRd") {
+            qDebug() << "Changed interpolation type to: GnYlRd";
+            _colorMap = "GnYlRd";
+        }
+        else if (type == "Spectral") {
+            qDebug() << "Changed interpolation type to: Spectral";
+            _colorMap = "Spectral";
+        }
+        else {
+            qDebug() << "Invalid colormap, using default BuYlRd";
+            _colorMap = "BuYlRd";
+        }
+        if (_dataLoaded) {
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
+        }
+    });
+
+    connect(&getRendererSettingsAction().getColoringAction().getColorMapAction(), &ColorMapAction::imageChanged, this, [this](const QImage& colorMapImage) {
+
+        if (_dataLoaded) {
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
+        }
+    });
+
+    // create the selection visualization if a data selectionchanged event is triggered
+    registerDataEventByType(PointType, [this](DataEvent* dataEvent) {
+
+        switch (dataEvent->getType())
+        {
+        case EventType::SelectionChanged:
+        {
+            // if data is loaded
+            if (_dataLoaded) {
+
+                // Cast the data event to a selection changed event
+                const auto selectionChangedEvent = static_cast<SelectionChangedEvent*>(dataEvent);
+
+                // Get the name of the points dataset of which the selection changed
+                const auto pointsDatasetName = selectionChangedEvent->dataSetName;
+
+                // Get points dataset
+                const auto& changedDataSet = _core->requestData<Points>(dataEvent->dataSetName);
+
+                // Get the selection set that changed
+                const auto& selectionSet = static_cast<Points&>(changedDataSet.getSelection());
+
+                // Get ChosenDimension
+                int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue();
+                // create a selectiondata imagedata object with 0 values for all non selected items
+                _selectionData = _viewerWidget->setSelectedData(_core->requestData<Points>(_currentDatasetName), selectionSet.indices, chosenDimension);
+
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+
+                // if the selection is not empty add the selection to the vector 
+                if (selectionSet.indices.size() != 0) {
+                    imData.push_back(_selectionData);
+                    _dataSelected = true;
+                }
+                else {
+                    _dataSelected = false;
+                }
+
+                // Render the data with the current slicing planes and selections
+                _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+                
+                
+            }
+            
+            break;
+        }
+        default:
+            break;
+        }
+    });
+}
+
+void Viewer3DPlugin::reInitializeLayout(QHBoxLayout layout) {
+
+}
+
+hdps::CoreInterface* Viewer3DPlugin::getCore()
+{
+    return _core;
+}
+
+QIcon Viewer3DPluginFactory::getIcon() const
+{
+    return hdps::Application::getIconFont("FontAwesome").getIcon("images");
+}
+
+Viewer3DPlugin* Viewer3DPluginFactory::produce()
+{
+    return new Viewer3DPlugin(this);
+}
+
+hdps::DataTypes Viewer3DPluginFactory::supportedDataTypes() const
+{
+    DataTypes supportedTypes;
+    supportedTypes.append(PointType);
+    return supportedTypes;
+}
