@@ -574,50 +574,7 @@ void VolumeViewerPlugin::init()
         }
     });
 
-    // Colormap Selector
-    connect(&this->getRendererSettingsAction().getColoringAction().getColorAction(), &OptionAction::currentTextChanged, this, [this](const QString& colorMap) {
-        // change the interpolation type for the colormap, nearest neighbor is best for inspecting transition from object to nonobject due to the transition artifact that appears in linear and cubic
-        // however linear and cubic give a better looking representation of a sliced object
-        std::string type = colorMap.toStdString();
-        if (type == "BuYlRd") {
-            qDebug() << "Changed colormap type to: BuYlRd";
-            _colorMap = "BuYlRd";
-        }
-        else if (type == "Gray to White") {
-
-            qDebug() << "Changed interpolation type to: Gray to White";
-            _colorMap = "Gray to White";
-        }
-        else if (type == "Qualitative") {
-            qDebug() << "Changed interpolation type to: Qualitative";
-            _colorMap = "Qualitative";
-        }
-        else if (type == "GnYlRd") {
-            qDebug() << "Changed interpolation type to: GnYlRd";
-            _colorMap = "GnYlRd";
-        }
-        else if (type == "Spectral") {
-            qDebug() << "Changed interpolation type to: Spectral";
-            _colorMap = "Spectral";
-        }
-        else {
-            qDebug() << "Invalid colormap, using default BuYlRd";
-            _colorMap = "BuYlRd";
-        }
-        if (_dataLoaded) {
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
-        }
-    });
+    
 
     connect(&getRendererSettingsAction().getColoringAction().getColorMapAction(), &ColorMapAction::imageChanged, this, [this](const QImage& colorMapImage) {
 
@@ -660,6 +617,9 @@ void VolumeViewerPlugin::init()
 
                 // Get ChosenDimension
                 int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue();
+
+                const auto backGroundValue = _imageData->GetScalarRange()[0];
+
                 // create a selectiondata imagedata object with 0 values for all non selected items
                 _selectionData = _viewerWidget->setSelectedData(_core->requestData<Points>(_currentDatasetName), selectionSet.indices, chosenDimension);
 

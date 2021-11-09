@@ -30,14 +30,12 @@ public:
 
 public: /** Action getters */
 
-    OptionAction& getColorAction() { return _colorAction; }
     OptionAction& getInterpolationAction() { return  _colorInterpolationAction; }
     ColorMapAction& getColorMapAction() { return  _colorMapAction; }
 
 
 protected:
     RendererSettingsAction&     _rendererSettingsAction;        /** Reference to renderer settings action */
-    OptionAction                _colorAction;                   /** Color map action */
     OptionAction                _colorInterpolationAction;      /** Option menu for selecting interpolation mode*/
-    ColorMapAction              _colorMapAction;                 /** Color map Action 2*/
+    ColorMapAction              _colorMapAction;                 /** Color map Action */
 };

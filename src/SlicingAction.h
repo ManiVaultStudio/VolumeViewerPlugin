@@ -44,7 +44,7 @@ public: /** Action getters */
 
 protected:
     RendererSettingsAction&     _rendererSettingsAction;        /** Reference to renderer settings action */
-    ViewerWidget*               _viewerWidget;
+    
     ToggleAction                _xAxisEnabledAction;            /** X-axis enabled action */
     DecimalAction               _xAxisPositionAction;           /** X-axis position action */
     ToggleAction                _yAxisEnabledAction;            /** Y-axis enabled action */

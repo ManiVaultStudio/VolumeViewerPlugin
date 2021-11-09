@@ -132,9 +132,9 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	mRenderer->RemoveAllViewProps();
 
 	vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
-	color->AddRGBPoint(0, 0, 0, 0);
+	color->AddRGBPoint(imData[0]->GetScalarRange()[0], 0, 0, 0);
 
-	
+    
 	auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
 
 	auto colorMapImage = colorMapAction.getColorMapImage();
@@ -143,7 +143,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 		const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
 		const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
 
-		color->AddRGBPoint(normalizedPixelX * 100.0, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
+		color->AddRGBPoint(normalizedPixelX * imData[0]->GetScalarRange()[1], pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
 
 		
 	}
@@ -184,16 +184,16 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// Create piecewise function for opacity table
 			vtkSmartPointer<vtkPiecewiseFunction> compositeOpacity = vtkSmartPointer<vtkPiecewiseFunction>::New();
 			// Set the opacity of the non-object voxels to 0
-			compositeOpacity->AddPoint(0.000, 0);
+			compositeOpacity->AddPoint(imData[0]->GetScalarRange()[0], 0);
 
 			// Checks if there is 1 or 2 objects in the imdata vector
 			if (imData.size() < 2) {
 				// if only 1 object is present then the opacity of all data is set to opague
-				compositeOpacity->AddSegment(1, 1 , 100 ,1);
+				compositeOpacity->AddSegment(imData[0]->GetScalarRange()[0]+1, 1 , imData[0]->GetScalarRange()[1],1);
 			}
 			else {
 				// if there are 2 objects (so also dataSelected) then the fulldata opacity is set to be semi-translucent
-				compositeOpacity->AddSegment(1, 0.02, 100, 0.02);
+				compositeOpacity->AddSegment(imData[0]->GetScalarRange()[0]+1, 0.02, imData[0]->GetScalarRange()[1], 0.02);
 			}
 			// add the Opacity options to volumeproperty
 			volumeProperty->SetScalarOpacity(compositeOpacity);
@@ -246,9 +246,9 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// Create piecewise function for opacity table
 			vtkSmartPointer<vtkPiecewiseFunction> compositeOpacity = vtkSmartPointer<vtkPiecewiseFunction>::New();
 			// Set object values as opague
-			compositeOpacity->AddSegment(1, 1, 100, 1);
+			compositeOpacity->AddSegment(imData[0]->GetScalarRange()[0]+1, 1, imData[0]->GetScalarRange()[1], 1);
 			// Set non-object values as seethrough
-			compositeOpacity->AddPoint(0, 0);
+			compositeOpacity->AddPoint(imData[0]->GetScalarRange()[0], 0);
 
 			// add opacity table to volumeproperty
 			volumeProperty->SetScalarOpacity(compositeOpacity);
@@ -344,6 +344,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points points, std::
 	imData->SetDimensions(xSize, ySize, zSize);
 	imData->AllocateScalars(VTK_FLOAT, 1);
 
+  
 	
 	// Set the number of values in the dataArray equal to the number of points in the pointsdataset
 	dataArray->SetNumberOfValues(numPoints);
@@ -352,6 +353,25 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points points, std::
 	int j = 0;
 	// Counter for the number of selected datapoints to avoid overflowing selectionIndices vector
 	int numSelectedLoaded = 0;
+
+    bool firstRead = false;
+
+    auto backgroundValue = points.getValueAt(0);
+
+    // loop over the number of values in the pointsdata and find minimum values for current dimension to set background color
+    for (int i = 0; i < numPoints * numDimensions; i++) {
+        // The remainder of the current value divided by the number of dimensions is the current dimension
+        dim = i % numDimensions;
+
+        if (chosenDim == dim) {
+            if (!firstRead || points.getValueAt(i)<backgroundValue) {
+
+                firstRead = true;
+
+                backgroundValue = points.getValueAt(i);
+            }
+        }
+    }
 	
 	// loop over the number of values in the pointsdata and write values into the dataArray if the current dimension  equals the chosen dimension and the selected indices
 	for (int i = 0; i < numPoints * numDimensions; i++) {
@@ -370,12 +390,12 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points points, std::
 				}
 				else {
 					// all other indices are non-Object
-					dataArray->SetValue(j, 0);
+					dataArray->SetValue(j, backgroundValue);
 				}
 			}
 			else {
 				// all other indices are non-Object
-				dataArray->SetValue(j, 0);
+				dataArray->SetValue(j, backgroundValue);
 			}
 
 			
