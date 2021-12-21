@@ -4,7 +4,7 @@
 #include <QWidget>
 #include <QResizeEvent>
 /**  HDPS headers*/
-#include <util/DatasetRef.h>
+#include <Dataset.h>
 #include <PointData.h>
 /** VTk headers*/
 #include <vtkGenericOpenGLRenderWindow.h>
@@ -29,7 +29,7 @@ public:
     /** Set inital data in the viewerWidget  
     *   The chosenDim input is an integer indicating which dimension is to be visualized, starting from 0.
     */
-    vtkSmartPointer<vtkImageData> setData(Points data, int chosenDim, std::string interpolationOption, std::string colorMap);
+    vtkSmartPointer<vtkImageData> setData(Points& data, int chosenDim, std::string interpolationOption, std::string colorMap);
 
     /** Renders the data
     *   This function requires a planecollection to indicate where slicing needs to take place
@@ -43,7 +43,7 @@ public:
     *   Next to the points data, an array containing the selected indices is also needed.
     *   The chosenDim input is an integer indicating which dimension is to be visualized, starting from 0.
     */
-    vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim);
+    vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim);
 
    
     void resizeEvent(QResizeEvent* e) override {

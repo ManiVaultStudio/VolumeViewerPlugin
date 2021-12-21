@@ -5,7 +5,7 @@
 #include <RendererSettingsAction.h>
 #include <VolumeViewerPlugin.h>
 /** HDPS headers */
-#include <util/DatasetRef.h>
+#include <Dataset.h>
 #include <PointData.h>
 /** QT headers */
 #include <qwidget.h>
@@ -63,20 +63,20 @@ ViewerWidget::~ViewerWidget()
 
 }
 
-vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points points, int chosenDim, std::string interpolationOption, std::string colorMap)
+vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim, std::string interpolationOption, std::string colorMap)
 {
 	// get number of points from points dataset
-	numPoints = points.getNumPoints();
+	numPoints = data.getNumPoints();
 
 	// get number of dimensions from points dataset
-	numDimensions = points.getNumDimensions();
+	numDimensions = data.getNumDimensions();
 
 	// get x, y and z size from the points dataset
-	QVariant xQSize = points.getProperty("xDim");
+	QVariant xQSize = data.getProperty("xDim");
 	int xSize = xQSize.toInt();
-	QVariant yQSize = points.getProperty("yDim");
+	QVariant yQSize = data.getProperty("yDim");
 	int ySize = yQSize.toInt();
-	QVariant zQSize = points.getProperty("zDim");
+	QVariant zQSize = data.getProperty("zDim");
 	int zSize = zQSize.toInt();
 	
 	int dim;
@@ -101,7 +101,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points points, int chosenDim
 		dim = i % numDimensions;
 		if (chosenDim == dim) {
 			// write value into the dataArray
-			dataArray->SetValue(j, points.getValueAt(i));
+			dataArray->SetValue(j, data.getValueAt(i));
 			j++;
 		}
 	}
@@ -246,7 +246,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 
 }
 
-vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim) {
+vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim) {
 	// get x, y and z size from the points dataset
 	QVariant xQSize = points.getProperty("xDim");
 	int xSize = xQSize.toInt();

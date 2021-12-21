@@ -8,6 +8,7 @@
 #include "VolumeViewerPlugin.h"
 #include "ViewerWidget.h"
 #include <widgets/DropWidget.h>
+
 /** HDPS headers*/
 #include <PointData.h>
 #include <ClusterData.h>
@@ -68,14 +69,13 @@ void VolumeViewerPlugin::init()
         const auto mimeText = mimeData->text();
         const auto tokens = mimeText.split("\n");
 
-        if (tokens.count() != 2)
+        if (tokens.count() != 3)
             return dropRegions;
 
         // Gather information to generate appropriate drop regions
-        const auto datasetName = tokens[0];
-        const auto dataType = DataType(tokens[1]);
+        const auto datasetGuid = tokens[1];
+        const auto dataType = DataType(tokens[2]);
         const auto dataTypes = DataTypes({ PointType });
-        const auto currentDatasetName = _points.getDatasetName();
 
         // Visually indicate if the dataset is of the wrong data type and thus cannot be dropped
         if (!dataTypes.contains(dataType)) {
@@ -85,35 +85,23 @@ void VolumeViewerPlugin::init()
 
             // Accept points datasets drag and drop
             if (dataType == PointType) {
-                const auto candidateDataset = getCore()->requestData<Points>(datasetName);
-                const auto candidateDatasetName = candidateDataset.getName();
-                const auto description = QString("Visualize %1 as points or density/contour map").arg(candidateDatasetName);
+                const auto candidateDataset = getCore()->requestDataset<Points>(datasetGuid);
+                //const auto candidateDatasetName = candidateDataset.getName();
+                const auto description = QString("Visualize %1 as voxels").arg(candidateDataset->getGuiName());
 
                 if (!_points.isValid()) {
-                    dropRegions << new DropWidget::DropRegion(this, "Position", description, true, [this, candidateDatasetName]() {
-                        _points.setDatasetName(candidateDatasetName);
+                    dropRegions << new DropWidget::DropRegion(this, "Position", description, "cube", true, [this, candidateDataset]() {
+                        _points = candidateDataset;
                     });
                 }
                 else {
-                    if (candidateDatasetName == currentDatasetName) {
-                        dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", false);
+                    if (candidateDataset == _points) {
+                        dropRegions << new DropWidget::DropRegion(this, "Warning", "Data already loaded", "exclamation-circle", false);
                     }
                     else {
-                        const auto points = getCore()->requestData<Points>(currentDatasetName);
-
-                        if (points.getNumPoints() != candidateDataset.getNumPoints()) {
-                            dropRegions << new DropWidget::DropRegion(this, "Position", description, true, [this, candidateDatasetName]() {
-                                _points.setDatasetName(candidateDatasetName);
-                            });
-                        }
-                        else {
-                            dropRegions << new DropWidget::DropRegion(this, "Position", description, true, [this, candidateDatasetName]() {
-                                _points.setDatasetName(candidateDatasetName);
-                            });
-
-
-
-                        }
+                        dropRegions << new DropWidget::DropRegion(this, "Voxels", description, "cube", true, [this, candidateDataset]() {
+                            _points = candidateDataset;
+                        });
                     }
                 }
             }
@@ -123,20 +111,18 @@ void VolumeViewerPlugin::init()
     });
 
     // Respond when the name of the dataset in the dataset reference changes
-    connect(&_points, &DatasetRef<Points>::datasetNameChanged, this, [this, layout](const QString& oldDatasetName, const QString& newDatasetName) {
+    connect(&_points, &Dataset<Points>::changed, this, [this, layout]() {
 
-        const auto candidateDataset = getCore()->requestData<Points>(newDatasetName); // Get the dataset that is dropped in the dropwindow
-        _currentDatasetName = newDatasetName; // store the current dataset name for future operations
         int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
         
         // check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0
-        if (chosenDimension > candidateDataset.getNumDimensions() - 1) {
+        if (chosenDimension > _points->getNumDimensions() - 1) {
             // pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
-            _imageData = _viewerWidget->setData(candidateDataset, 0, _interpolationOption, _colorMap);
+            _imageData = _viewerWidget->setData(*_points, 0, _interpolationOption, _colorMap);
         }
         else {
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
-            _imageData = _viewerWidget->setData(candidateDataset, chosenDimension, _interpolationOption, _colorMap);
+            _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
         }
 
         // set the maximum x, y and z values for the slicing options
@@ -145,7 +131,7 @@ void VolumeViewerPlugin::init()
         _rendererSettingsAction.getSlicingAction().getZAxisPositionAction().setMaximum(_imageData->GetDimensions()[2]);
 
         // set the maximum dimensions for the dimension 
-        _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().setMaximum(candidateDataset.getNumDimensions()-1);
+        _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().setMaximum(_points->getNumDimensions()-1);
         
         
         // notify that data is indeed loaded into the widget
@@ -163,21 +149,16 @@ void VolumeViewerPlugin::init()
             // get the value of the chosenDimension
             int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); 
 
-            // get the currentdataset using the stored dataset name
-            const auto candidateDataset = getCore()->requestData<Points>(_currentDatasetName);
-            
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
-            _imageData = _viewerWidget->setData(candidateDataset, chosenDimension, _interpolationOption, _colorMap);
+            _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
 
             if (_dataSelected) {
-                // Get points dataset
-                const auto& changedDataSet = _core->requestData<Points>(_currentDatasetName);
 
                 // Get the selection set that changed
-                const auto& selectionSet = static_cast<Points&>(changedDataSet.getSelection());
+                const auto& selectionSet = _points->getSelection<Points>();
 
                 // get selectionData
-                _selectionData = _viewerWidget->setSelectedData(_core->requestData<Points>(_currentDatasetName), selectionSet.indices, chosenDimension);
+                _selectionData = _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
 
                 /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
                 *   Vector is needed due to the possibility of having data selected in a scatterplot wich
@@ -192,7 +173,7 @@ void VolumeViewerPlugin::init()
                 _viewerWidget->renderData(_planeCollection, imData, _interpolationOption,_colorMap);
             }
             else {
-                _imageData = _viewerWidget->setData(candidateDataset, chosenDimension, _interpolationOption, _colorMap);
+                _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
             }
         }
     });
@@ -593,62 +574,42 @@ void VolumeViewerPlugin::init()
         }
     });
 
-    // create the selection visualization if a data selectionchanged event is triggered
-    registerDataEventByType(PointType, [this](DataEvent* dataEvent) {
+    connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this]{
 
-        switch (dataEvent->getType())
-        {
-        case EventType::SelectionChanged:
-        {
-            // if data is loaded
-            if (_dataLoaded) {
+        // if data is loaded
+        if (_dataLoaded) {
 
-                // Cast the data event to a selection changed event
-                const auto selectionChangedEvent = static_cast<SelectionChangedEvent*>(dataEvent);
+            // Get the selection set that changed
+            const auto& selectionSet = _points->getSelection<Points>();
 
-                // Get the name of the points dataset of which the selection changed
-                const auto pointsDatasetName = selectionChangedEvent->dataSetName;
+            // Get ChosenDimension
+            int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue();
 
-                // Get points dataset
-                const auto& changedDataSet = _core->requestData<Points>(dataEvent->dataSetName);
+            const auto backGroundValue = _imageData->GetScalarRange()[0];
 
-                // Get the selection set that changed
-                const auto& selectionSet = static_cast<Points&>(changedDataSet.getSelection());
+            // create a selectiondata imagedata object with 0 values for all non selected items
+            _selectionData = _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
 
-                // Get ChosenDimension
-                int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue();
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+            */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
 
-                const auto backGroundValue = _imageData->GetScalarRange()[0];
-
-                // create a selectiondata imagedata object with 0 values for all non selected items
-                _selectionData = _viewerWidget->setSelectedData(_core->requestData<Points>(_currentDatasetName), selectionSet.indices, chosenDimension);
-
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-
-                // if the selection is not empty add the selection to the vector 
-                if (selectionSet.indices.size() != 0) {
-                    imData.push_back(_selectionData);
-                    _dataSelected = true;
-                }
-                else {
-                    _dataSelected = false;
-                }
-
-                // Render the data with the current slicing planes and selections
-                _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
-                
-                
+            // if the selection is not empty add the selection to the vector 
+            if (selectionSet->indices.size() != 0) {
+                imData.push_back(_selectionData);
+                _dataSelected = true;
             }
-            
-            break;
-        }
-        default:
-            break;
+            else {
+                _dataSelected = false;
+            }
+
+            // Render the data with the current slicing planes and selections
+            _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+                
+                
         }
     });
 }
