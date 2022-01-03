@@ -45,12 +45,9 @@ public:
     */
     vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim);
 
-   
     void resizeEvent(QResizeEvent* e) override {
         _openGLWidget->setFixedSize(e->size());
     }
-   
-    
 
 private:
     QVTKOpenGLWidget* _openGLWidget;                                /** OpenGl Widget for rendering*/
@@ -60,11 +57,6 @@ private:
     vtkSmartPointer<vtkInteractorStyle> mInteractorStyle;           /** interactorStyle*/
     int numPoints;                                                  /** Number of points in current dataset*/
     int numDimensions;                                              /** Number of dimensions in current dataset*/
-    
-    
-
-
-
 
 protected:
     VolumeViewerPlugin& _VolumeViewerPlugin;

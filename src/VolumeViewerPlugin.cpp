@@ -29,7 +29,6 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _planeCollection(vtkSmartPointer<vtkPlaneCollection>::New()),
     _points(),
     _rendererSettingsAction(this,_viewerWidget),
-    _currentDatasetName(),
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
     _planeArray(std::vector<int>(3,0)), 
@@ -46,7 +45,7 @@ void VolumeViewerPlugin::init()
     // add the viewerwidget and dropwidget to the layout
     _viewerWidget = new ViewerWidget(*this);
     _dropWidget = new DropWidget(_viewerWidget);
-    
+
     auto layout = new QHBoxLayout();
 
     layout->setMargin(0);
@@ -82,7 +81,6 @@ void VolumeViewerPlugin::init()
             dropRegions << new DropWidget::DropRegion(this, "Incompatible data", "This type of data is not supported", false);
         }
         else {
-
             // Accept points datasets drag and drop
             if (dataType == PointType) {
                 const auto candidateDataset = getCore()->requestDataset<Points>(datasetGuid);
@@ -106,7 +104,6 @@ void VolumeViewerPlugin::init()
                 }
             }
         }
-
         return dropRegions;
     });
 
@@ -133,19 +130,14 @@ void VolumeViewerPlugin::init()
         // set the maximum dimensions for the dimension 
         _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().setMaximum(_points->getNumDimensions()-1);
         
-        
         // notify that data is indeed loaded into the widget
         _dataLoaded = true;
-
     });
-
-    
-
 
     // When the chosenDimension in the options menu is changed reinitiate the data and rerender with the new dimension
     connect(&this->getRendererSettingsAction().getDimensionAction().getChosenDimensionAction(), &DecimalAction::valueChanged,  this, [this](const float& value) {
         // check if there is a dataset loaded in
-        if (_currentDatasetName != NULL) {
+        if (_dataLoaded) {
             // get the value of the chosenDimension
             int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); 
 
@@ -168,7 +160,6 @@ void VolumeViewerPlugin::init()
                 imData.push_back(_imageData);
                 imData.push_back(_selectionData);
                     
-
                 // Render the data with the current slicing planes and selections
                 _viewerWidget->renderData(_planeCollection, imData, _interpolationOption,_colorMap);
             }
@@ -414,7 +405,6 @@ void VolumeViewerPlugin::init()
             vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
             clipPlane->SetOrigin(intValue, 0.0, 0.0);
             clipPlane->SetNormal(1, 0.0, 0.0);
-
 
             // add the plane to the to the collection
             _planeCollection->AddItem(clipPlane);

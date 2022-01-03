@@ -22,7 +22,6 @@ class DimensionAction : public GroupAction
     Q_OBJECT
 
 public:
-
     /**
      * Constructor
      * @param rendererSettingsAction Reference to renderer settings action

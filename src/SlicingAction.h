@@ -41,10 +41,8 @@ public: /** Action getters */
     bool& getYToggled() { return _yToggled; }
     bool& getZToggled() { return _zToggled; }
     
-
 protected:
     RendererSettingsAction&     _rendererSettingsAction;        /** Reference to renderer settings action */
-    
     ToggleAction                _xAxisEnabledAction;            /** X-axis enabled action */
     DecimalAction               _xAxisPositionAction;           /** X-axis position action */
     ToggleAction                _yAxisEnabledAction;            /** Y-axis enabled action */

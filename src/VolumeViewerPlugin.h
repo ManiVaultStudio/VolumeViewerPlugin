@@ -28,7 +28,6 @@ class Points;
 
 namespace hdps {
     class CoreInterface;
-    
     namespace gui {
         class DropWidget;
     }
@@ -69,7 +68,6 @@ public: // Inherited from ViewPlugin
 
 
 public: // Miscellaneous
-
     /** Returns the image viewer widget */
     ViewerWidget& getViewerWidget() {
         return *_viewerWidget;
@@ -79,7 +77,6 @@ public: // Miscellaneous
     RendererSettingsAction& getRendererSettingsAction() {
         return _rendererSettingsAction;
     }
-
 
     /** Returns the names of the points datasets in HDPS */
     QStringList getPointsDatasets() const {
@@ -92,12 +89,8 @@ public: // Miscellaneous
     }
 
 signals:
-
     /** Signals that list of point datasets in HDPS has changed */
     void pointsDatasetsChanged(QStringList pointsDatasets);
-
-
-
 
 private:
     RendererSettingsAction              _rendererSettingsAction;    /** The options menu on the side of the viewer*/

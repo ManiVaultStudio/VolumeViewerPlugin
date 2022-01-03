@@ -67,7 +67,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim,
 {
 	// get number of points from points dataset
 	numPoints = data.getNumPoints();
-
+    
 	// get number of dimensions from points dataset
 	numDimensions = data.getNumDimensions();
 
@@ -142,18 +142,14 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 
     // Loop to read in colors from the colormap qimage
 	for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
-        
 		const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
 		const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
-
-		color->AddRGBPoint(normalizedPixelX * imData[0]->GetScalarRange()[1], pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
-
-		
+		color->AddRGBPoint(normalizedPixelX * imData[0]->GetScalarRange()[1], pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());	
 	}
 
 	// Loop through the imData vector, can contain 1 or 2 objects, the second one is always the selected data
 	for (int i = 0; i < imData.size(); i++) {
-
+        
 		// Creates a volumeMapper with its input being the current imageData object in the vector
 		vtkSmartPointer<vtkSmartVolumeMapper> volMapper = vtkSmartPointer<vtkSmartVolumeMapper>::New();
 		volMapper->SetBlendModeToComposite();
@@ -175,8 +171,6 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 		else {
 			qDebug() << "Interpolation option invalid, using default Nearest Neighbor interpolation";
 		}
-
-
 		
 		// if funtion to indicate whether we are in the fulldata (i==0) or in the selected data (i!=0) for opacity mapping purposes
 		if (i == 0) {
@@ -201,10 +195,8 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// add the Opacity options to volumeproperty
 			volumeProperty->SetScalarOpacity(compositeOpacity);
 			
-			
 			// add colortransferfunction to volumeproperty
 			volumeProperty->SetColor(color);
-			
 		}
 		else {
 			// Selected Data Section
@@ -212,15 +204,16 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 
 			// Create piecewise function for opacity table
 			vtkSmartPointer<vtkPiecewiseFunction> compositeOpacity = vtkSmartPointer<vtkPiecewiseFunction>::New();
+
 			// Set object values as opague
 			compositeOpacity->AddSegment(imData[0]->GetScalarRange()[0]+1, 1, imData[0]->GetScalarRange()[1], 1);
+
 			// Set non-object values as seethrough
 			compositeOpacity->AddPoint(imData[0]->GetScalarRange()[0], 0);
 
 			// add opacity table to volumeproperty
 			volumeProperty->SetScalarOpacity(compositeOpacity);
 
-			
 			// add colortransferfunction to volumeproperty
 			volumeProperty->SetColor(color);
 
@@ -243,7 +236,6 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	mRenderer->ResetCamera();
 	// Render
 	mRenderWindow->Render();
-
 }
 
 vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim) {
@@ -265,8 +257,6 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
 	imData->SetDimensions(xSize, ySize, zSize);
 	imData->AllocateScalars(VTK_FLOAT, 1);
 
-  
-	
 	// Set the number of values in the dataArray equal to the number of points in the pointsdataset
 	dataArray->SetNumberOfValues(numPoints);
 	
@@ -286,9 +276,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
 
         if (chosenDim == dim) {
             if (!firstRead || points.getValueAt(i)<backgroundValue) {
-
                 firstRead = true;
-
                 backgroundValue = points.getValueAt(i);
             }
         }
@@ -307,7 +295,6 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
 					// write value into the dataArray
 					dataArray->SetValue(j, points.getValueAt(i));
 					numSelectedLoaded++;
-
 				}
 				else {
 					// all other indices are non-Object
@@ -318,22 +305,13 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
 				// all other indices are non-Object
 				dataArray->SetValue(j, backgroundValue);
 			}
-
-			
 			j++;
-
 		}
-
-
-
 	}
 	
 	// add scalarData to the imageData object
 	imData->GetPointData()->SetScalars(dataArray);
 	
-	// here i have chosen not to call renderdata in order to perserve the clipping in the new renderer
-	
 	// return the selection imagedata object
 	return imData;
 }
-

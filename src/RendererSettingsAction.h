@@ -34,7 +34,6 @@ public: /** Action getters */
 
     ColoringAction& getColoringAction() { return _coloringAction; }
 
-
 protected:
     DimensionAction _dimensionAction;
     SlicingAction   _slicingAction;     /** Slicing action */
