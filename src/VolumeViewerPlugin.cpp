@@ -7,6 +7,7 @@
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
 #include "ViewerWidget.h"
+#include "TransferWidget.h"
 #include <widgets/DropWidget.h>
 
 /** HDPS headers*/
@@ -23,6 +24,7 @@ using namespace hdps::gui;
 VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
     _viewerWidget(nullptr),
+    _transferWidget(nullptr),
     _selectionData(vtkSmartPointer<vtkImageData>::New()),
     _imageData(vtkSmartPointer<vtkImageData>::New()),
     // initiate a planeCollection for the SlicingAction
@@ -44,15 +46,19 @@ void VolumeViewerPlugin::init()
 {
     // add the viewerwidget and dropwidget to the layout
     _viewerWidget = new ViewerWidget(*this);
+    _transferWidget = new TransferWidget(*this);
     _dropWidget = new DropWidget(_viewerWidget);
 
+    auto vertLayout = new QVBoxLayout();
     auto layout = new QHBoxLayout();
 
     layout->setMargin(0);
     layout->setSpacing(0);
     
     layout->addWidget(_viewerWidget,1);
-    layout->addWidget(_rendererSettingsAction.createWidget(this));
+    vertLayout->addWidget(_rendererSettingsAction.createWidget(this),1);
+    vertLayout->addWidget(_transferWidget,2);
+    layout->addLayout(vertLayout);
 
     setLayout(layout);
     
@@ -116,10 +122,12 @@ void VolumeViewerPlugin::init()
         if (chosenDimension > _points->getNumDimensions() - 1) {
             // pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, 0, _interpolationOption, _colorMap);
+            
         }
         else {
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
+            
         }
 
         // set the maximum x, y and z values for the slicing options

@@ -6,6 +6,7 @@
 /** Plugin headers*/
 #include <ViewPlugin.h>
 #include <ViewerWidget.h>
+#include <TransferWidget.h>
 /** HDPS headers*/
 #include <Dataset.h>
 #include <widgets/DropWidget.h>
@@ -73,6 +74,10 @@ public: // Miscellaneous
         return *_viewerWidget;
     }
 
+    TransferWidget& getTransfertWidget() {
+        return *_transferWidget;
+    }
+
     /** Returns the render settings action*/
     RendererSettingsAction& getRendererSettingsAction() {
         return _rendererSettingsAction;
@@ -95,6 +100,7 @@ signals:
 private:
     RendererSettingsAction              _rendererSettingsAction;    /** The options menu on the side of the viewer*/
     ViewerWidget*                       _viewerWidget;              /** The image viewer widget */
+    TransferWidget*                     _transferWidget;
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
     vtkSmartPointer<vtkImageData>       _selectionData;             /** The selected data*/

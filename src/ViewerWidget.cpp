@@ -56,6 +56,7 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
 	mRenderer->SetBackground(0, 0, 0);
 	numDimensions = 0;
 	numPoints = 0;
+
 }
 
 ViewerWidget::~ViewerWidget()
