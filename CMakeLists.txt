@@ -19,7 +19,8 @@ endif(MSVC)
 # vtk Dir build needs to be in the same mode as hdps is to be run. (for release hdps release vtk is needed)
 #set(VTK_DIR $ENV{VTK_DIR})
 find_package(VTK REQUIRED)
-include(${VTK_USE_FILE})
+
+
 
 find_package(OpenGL REQUIRED)
 find_package(Qt5 COMPONENTS Widgets WebEngineWidgets REQUIRED)
@@ -66,6 +67,8 @@ target_link_libraries(${PROJECT} ${OPENGL_LIBRARIES})
 target_link_libraries(${PROJECT} Qt5::Widgets)
 target_link_libraries(${PROJECT} Qt5::WebEngineWidgets)
 target_link_libraries(${PROJECT} ${VTK_LIBRARIES})
+vtk_module_autoinit(TARGETS ${PROJECT} MODULES ${VTK_LIBRARIES})
+
 
 target_link_libraries(${PROJECT} "${INSTALL_DIR}/$<CONFIGURATION>/lib/${CMAKE_SHARED_LIBRARY_PREFIX}HDPS_Public${LIB_SUFFIX}")
 target_link_libraries(${PROJECT} "${INSTALL_DIR}/$<CONFIGURATION>/lib/${CMAKE_SHARED_LIBRARY_PREFIX}PointData${LIB_SUFFIX}")
