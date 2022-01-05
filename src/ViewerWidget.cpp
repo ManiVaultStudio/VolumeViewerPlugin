@@ -11,7 +11,7 @@
 #include <qwidget.h>
 #include <qdialog.h>
 /** VTK headers */
-#include <QVTKOpenGLWidget.h>
+#include <QVTKOpenGLNativeWidget.h>
 #include <vtkPlane.h>
 #include <vtkPlaneCollection.h>
 #include <vtkImageData.h>
@@ -42,14 +42,15 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
 	_openGLWidget()
 
 {
+
 	setAcceptDrops(true);
 	// Initiate the QVTKOpenGLWidget
-	_openGLWidget = new QVTKOpenGLWidget(this);
+	_openGLWidget = new QVTKOpenGLNativeWidget(this);
 
 	// Setup the Renderwindow
 	mRenderWindow->AddRenderer(mRenderer);
 	mInteractor->SetRenderWindow(mRenderWindow);
-	_openGLWidget->SetRenderWindow(mRenderWindow);
+	_openGLWidget->setRenderWindow(mRenderWindow);
 	mInteractor->Initialize();
 
 	// Set the background color 

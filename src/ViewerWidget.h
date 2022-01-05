@@ -12,7 +12,7 @@
 #include <QVTKInteractor.h>
 #include <vtkInteractorStyle.h>
 #include <vtkImageData.h>
-#include <QVTKOpenGLWidget.h>
+#include <QVTKOpenGLNativeWidget.h>
 #include <vtkSmartVolumeMapper.h>   
 
 class VolumeViewerPlugin;
@@ -50,7 +50,7 @@ public:
     }
 
 private:
-    QVTKOpenGLWidget* _openGLWidget;                                /** OpenGl Widget for rendering*/
+    QVTKOpenGLNativeWidget* _openGLWidget;                                /** OpenGl Widget for rendering*/
     vtkSmartPointer<vtkRenderer> mRenderer;                         /** vtk Renderer*/
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> mRenderWindow;    /** vtk RenderWindow*/
     vtkSmartPointer<QVTKInteractor> mInteractor;                    /** qvtk Interactor*/

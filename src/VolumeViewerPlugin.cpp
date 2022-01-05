@@ -16,6 +16,11 @@
 /** VTK headers*/
 #include <vtkPlaneCollection.h>
 #include <vtkPlane.h>
+//#include "vtkAutoInit.h"
+//#include "vtkRenderingOpenGLConfigure.h"
+//VTK_MODULE_INIT(vtkInteractionStyle)
+//VTK_MODULE_INIT(vtkRenderingFreeType)
+//VTK_MODULE_INIT(vtkRenderingOpenGL2)
 
 using namespace hdps;
 using namespace hdps::gui;
@@ -68,7 +73,7 @@ void VolumeViewerPlugin::init()
         const auto mimeText = mimeData->text();
         const auto tokens = mimeText.split("\n");
 
-        if (tokens.count() != 3)
+        if (tokens.count() == 1)
             return dropRegions;
 
         // Gather information to generate appropriate drop regions
@@ -112,6 +117,9 @@ void VolumeViewerPlugin::init()
 
         int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
         
+        // hide dropwidget
+        _dropWidget->setShowDropIndicator(FALSE);
+
         // check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0
         if (chosenDimension > _points->getNumDimensions() - 1) {
             // pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
