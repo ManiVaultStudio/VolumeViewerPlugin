@@ -5,7 +5,6 @@
 #include <qmessagebox.h>
 #include "RendererSettingsAction.h"
 
-
 using namespace hdps;
 
 ColoringAction::ColoringAction(RendererSettingsAction& rendererSettingsAction) :

@@ -26,8 +26,6 @@ SlicingAction::SlicingAction(RendererSettingsAction& rendererSettingsAction,View
     _yToggled = false;
     _zToggled = false;
     
-    
-    
     connect(&_xAxisEnabledAction, &ToggleAction::toggled, this, [this](bool toggled) {        
         _xToggled = toggled;
        
@@ -43,6 +41,4 @@ SlicingAction::SlicingAction(RendererSettingsAction& rendererSettingsAction,View
         _zToggled = toggled;
              
     });
-
-  
 }

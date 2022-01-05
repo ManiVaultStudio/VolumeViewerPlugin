@@ -7,7 +7,7 @@
 #include <ViewPlugin.h>
 #include <ViewerWidget.h>
 /** HDPS headers*/
-#include <util/DatasetRef.h>
+#include <Dataset.h>
 #include <widgets/DropWidget.h>
 #include <RendererSettingsAction.h>
 #include <PointData.h>
@@ -28,7 +28,6 @@ class Points;
 
 namespace hdps {
     class CoreInterface;
-    
     namespace gui {
         class DropWidget;
     }
@@ -69,7 +68,6 @@ public: // Inherited from ViewPlugin
 
 
 public: // Miscellaneous
-
     /** Returns the image viewer widget */
     ViewerWidget& getViewerWidget() {
         return *_viewerWidget;
@@ -79,7 +77,6 @@ public: // Miscellaneous
     RendererSettingsAction& getRendererSettingsAction() {
         return _rendererSettingsAction;
     }
-
 
     /** Returns the names of the points datasets in HDPS */
     QStringList getPointsDatasets() const {
@@ -92,12 +89,8 @@ public: // Miscellaneous
     }
 
 signals:
-
     /** Signals that list of point datasets in HDPS has changed */
     void pointsDatasetsChanged(QStringList pointsDatasets);
-
-
-
 
 private:
     RendererSettingsAction              _rendererSettingsAction;    /** The options menu on the side of the viewer*/
@@ -105,7 +98,7 @@ private:
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
     vtkSmartPointer<vtkImageData>       _selectionData;             /** The selected data*/
-    DatasetRef<Points>                  _points;                    /** Declare a points dataset reference */
+    Dataset<Points>                     _points;                    /** Declare a points dataset reference */
     QStringList                         _pointsDatasets;            /** Point datasets loaded in HDPS */
     hdps::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */

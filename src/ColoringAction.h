@@ -27,7 +27,6 @@ public:
      */
     ColoringAction(RendererSettingsAction& rendererSettingsAction);
    
-
 public: /** Action getters */
 
     OptionAction& getInterpolationAction() { return  _colorInterpolationAction; }
