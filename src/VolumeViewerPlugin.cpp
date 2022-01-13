@@ -17,11 +17,6 @@
 /** VTK headers*/
 #include <vtkPlaneCollection.h>
 #include <vtkPlane.h>
-//#include "vtkAutoInit.h"
-//#include "vtkRenderingOpenGLConfigure.h"
-//VTK_MODULE_INIT(vtkInteractionStyle)
-//VTK_MODULE_INIT(vtkRenderingFreeType)
-//VTK_MODULE_INIT(vtkRenderingOpenGL2)
 
 using namespace hdps;
 using namespace hdps::gui;
@@ -53,10 +48,10 @@ void VolumeViewerPlugin::init()
     _viewerWidget = new ViewerWidget(*this);
     _transferWidget = new TransferWidget(*this);
     _dropWidget = new DropWidget(_viewerWidget);
-
+    _transferWidget->setMaximumHeight(125);
     auto vertLayout = new QVBoxLayout();
     auto layout = new QHBoxLayout();
-
+    auto layout2 = new QHBoxLayout();
     layout->setMargin(0);
     layout->setSpacing(0);
     
@@ -65,6 +60,7 @@ void VolumeViewerPlugin::init()
     vertLayout->addWidget(_transferWidget,2);
     layout->addLayout(vertLayout);
 
+    //layout2->addWidget(_transferWidget);
     setLayout(layout);
     
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
@@ -130,12 +126,12 @@ void VolumeViewerPlugin::init()
         if (chosenDimension > _points->getNumDimensions() - 1) {
             // pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, 0, _interpolationOption, _colorMap);
-            
+            _transferWidget->createHistogram(*_points, 0);
         }
         else {
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
-            
+            _transferWidget->createHistogram(*_points, chosenDimension);
         }
 
         // set the maximum x, y and z values for the slicing options

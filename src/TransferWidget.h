@@ -9,6 +9,7 @@
 #include <PointData.h>
 
 
+
 class VolumeViewerPlugin;
 using namespace hdps;
 
@@ -20,13 +21,19 @@ class TransferWidget : public QWidget
         explicit TransferWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* parent = nullptr);
         ~TransferWidget();
 
-        std::vector<int> createHistogram(Points& data, int chosenDim);
+        void createHistogram(Points& data, int chosenDim);
 
-        void drawHistogram(Points& data, int chosenDim);
+        //void drawHistogram(Points& data, int chosenDim);
+
+        void paintEvent(QPaintEvent*);
+
 
     private:
-        QGraphicsScene* _transferScene;
-        QGraphicsView* _transferView;
+        QGraphicsScene*  _transferScene;
+        QGraphicsView*   _transferView;
+        bool             _dataLoaded;
+        std::vector<int> _histogram;
+       
 
     protected:
 
