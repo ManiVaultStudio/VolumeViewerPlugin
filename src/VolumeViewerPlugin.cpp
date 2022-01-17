@@ -118,7 +118,7 @@ void VolumeViewerPlugin::init()
         unsigned int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
         
         // hide dropwidget
-        _dropWidget->setShowDropIndicator(FALSE);
+        _dropWidget->setShowDropIndicator(false);
 
         // check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0
         if (chosenDimension > _points->getNumDimensions() - 1) {
