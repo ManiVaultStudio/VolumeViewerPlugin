@@ -4,16 +4,18 @@
 /** QT headers*/
 #include <QWidget>
 #include <QResizeEvent>
+#include <QGraphicsView>
 /**  HDPS headers*/
 #include <Dataset.h>
 #include <PointData.h>
+#include <TransferPointModel.h>
 
 
 
 class VolumeViewerPlugin;
 using namespace hdps;
 
-class TransferWidget : public QWidget
+class TransferWidget : public QGraphicsView
 {
     Q_OBJECT
 

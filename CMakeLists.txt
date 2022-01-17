@@ -38,6 +38,7 @@ set(PLUGIN
 
 file(GLOB ACTIONS src/*Action.*)
 file(GLOB WIDGETS src/*Widget.*)
+file(GLOB MODEL src/*Model.*)
 
 
 file(GLOB JSON src/*.json)
@@ -49,6 +50,7 @@ set(AUX ${JSON} ${QRC})
 source_group(Plugin FILES ${PLUGIN})
 source_group(Widgets FILES ${WIDGETS})
 source_group(Actions FILES ${ACTIONS})
+source_group(Model FILES ${MODEL})
 
 include_directories("${INSTALL_DIR}/$<CONFIGURATION>/include/" src)
 

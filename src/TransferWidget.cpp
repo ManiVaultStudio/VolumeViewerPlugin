@@ -11,6 +11,7 @@
 /** HDPS headers */
 #include <Dataset.h>
 #include <PointData.h>
+#include <TransferPointModel.h>
 /** QT headers */
 #include <qwidget.h>
 #include <qdialog.h>
@@ -24,8 +25,8 @@ using namespace hdps;
 using namespace hdps::gui;
 
 
-TransferWidget::TransferWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* parent) :
-    QWidget(parent),
+TransferWidget::TransferWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget *parent) :
+    QGraphicsView(parent),
     _dataLoaded(false),
     _transferScene(),
     _transferView()
@@ -48,6 +49,14 @@ TransferWidget::~TransferWidget()
 }
 
 void TransferWidget::paintEvent(QPaintEvent *) {
+    float windowWidth = this->width();
+    int windowHeight = this->height();
+    QPainter painter(this);
+    painter.setPen(Qt::black);
+    painter.drawEllipse(QPoint(0, windowHeight), 7, 7);
+    painter.drawEllipse(QPoint(windowWidth, 0), 7, 7);
+    //TransferPointModel *point = new TransferPointModel(this);
+
     
     if (_dataLoaded) {
         //std::cout << _transferView->size() << std::endl;
@@ -60,14 +69,13 @@ void TransferWidget::paintEvent(QPaintEvent *) {
             }
         }
 
-        float windowWidth = this->width();
-        int windowHeight = this->height();
+        
         float binWidth = windowWidth / 100;
 
         int binIncrement = maxBin / windowHeight;
         float height = 0;
 
-        QPainter painter(this);
+        
         QBrush brush(Qt::lightGray, Qt::SolidPattern);
         painter.setPen(Qt::lightGray);
         
