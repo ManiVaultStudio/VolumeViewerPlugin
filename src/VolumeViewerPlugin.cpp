@@ -83,7 +83,7 @@ void VolumeViewerPlugin::init()
 
         // Visually indicate if the dataset is of the wrong data type and thus cannot be dropped
         if (!dataTypes.contains(dataType)) {
-            dropRegions << new DropWidget::DropRegion(this, "Incompatible data", "This type of data is not supported", false);
+            dropRegions << new DropWidget::DropRegion(this, "Incompatible data", "", "This type of data is not supported", false);
         }
         else {
             // Accept points datasets drag and drop
@@ -118,7 +118,7 @@ void VolumeViewerPlugin::init()
         int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
         
         // hide dropwidget
-        _dropWidget->setShowDropIndicator(FALSE);
+        _dropWidget->setShowDropIndicator(false);
 
         // check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0
         if (chosenDimension > _points->getNumDimensions() - 1) {

@@ -57,12 +57,6 @@ public: // Inherited from ViewPlugin
 
     void reInitializeLayout(QHBoxLayout layout);
 
-    template<typename T>
-    T& requestData(const QString& datasetName)
-    {
-        return _core->requestData<T>(datasetName);
-    }
-
     /** Returns a pointer to the core interface */
     hdps::CoreInterface* core() { return _core; }
 
