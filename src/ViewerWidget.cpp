@@ -137,7 +137,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
     
     // create color transfer function
 	vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
-	color->AddRGBPoint(imData[0]->GetScalarRange()[0], 0, 0, 0);
+    color->AddRGBPoint(imData[0]->GetScalarRange()[0], 0, 0, 0);
 
     // Get the colormap action
 	auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
@@ -149,9 +149,10 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
 		const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
 		const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
-		color->AddRGBPoint(normalizedPixelX * imData[0]->GetScalarRange()[1], pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());	
+		color->AddRGBPoint(normalizedPixelX * imData[0]->GetScalarRange()[1], pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
 	}
-
+    
+    
 	// Loop through the imData vector, can contain 1 or 2 objects, the second one is always the selected data
 	for (int i = 0; i < imData.size(); i++) {
         
@@ -168,10 +169,10 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			volumeProperty->SetInterpolationType(VTK_NEAREST_INTERPOLATION);
 		}
 		else if (interpolationOption == "LIN") {
-			volumeProperty->SetInterpolationType(VTK_CUBIC_INTERPOLATION);
+			volumeProperty->SetInterpolationType(VTK_LINEAR_INTERPOLATION);
 		}
 		else if (interpolationOption == "CUBE") {
-			volumeProperty->SetInterpolationType(VTK_LINEAR_INTERPOLATION);
+			volumeProperty->SetInterpolationType(VTK_CUBIC_INTERPOLATION);
 		}
 		else {
 			qDebug() << "Interpolation option invalid, using default Nearest Neighbor interpolation";
