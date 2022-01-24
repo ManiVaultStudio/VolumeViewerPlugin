@@ -116,13 +116,17 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim,
 }
 	
 void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollection, std::vector<vtkSmartPointer<vtkImageData>> imData, std::string interpolationOption, std::string colorMap, bool shadingEnabled, std::vector<double> shadingParameters){
-    
+    // Store data parameters with clear names.
+    double dataMinimum = imData[0]->GetScalarRange()[0] + 1;
+    double background = imData[0]->GetScalarRange()[0];
+    double dataMaximum = imData[0]->GetScalarRange()[1];
+
     // Empty the renderer to avoid overlapping visualizations.
 	mRenderer->RemoveAllViewProps();
     
     // create color transfer function
 	vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
-    color->AddRGBPoint(imData[0]->GetScalarRange()[0], 0, 0, 0, 1, 1);
+    color->AddRGBPoint(background, 0, 0, 0, 1, 1);
 
     // Get the colormap action.
 	auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
@@ -134,7 +138,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
 		const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
 		const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
-		color->AddRGBPoint(normalizedPixelX * imData[0]->GetScalarRange()[1], pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
+		color->AddRGBPoint(normalizedPixelX * dataMaximum, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
 	}
     
 	// Loop through the imData vector, can contain 1 or 2 objects, the second one is always the selected data.
@@ -168,35 +172,22 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// Create piecewise function for opacity table.
 			vtkSmartPointer<vtkPiecewiseFunction> compositeOpacity = vtkSmartPointer<vtkPiecewiseFunction>::New();
 			// Set the opacity of the non-object voxels to 0.
-			compositeOpacity->AddPoint(imData[0]->GetScalarRange()[0], 0, 1, 1);
+			compositeOpacity->AddPoint(background, 0, 1, 1);
 
 			// Checks if there is 1 or 2 objects in the imdata vector.
 			if (imData.size() < 2) {
 				// If only 1 object is present then the opacity of all data is set to opague.
-				compositeOpacity->AddSegment(imData[0]->GetScalarRange()[0]+1, 1 , imData[0]->GetScalarRange()[1],1);
+				compositeOpacity->AddSegment(dataMinimum, 1 , dataMaximum, 1);
 			}
 			else {
 				// If there are 2 objects (so also dataSelected) then the fulldata opacity is set to be semi-translucent.
-				compositeOpacity->AddSegment(imData[0]->GetScalarRange()[0]+1, 0.02, imData[0]->GetScalarRange()[1], 0.02);
+				compositeOpacity->AddSegment(dataMinimum, 0.02, dataMaximum, 0.02);
 			}
 			// Add the Opacity options to volumeproperty.
 			volumeProperty->SetScalarOpacity(compositeOpacity);
 			
 			// Add colortransferfunction to volumeproperty.
 			volumeProperty->SetColor(color);
-
-            if (shadingEnabled){
-                volumeProperty->ShadeOn();
-                volumeProperty->SetAmbient(shadingParameters[0]);
-                volumeProperty->SetDiffuse(shadingParameters[1]);
-                volumeProperty->SetSpecular(shadingParameters[2]);
-            }
-            else {
-                volumeProperty->ShadeOff();
-                volumeProperty->SetAmbient(1);
-                volumeProperty->SetDiffuse(0);
-                volumeProperty->SetSpecular(0);
-            }
 		}
 		else {
 			// Selected Data Section.
@@ -206,10 +197,10 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			vtkSmartPointer<vtkPiecewiseFunction> compositeOpacity = vtkSmartPointer<vtkPiecewiseFunction>::New();
 
 			// Set object values as opague.
-			compositeOpacity->AddSegment(imData[0]->GetScalarRange()[0]+1, 1, imData[0]->GetScalarRange()[1], 1);
+			compositeOpacity->AddSegment(dataMinimum, 1, dataMaximum, 1);
 
 			// Set non-object values as seethrough.
-			compositeOpacity->AddPoint(imData[0]->GetScalarRange()[0], 0);
+			compositeOpacity->AddPoint(background, 0, 1, 1);
 
 			// Add opacity table to volumeproperty.
 			volumeProperty->SetScalarOpacity(compositeOpacity);
@@ -220,6 +211,18 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// Add color transfer function to volumeproperty.
 			volumeProperty->SetColor(color);
 		}
+        if (shadingEnabled) {
+            volumeProperty->ShadeOn();
+            volumeProperty->SetAmbient(shadingParameters[0]);
+            volumeProperty->SetDiffuse(shadingParameters[1]);
+            volumeProperty->SetSpecular(shadingParameters[2]);
+        }
+        else {
+            volumeProperty->ShadeOff();
+            volumeProperty->SetAmbient(1);
+            volumeProperty->SetDiffuse(0);
+            volumeProperty->SetSpecular(0);
+        }
 
 		// Create volumeActor.
 		vtkSmartPointer<vtkVolume> volActor = vtkSmartPointer<vtkVolume>::New();
