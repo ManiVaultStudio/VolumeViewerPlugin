@@ -14,7 +14,7 @@ ColoringAction::ColoringAction(RendererSettingsAction& rendererSettingsAction) :
     
     
     // color interpolation options with default Nearest neighbor interpolations
-    _colorInterpolationAction(this, "Color Interpolation", {"Nearest Neigbor","Linear", "Cubic"}, "Nearest Neighbor", "Nearest Neighbor"),
+    _colorInterpolationAction(this, "Color Interpolation", {"Nearest Neigbor","Linear"}, "Nearest Neighbor", "Nearest Neighbor"),
     // colormap options 
     _colorMapAction(this, "Transfer Function"),
     // Shading enable option.
