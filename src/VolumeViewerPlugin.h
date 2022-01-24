@@ -103,10 +103,12 @@ private:
     hdps::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */
     std::vector<int>                    _planeArray;                /** Array indicating the index+1 of the x,y and z clipping planes in the plane collection*/
+    std::vector<double>                  _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/
     std::string                         _interpolationOption;       /** String for storing the current color interpolation option*/
     std::string                         _colorMap;                  /** String for storing the current color map*/
     bool                                _dataLoaded;                /** Booling indicating if data has been loaded in*/
     bool                                _dataSelected;              /** Boolian indicating if data has been selected in a scatterplot*/
+    bool                                _shadingEnabled;            /** Boolian for inicating if shading should be enabled*/
 };
 
 /**

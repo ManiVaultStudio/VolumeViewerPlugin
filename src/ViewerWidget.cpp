@@ -118,20 +118,23 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim,
 	*   Vector is needed due to the possibility of having data selected in a scatterplot wich
 	*   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
 	*/
-	std::vector<vtkSmartPointer<vtkImageData>> imageData;
-	imageData.push_back(imData);
+	/*std::vector<vtkSmartPointer<vtkImageData>> imageData;
+	imageData.push_back(imData);*/
+
+    //std::vector<float>(3, 0);
 
 	// Call renderData
-	ViewerWidget::renderData( planeCollection,  imageData, interpolationOption, colorMap);
+	//ViewerWidget::renderData( planeCollection,  imageData, interpolationOption, colorMap, false);
 
 	// Return the imData object for later use in VolumeViewerPlugin
 	return imData;
 }
 	
-void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollection, std::vector<vtkSmartPointer<vtkImageData>> imData, std::string interpolationOption, std::string colorMap){
-	// Empty the renderer to avoid overlapping visualizations
+void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollection, std::vector<vtkSmartPointer<vtkImageData>> imData, std::string interpolationOption, std::string colorMap, bool shadingEnabled, std::vector<double> shadingParameters){
+    
+    // Empty the renderer to avoid overlapping visualizations
 	mRenderer->RemoveAllViewProps();
-
+    
     // create color transfer function
 	vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
 	color->AddRGBPoint(imData[0]->GetScalarRange()[0], 0, 0, 0);
@@ -199,6 +202,24 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			
 			// add colortransferfunction to volumeproperty
 			volumeProperty->SetColor(color);
+
+            if (shadingEnabled){
+                volumeProperty->ShadeOn();
+                volumeProperty->SetAmbient(shadingParameters[0]);
+
+                volumeProperty->SetDiffuse(shadingParameters[1]);
+                volumeProperty->SetSpecular(shadingParameters[2]);
+            }
+            else {
+                volumeProperty->ShadeOff();
+                volumeProperty->SetAmbient(1);
+
+                volumeProperty->SetDiffuse(0);
+                volumeProperty->SetSpecular(0);
+            }
+            
+
+            
 		}
 		else {
 			// Selected Data Section
@@ -222,6 +243,8 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// add color transfer function to volumeproperty
 			volumeProperty->SetColor(color);
 
+            
+
 		}
 
 		// Create volumeActor
@@ -230,6 +253,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 		volActor->SetMapper(volMapper);
 		// Set opacity and color table
 		volActor->SetProperty(volumeProperty);
+        //volActor->GetProperty()->GetAmbient();
 
 		// add the current volume to the renderer
 		mRenderer->AddVolume(volActor);

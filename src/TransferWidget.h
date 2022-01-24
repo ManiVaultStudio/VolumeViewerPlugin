@@ -15,7 +15,7 @@
 class VolumeViewerPlugin;
 using namespace hdps;
 
-class TransferWidget : public QGraphicsView
+class TransferWidget : public QWidget
 {
     Q_OBJECT
 

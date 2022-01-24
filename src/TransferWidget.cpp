@@ -26,7 +26,7 @@ using namespace hdps::gui;
 
 
 TransferWidget::TransferWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget *parent) :
-    QGraphicsView(parent),
+    QWidget(parent),
     _dataLoaded(false),
     _transferScene(),
     _transferView()
