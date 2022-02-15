@@ -23,7 +23,7 @@ find_package(VTK REQUIRED)
 
 
 find_package(OpenGL REQUIRED)
-find_package(Qt5 COMPONENTS Widgets WebEngineWidgets REQUIRED)
+find_package(Qt5 COMPONENTS Widgets WebEngineWidgets Xml REQUIRED)
 find_package(OpenMP)
 # Normalize the incoming install path
 file(TO_CMAKE_PATH $ENV{HDPS_INSTALL_DIR} INSTALL_DIR)
@@ -39,18 +39,24 @@ set(PLUGIN
 file(GLOB ACTIONS src/*Action.*)
 file(GLOB WIDGETS src/*Widget.*)
 file(GLOB MODEL src/*Model.*)
-
+file(GLOB TRANSFER src/Transfer/*)
+# file(GLOB NODE src/Node*.*)
+# file(GLOB EDGE src/Edge*.*)
+# file(GLOB HIST src/Histogram*.*)
+# file(GLOB BCK src/Background*.*)
+# file(GLOB PRST src/Preset*.*)
 
 file(GLOB JSON src/*.json)
 
 
-set(SOURCES ${PLUGIN} ${MODEL} ${RENDERING} ${WIDGETS})
+set(SOURCES ${PLUGIN} ${MODEL} ${RENDERING} ${WIDGETS} ${TRANSFER})
 set(AUX ${JSON} ${QRC})
 
 source_group(Plugin FILES ${PLUGIN})
 source_group(Widgets FILES ${WIDGETS})
 source_group(Actions FILES ${ACTIONS})
 source_group(Model FILES ${MODEL})
+source_group(Transferfunction FILES ${TRANSFER})
 
 include_directories("${INSTALL_DIR}/$<CONFIGURATION>/include/" src)
 
@@ -68,6 +74,7 @@ endif()
 target_link_libraries(${PROJECT} ${OPENGL_LIBRARIES})
 target_link_libraries(${PROJECT} Qt5::Widgets)
 target_link_libraries(${PROJECT} Qt5::WebEngineWidgets)
+target_link_libraries(${PROJECT} Qt5::Xml)
 target_link_libraries(${PROJECT} ${VTK_LIBRARIES})
 vtk_module_autoinit(TARGETS ${PROJECT} MODULES ${VTK_LIBRARIES})
 

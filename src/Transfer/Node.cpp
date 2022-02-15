@@ -1,3 +1,4 @@
+#include <Transfer/Node.h>
 /** General headers */
 #include <math.h>
 #include <iostream>     
@@ -5,9 +6,9 @@
 #include <vector>
 #include <cmath>
 /** Plugin headers */
-#include <TransferPointModel.h>
+
 #include <RendererSettingsAction.h>
-#include <VolumeViewerPlugin.h>
+//#include <VolumeViewerPlugin.h>
 /** HDPS headers */
 #include <Dataset.h>
 #include <PointData.h>
@@ -24,10 +25,11 @@ using namespace hdps;
 using namespace hdps::gui;
 
 
-TransferPointModel::TransferPointModel(TransferWidget *transferWidget) :
+Node::Node(TransferWidget *transferWidget) :
     _transferWidget(transferWidget),
     //_transferWidget(parent),
-    _newPosition()
+    _newPosition(),
+    _cursor()
     
     
 
@@ -40,17 +42,17 @@ TransferPointModel::TransferPointModel(TransferWidget *transferWidget) :
 
 }
 
-TransferPointModel::~TransferPointModel()
+Node::~Node()
 {
 
 }
 
-//void TransferPointModel::setPosition(int x, int y) {
-//    _newPosition.setX(x);
-//    _newPosition.setY(y);
-//}
+void Node::setPosition(int x, int y) {
+    _newPosition.setX(x);
+    _newPosition.setY(y);
+}
 
-void TransferPointModel::calculateForces() {
+void Node::calculateForces() {
     if (!scene() || scene()->mouseGrabberItem() == this) {
         _newPosition = pos();
         return;
@@ -59,20 +61,20 @@ void TransferPointModel::calculateForces() {
 }
 
 
-QRectF TransferPointModel::boundingRect() const
+QRectF Node::boundingRect() const
 {
     qreal adjust = 2;
     return QRectF(-10 - adjust, -10 - adjust, 23 + adjust, 23 + adjust);
 }
 
-QPainterPath TransferPointModel::shape() const
+QPainterPath Node::shape() const
 {
     QPainterPath path;
     path.addEllipse(-10, -10, 20, 20);
     return path;
 }
 
-void TransferPointModel::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget*)
+void Node::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget*)
 {
     painter->setPen(Qt::NoPen);
     painter->setBrush(Qt::darkGray);
@@ -95,13 +97,14 @@ void TransferPointModel::paint(QPainter* painter, const QStyleOptionGraphicsItem
     painter->drawEllipse(-10, -10, 20, 20);
 }
 
-QVariant TransferPointModel::itemChange(GraphicsItemChange change, const QVariant& value)
+QVariant Node::itemChange(GraphicsItemChange change, const QVariant& value)
 {
     switch (change) {
     case ItemPositionHasChanged:
-        //for (Edge* edge : qAsConst(edgeList))
-        //    edge->adjust();
-        //_transferWidget->itemMoved();
+        for (Edge* edge : qAsConst(edgeList))
+            edge->adjust();
+            
+            
         break;
     default:
         break;
@@ -109,15 +112,60 @@ QVariant TransferPointModel::itemChange(GraphicsItemChange change, const QVarian
 
     return QGraphicsItem::itemChange(change, value);
 }
+void Node::pressed(QGraphicsSceneMouseEvent* event) {
+    this->mousePressEvent(event);
+}
 
-void TransferPointModel::mousePressEvent(QGraphicsSceneMouseEvent* event)
+void Node::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
+    
     update();
+    _transferWidget->setCurrentNode(this->scenePos());
     QGraphicsItem::mousePressEvent(event);
 }
 
-void TransferPointModel::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
+void Node::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
+    QGraphicsItem::mouseMoveEvent(event);
+    std::vector<float> bounds =_transferWidget->getCurrentNodeInfo();
+
+    if (x() < bounds[0]+1)
+    {
+        setPos(bounds[0] + 1, y());
+    }
+    else if (x()  > bounds[1] - 1)
+    {
+        setPos(bounds[1] - 1, y());
+    }
+
+    if (y() < 0)
+    {
+        setPos(x(), 0);
+    }
+    else if (y()  > scene()->height())
+    {
+        setPos(x(), scene()->height() );
+    }
+    _transferWidget->itemMoved(this->scenePos());
+}
+
+
+
+void Node::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
+{
+   
     update();
     QGraphicsItem::mouseReleaseEvent(event);
+    _transferWidget->redrawEdges();
+}
+
+void Node::addEdge(Edge* edge)
+{
+    edgeList << edge;
+    edge->adjust();
+}
+
+QVector<Edge*> Node::edges() const
+{
+    return edgeList;
 }

@@ -120,7 +120,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
     double dataMinimum = imData[0]->GetScalarRange()[0] + 1;
     double background = imData[0]->GetScalarRange()[0];
     double dataMaximum = imData[0]->GetScalarRange()[1];
-
+    std::cout << dataMinimum << std::endl;
     // Empty the renderer to avoid overlapping visualizations.
 	mRenderer->RemoveAllViewProps();
     
@@ -138,7 +138,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
 		const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
 		const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
-		color->AddRGBPoint(normalizedPixelX * dataMaximum, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
+		color->AddRGBPoint(normalizedPixelX * (dataMaximum - dataMinimum) + dataMinimum, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
 	}
     
 	// Loop through the imData vector, can contain 1 or 2 objects, the second one is always the selected data.

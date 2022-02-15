@@ -7,7 +7,7 @@
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
 #include "ViewerWidget.h"
-#include "TransferWidget.h"
+#include "Transfer/TransferWidget2.h"
 #include <widgets/DropWidget.h>
 
 /** HDPS headers*/
@@ -50,9 +50,11 @@ void VolumeViewerPlugin::init()
 {
     // add the viewerwidget and dropwidget to the layout
     _viewerWidget = new ViewerWidget(*this);
-    _transferWidget = new TransferWidget(*this);
+    _transferWidget = new TransferWidget2(*this);
+    
     _dropWidget = new DropWidget(_viewerWidget);
     _transferWidget->setMaximumHeight(125);
+    
     auto vertLayout = new QVBoxLayout();
     auto layout = new QHBoxLayout();
     auto layout2 = new QHBoxLayout();
@@ -63,7 +65,7 @@ void VolumeViewerPlugin::init()
     vertLayout->addWidget(_rendererSettingsAction.createWidget(this),1);
     vertLayout->addWidget(_transferWidget,2);
     layout->addLayout(vertLayout);
-
+    layout2->addWidget(_transferWidget);
     //layout2->addWidget(_transferWidget);
     setLayout(layout);
     
