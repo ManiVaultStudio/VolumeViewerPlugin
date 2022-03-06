@@ -33,8 +33,8 @@ TransferWidget2::TransferWidget2(VolumeViewerPlugin& VolumeViewerPlugin, QWidget
     _transferWidget()
 {
     _transferWidget = new TransferWidget(this);
-    this->setFixedSize(325, 150);
-    qDebug() << "size:" << this->size();
+    this->setFixedSize(400, 300);
+    
     
     
     
@@ -99,4 +99,8 @@ std::vector<int> TransferWidget2::getHistogram() {
 
 bool TransferWidget2::getDataLoaded() {
     return _dataLoaded;
+}
+
+TransferWidget& TransferWidget2::getTransferFunction() {
+    return *_transferWidget;
 }

@@ -24,51 +24,77 @@ class TransferWidget : public QGraphicsView
     Q_OBJECT
 
 public:
+
     TransferWidget(TransferWidget2* parent = nullptr);
 
-    bool findNode(QPointF position, bool leftButton);
-    void addNode(QPointF position);
-    void removeNode(QPointF position);
-    void redrawEdges();
-    void setCurrentNode(QPointF newPosition);
+    /**Function used to find a node at a specific location and determine what to do based on a mouseclick.*/
+    bool findNode(QPointF position, std::string mouseButton); 
 
+    /**Function used to add a node at a given position. */
+    void addNode(QPointF position);
+
+    /** Function used to remove a node at a given position. */
+    void removeNode(QPointF position);
+
+    /** Function used to redraw the lines between the nodes. */
+    void redrawEdges();
+
+    /** Set the current node. */
+    void setCurrentNode(QPointF newPosition);
+    
+    /** Function to alter the saved node data when one has been moved. */
     void itemMoved(QPointF position);
+     
+    /** Function used to get the x-values of surrounding nodes. */
     std::vector<float> getCurrentNodeInfo();
+
+    /** Function used to sort the nodes based on x-values. */
     std::vector<std::pair<float, int>> sortNodes();
 
-public slots:
-    //void shuffle();
-    //void zoomIn();
-    //void zoomOut();
+    /** Function used to draw the axes in the transferfunction. */
+    void drawBackground(QPainter* painter, const QRectF& rect);
+
+    /** Function used to recreate the colormap. */
+    void createColorMap();
+
+    /** Get a list of positions of the nodes. */
+    std::vector<std::pair<float, float>> getNodeList() {
+        return _nodePositions;
+    }
+
+    /** Get a list of the color of the nodes. */
+    QVector<QColor> getColorList() {
+        return _nodeColorList;
+    }
+
+    /** Get the color map. */
+    QImage getColorMap() {
+        return _colorMap;
+    }
+
 
 protected:
-    //void keyPressEvent(QKeyEvent* event) override;
-    //void timerEvent(QTimerEvent* event) override;
-#if QT_CONFIG(wheelevent)
-    //void wheelEvent(QWheelEvent* event) override;
-#endif
-    void drawBackground(QPainter* painter, const QRectF& rect) override;
-    //void mousePressEvent(QMouseEvent* event);
-    //void mousePressEvent(QObject* target, QEvent* event);
-    //void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
-
-    //void scaleView(qreal scaleFactor);
+    
 
 private:
-    std::vector<int> _histogram;
+
+    TransferWidget2* _parent; 
     bool _dataLoaded;
     QCursor _cursor;
     QGraphicsScene* _scene;
     std::vector<std::pair<float, float>> _nodePositions;
     QVector<Node*> _nodeList;
     QVector<QGraphicsItem*> _edgeList;
-    QPointF _currentNode;
+    QPointF _currentNodePosition;
+    Node* _currentNode;
     int _windowWidth;
     int _windowHeight;
+    QVector<QColor> _nodeColorList;
+    QImage _colorMap;
+
+signals:
+
+    void colorMapChanged(const QImage& colorMap); // Signal when the colormap has been altered.
     
-    //QVector<Node *> test;
-    
-    //int timerId = 0;
-    //Node centerNode;
 };
 #endif // TransferWidget_H

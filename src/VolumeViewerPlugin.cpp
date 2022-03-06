@@ -653,7 +653,23 @@ void VolumeViewerPlugin::init()
         }
     });
 
-    
+    connect(&_transferWidget->getTransferFunction(), &TransferWidget::colorMapChanged, this, [this](const QImage& colorMapImage) {
+
+        if (_dataLoaded) {
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+           */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        }
+        
+    });
 
     connect(&getRendererSettingsAction().getColoringAction().getColorMapAction(), &ColorMapAction::imageChanged, this, [this](const QImage& colorMapImage) {
 

@@ -10,7 +10,7 @@
 #include <PointData.h>
 //#include <Transfer/Node.h>
 #include <Transfer/TransferWidget.h>
-
+#include <Transfer/TransferSettingsAction.h>
 
 class VolumeViewerPlugin;
 using namespace hdps;
@@ -26,6 +26,7 @@ public:
 
     //void itemMoved();
     std::vector<int> TransferWidget2::getHistogram();
+    TransferWidget& TransferWidget2::getTransferFunction();
 
 
 
@@ -52,6 +53,7 @@ private:
     std::vector<int> _histogram;
     bool _dataLoaded;
     TransferWidget* _transferWidget;
+    TransferSettingsAction* _transferSettingsAction;
     //int timerId = 0;
     //Node centerNode;
     

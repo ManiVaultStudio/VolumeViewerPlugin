@@ -76,6 +76,19 @@ QPainterPath Node::shape() const
 
 void Node::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget*)
 {
+    auto nodePositions=_transferWidget->getNodeList();
+    auto colorList = _transferWidget->getColorList();
+    QColor color;
+    for (int i = 0; i < nodePositions.size(); i++)
+    {
+        if (this->scenePos().x() == nodePositions[i].first && this->scenePos().y() == nodePositions[i].second) {
+            color = colorList[i];
+            
+        }
+    }
+
+    
+
     painter->setPen(Qt::NoPen);
     painter->setBrush(Qt::darkGray);
     painter->drawEllipse(-7, -7, 20, 20);
@@ -84,17 +97,18 @@ void Node::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWid
     if (option->state & QStyle::State_Sunken) {
         gradient.setCenter(3, 3);
         gradient.setFocalPoint(3, 3);
-        gradient.setColorAt(1, QColor(Qt::yellow).lighter(120));
-        gradient.setColorAt(0, QColor(Qt::darkYellow).lighter(120));
+        gradient.setColorAt(1, color.lighter(120));
+        gradient.setColorAt(0, color.lighter(120));
     }
     else {
-        gradient.setColorAt(0, Qt::yellow);
-        gradient.setColorAt(1, Qt::darkYellow);
+        gradient.setColorAt(0, color);
+        gradient.setColorAt(1, color);
     }
     painter->setBrush(gradient);
 
     painter->setPen(QPen(Qt::black, 0));
     painter->drawEllipse(-10, -10, 20, 20);
+   
 }
 
 QVariant Node::itemChange(GraphicsItemChange change, const QVariant& value)
@@ -114,11 +128,11 @@ QVariant Node::itemChange(GraphicsItemChange change, const QVariant& value)
 }
 void Node::pressed(QGraphicsSceneMouseEvent* event) {
     this->mousePressEvent(event);
+    
 }
 
 void Node::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-    
     update();
     _transferWidget->setCurrentNode(this->scenePos());
     QGraphicsItem::mousePressEvent(event);
@@ -132,9 +146,11 @@ void Node::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
     if (x() < bounds[0]+1)
     {
         setPos(bounds[0] + 1, y());
+        
     }
     else if (x()  > bounds[1] - 1)
     {
+       
         setPos(bounds[1] - 1, y());
     }
 
@@ -142,9 +158,9 @@ void Node::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
     {
         setPos(x(), 0);
     }
-    else if (y()  > scene()->height())
+    else if (y()  > (scene()->height()-40))
     {
-        setPos(x(), scene()->height() );
+        setPos(x(), scene()->height()-40 );
     }
     _transferWidget->itemMoved(this->scenePos());
 }

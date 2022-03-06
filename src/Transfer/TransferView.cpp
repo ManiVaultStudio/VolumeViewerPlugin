@@ -14,14 +14,17 @@ TransferView::TransferView(TransferWidget* parent)
 void TransferView::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     QPointF position = event->scenePos();
     
-    //Node::mousePressEvent(event, position);
+    QGraphicsScene::mousePressEvent(event);
     if (event->buttons() & Qt::LeftButton) {
-        _parent->findNode(position, true);
+        _parent->findNode(position, "Left");
+       
     }
     else if (event->buttons() & Qt::RightButton) {
-        _parent->findNode(position, false);
+        _parent->findNode(position, "Right");
     }
-
+    else if (event->buttons() & Qt::MiddleButton) {
+        _parent->findNode(position, "Middle");
+    }
 }
 
 //QPointF TransferView::findPosition() {

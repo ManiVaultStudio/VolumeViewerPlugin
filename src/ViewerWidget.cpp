@@ -132,7 +132,10 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
 
     // Get the colormap image.
-	auto colorMapImage = colorMapAction.getColorMapImage();
+	//auto colorMapImage = colorMapAction.getColorMapImage();
+
+
+    auto colorMapImage = _VolumeViewerPlugin.getTransfertWidget().getTransferFunction().getColorMap();
 
     // Loop to read in colors from the colormap qimage.
 	for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
