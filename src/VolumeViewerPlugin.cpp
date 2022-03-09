@@ -57,12 +57,12 @@ void VolumeViewerPlugin::init()
     layout->setSpacing(0);
     
     layout->addWidget(_viewerWidget,1);
-    layout->addWidget(_rendererSettingsAction.createWidget(this));
+    layout->addWidget(_rendererSettingsAction.createWidget(&_widget));
 
-    setLayout(layout);
+    _widget.setLayout(layout);
     
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
-    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(this, "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
+    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&_widget, "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
 
     // Initialize the drop regions
     _dropWidget->initialize([this](const QMimeData* mimeData) -> DropWidget::DropRegions {

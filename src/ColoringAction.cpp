@@ -18,6 +18,4 @@ ColoringAction::ColoringAction(RendererSettingsAction& rendererSettingsAction) :
     _colorMapAction(this, "Transfer Function")
 {
     setText("Coloring parameters");
-    setMayReset(false);
-
 }
