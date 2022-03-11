@@ -12,6 +12,6 @@ RendererSettingsAction::RendererSettingsAction(QObject* parent, ViewerWidget* vi
     GroupsAction::GroupActions groupActions;
 
     groupActions << &_dimensionAction << &_slicingAction << &_coloringAction;
-
+    
     setGroupActions(groupActions);
 }

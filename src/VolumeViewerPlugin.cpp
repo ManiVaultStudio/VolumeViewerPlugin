@@ -56,9 +56,16 @@ void VolumeViewerPlugin::init()
     layout->setMargin(0);
     layout->setSpacing(0);
     
-    layout->addWidget(_viewerWidget,1);
-    layout->addWidget(_rendererSettingsAction.createWidget(&_widget));
+    layout->addWidget(_viewerWidget, 4);
 
+    auto settingsLayout = new QVBoxLayout();
+
+    settingsLayout->addWidget(_rendererSettingsAction.createWidget(&_widget));
+    settingsLayout->setMargin(6);
+
+    layout->addLayout(settingsLayout, 1);
+
+    _widget.setAutoFillBackground(true);
     _widget.setLayout(layout);
     
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
