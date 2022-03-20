@@ -10,7 +10,7 @@
 #include <PointData.h>
 //#include <Transfer/Node.h>
 #include <Transfer/TransferWidget.h>
-#include <Transfer/TransferSettingsAction.h>
+#include <Transfer/TransferFunctionControlAction.h>
 
 class VolumeViewerPlugin;
 using namespace hdps;
@@ -28,34 +28,47 @@ public:
     std::vector<int> TransferWidget2::getHistogram();
     TransferWidget& TransferWidget2::getTransferFunction();
 
-
+    TransferFunctionControlAction& getTransferFunctionControlAction() {
+        return _transferFunctionControlAction;
+    }
 
     bool TransferWidget2::getDataLoaded();
 
-public slots:
-    //void shuffle();
-    //void zoomIn();
-    //void zoomOut();
+    QPushButton& getDeleteButton() {
+        return _deleteButton;
+    };
+    QPushButton& getFirstButton() {
+        return _firstButton;
+    };
+    QPushButton& getPreviousButton() {
+        return _previousButton;
+    };
+    QPushButton& getNextButton() {
+        return _nextButton;
+    };
+    QPushButton& getLastButton() {
+        return _lastButton;
+    };
 
-protected:
-    
 
-    //void keyPressEvent(QKeyEvent* event) override;
-    //void timerEvent(QTimerEvent* event) override;
-#if QT_CONFIG(wheelevent)
-    //void wheelEvent(QWheelEvent* event) override;
-#endif
-    //void drawBackground(QPainter* painter, const QRectF& rect) override;
 
-    //void scaleView(qreal scaleFactor);
+
 
 private:
     std::vector<int> _histogram;
     bool _dataLoaded;
     TransferWidget* _transferWidget;
-    TransferSettingsAction* _transferSettingsAction;
-    //int timerId = 0;
-    //Node centerNode;
+    QPushButton _firstButton;
+    QPushButton _previousButton;
+    QPushButton _nextButton;
+    QPushButton _lastButton;
+    QPushButton _deleteButton;
+    
+        
+    
+    TransferFunctionControlAction _transferFunctionControlAction;
+    
+
     
 };
 #endif // TransferWidget2_H

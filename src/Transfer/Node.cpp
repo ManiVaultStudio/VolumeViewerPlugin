@@ -105,8 +105,13 @@ void Node::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWid
         gradient.setColorAt(1, color);
     }
     painter->setBrush(gradient);
-
-    painter->setPen(QPen(Qt::black, 0));
+    if (this->scenePos() == _transferWidget->getCurrentNodePosition()) {
+        painter->setPen(QPen(Qt::red, 0));
+    }
+    else {
+        painter->setPen(QPen(Qt::black, 0));
+    }
+    
     painter->drawEllipse(-10, -10, 20, 20);
    
 }

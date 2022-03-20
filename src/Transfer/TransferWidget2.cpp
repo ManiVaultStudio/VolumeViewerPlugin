@@ -19,6 +19,9 @@
 #include <qgraphicsview.h>
 #include <QGraphicsRectItem>
 #include <QPainter.h>
+#include <qslider.h>
+#include <qdir.h>
+#include <qbuttongroup.h>
 
 #include <Transfer/TransferWidget.h>
 
@@ -30,10 +33,78 @@ TransferWidget2::TransferWidget2(VolumeViewerPlugin& VolumeViewerPlugin, QWidget
     : QWidget(parent),
     _histogram(std::vector<int>(100, 0)),
     _dataLoaded(false),
-    _transferWidget()
+    _transferWidget(),
+    _transferFunctionControlAction(this,_transferWidget),
+    _firstButton(new QPushButton(this)),
+    _previousButton(new QPushButton(this)),
+    _nextButton(new QPushButton(this)),
+    _lastButton(new QPushButton(this)),
+    _deleteButton(new QPushButton(this))
+    
 {
+    this->setFixedSize(400, 800);
     _transferWidget = new TransferWidget(this);
-    this->setFixedSize(400, 300);
+    _transferWidget->setFixedHeight(260);
+
+   
+    auto vertLayout = new QVBoxLayout();
+    auto horLayout = new QHBoxLayout();
+
+    //auto buttons = new QButtonGroup(this);
+    
+    auto icon = QIcon("F:/LUMC/VolumeViewerPlugin/src/Transfer/control-stop-180.png");
+    _firstButton.setIcon(icon);
+    _firstButton.setStatusTip("Select first node");
+    _firstButton.setToolTip("Select first node");
+    _firstButton.setFixedWidth(20);
+    _firstButton.setFixedHeight(20);
+
+    
+    icon = QIcon("F:/LUMC/VolumeViewerPlugin/src/Transfer/control-180.png");
+    _previousButton.setIcon(icon);
+    _previousButton.setStatusTip("Select previous node");
+    _previousButton.setToolTip("Select previous node");
+    _previousButton.setFixedWidth(20);
+    _previousButton.setFixedHeight(20);
+
+    
+    icon = QIcon("F:/LUMC/VolumeViewerPlugin/src/Transfer/control.png");
+    _nextButton.setIcon(icon);
+    _nextButton.setStatusTip("Select next node");
+    _nextButton.setToolTip("Select next node");
+    _nextButton.setFixedWidth(20);
+    _nextButton.setFixedHeight(20);
+
+    
+    icon = QIcon("F:/LUMC/VolumeViewerPlugin/src/Transfer/control-stop.png");
+    _lastButton.setIcon(icon);
+    _lastButton.setStatusTip("Select final node");
+    _lastButton.setToolTip("Select final node");
+    _lastButton.setFixedWidth(20);
+    _lastButton.setFixedHeight(20);
+
+    
+    icon = QIcon("F:/LUMC/VolumeViewerPlugin/src/Transfer/cross.png");
+    _deleteButton.setIcon(icon);
+    _deleteButton.setStatusTip("Delete selected node");
+    _deleteButton.setToolTip("Delete selected node");
+    _deleteButton.setFixedWidth(20);
+    _deleteButton.setFixedHeight(20);
+    
+    
+
+    horLayout->addWidget(&_firstButton);
+    horLayout->addWidget(&_previousButton);
+    horLayout->addWidget(&_nextButton);
+    horLayout->addWidget(&_lastButton);
+    horLayout->addWidget(&_deleteButton);
+
+   
+    vertLayout->addWidget(_transferWidget, 1);
+    vertLayout->addLayout(horLayout, 2);
+    vertLayout->addWidget(_transferFunctionControlAction.createWidget(this),3);
+    setLayout(vertLayout);
+    
     
     
     

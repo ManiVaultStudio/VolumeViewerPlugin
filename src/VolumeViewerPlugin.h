@@ -11,6 +11,7 @@
 #include <Dataset.h>
 #include <widgets/DropWidget.h>
 #include <RendererSettingsAction.h>
+#include <Transfer/TransferFunctionControlAction.h>
 #include <PointData.h>
 /** VTK headers*/
 #include <vtkPlane.h>
@@ -77,6 +78,7 @@ public: // Miscellaneous
         return _rendererSettingsAction;
     }
 
+
     /** Returns the names of the points datasets in HDPS */
     QStringList getPointsDatasets() const {
         return _pointsDatasets;
@@ -93,6 +95,7 @@ signals:
 
 private:
     RendererSettingsAction              _rendererSettingsAction;    /** The options menu on the side of the viewer*/
+    
     ViewerWidget*                       _viewerWidget;              /** The image viewer widget */
     TransferWidget2*                     _transferWidget;
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */

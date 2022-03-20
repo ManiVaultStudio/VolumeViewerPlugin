@@ -33,6 +33,8 @@ public:
     /**Function used to add a node at a given position. */
     void addNode(QPointF position);
 
+    void updateNodes();
+
     /** Function used to remove a node at a given position. */
     void removeNode(QPointF position);
 
@@ -72,6 +74,11 @@ public:
         return _colorMap;
     }
 
+    /** Get the currentNodePosition. */
+    QPointF getCurrentNodePosition() {
+        return _currentNodePosition;
+    }
+
 
 protected:
     
@@ -89,12 +96,14 @@ private:
     Node* _currentNode;
     int _windowWidth;
     int _windowHeight;
+    int _currentNodeIndex;
     QVector<QColor> _nodeColorList;
     QImage _colorMap;
 
 signals:
 
     void colorMapChanged(const QImage& colorMap); // Signal when the colormap has been altered.
+    void valueChanged(const QPointF& currentNodePosition);
     
 };
 #endif // TransferWidget_H

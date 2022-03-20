@@ -31,6 +31,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _planeCollection(vtkSmartPointer<vtkPlaneCollection>::New()),
     _points(),
     _rendererSettingsAction(this,_viewerWidget),
+   
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
     _planeArray(std::vector<int>(3,0)), 
@@ -57,15 +58,16 @@ void VolumeViewerPlugin::init()
     
     auto vertLayout = new QVBoxLayout();
     auto layout = new QHBoxLayout();
-    auto layout2 = new QHBoxLayout();
+    //auto layout2 = new QHBoxLayout();
     layout->setMargin(0);
     layout->setSpacing(0);
     
     layout->addWidget(_viewerWidget,1);
-    vertLayout->addWidget(_rendererSettingsAction.createWidget(this),1);
-    vertLayout->addWidget(_transferWidget,2);
+    //vertLayout->addWidget(_rendererSettingsAction.createWidget(this),1);
+    vertLayout->addWidget(_transferWidget);
+    
     layout->addLayout(vertLayout);
-    layout2->addWidget(_transferWidget);
+    //layout2->addWidget(_transferWidget);
     //layout2->addWidget(_transferWidget);
     setLayout(layout);
     

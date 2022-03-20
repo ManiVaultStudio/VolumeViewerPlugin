@@ -23,6 +23,7 @@
 #include <QGraphicsRectItem>
 #include <QPainter.h>
 #include <QColorDialog>
+#include <qbuttongroup.h>
 
 #include <Windows.h>
 #include <thread>
@@ -45,7 +46,8 @@ TransferWidget::TransferWidget(TransferWidget2* parent)
     _currentNode(),
     _windowHeight(200),
     _windowWidth(400),
-    _colorMap()
+    _colorMap(),
+    _currentNodeIndex(1)
 
 {
     // Create transferview graphicsscene.
@@ -59,7 +61,7 @@ TransferWidget::TransferWidget(TransferWidget2* parent)
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     // Set the scene rectangle, negative values and increases of window height and width are used as padding to fascilitate axes.
-    _scene->setSceneRect(-30, -20 , _windowWidth+50, _windowHeight+40);
+    _scene->setSceneRect(-30, 0 , _windowWidth+50, _windowHeight+40);
     setScene(_scene);
     setCacheMode(CacheBackground);
     setViewportUpdateMode(BoundingRectViewportUpdate);
@@ -83,6 +85,137 @@ TransferWidget::TransferWidget(TransferWidget2* parent)
     node1->setPos(0, _windowHeight);
     node2->setPos(_windowWidth, 0);
     _nodePositions = { {0,_windowHeight},{_windowWidth,0} };
+    _currentNode = node2;
+
+    
+    
+
+    connect(&parent->getTransferFunctionControlAction().getNodeControlAction().getIntensityAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
+        int yPosition =(int)((100 - value) * (_windowHeight / 100));
+        _currentNode->setY(yPosition);
+        _currentNodePosition.setY(yPosition);
+        _nodePositions[_currentNodeIndex].second = yPosition;
+        createColorMap();
+    });
+
+    connect(&parent->getTransferFunctionControlAction().getNodeControlAction().getValueAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
+        int xPosition = (int)(value * (_windowWidth / 100));
+        _currentNode->setX(xPosition);
+        _currentNodePosition.setX(xPosition);
+        _nodePositions[_currentNodeIndex].first = xPosition;
+        createColorMap();
+    });
+    connect(&parent->getTransferFunctionControlAction().getNodeControlAction().getColorPickerAction(), &ColorAction::colorChanged, this, [this](const QColor& color) {
+        _nodeColorList[_currentNodeIndex] = color;
+        _nodeList[_currentNodeIndex]->update();
+        createColorMap();
+
+    });
+
+    connect(&parent->getDeleteButton(), &QPushButton::released, this, [this] {
+       if (_currentNodeIndex == 0 || _currentNodeIndex == 1) {
+           QMessageBox msgBox;
+           msgBox.setText("This node cannot be removed");
+           msgBox.exec();
+       }
+       else {
+           auto toBeDeleted = _currentNodePosition;
+
+           std::vector<std::pair<float, int>> sortedIndices = sortNodes();
+           for (int i = 0; i < sortedIndices.size(); i++)
+           {
+               if (sortedIndices[i].first == _currentNodePosition.x()) {
+                   
+                       auto leftX = _currentNodePosition.x() - sortedIndices[i - 1].first;
+                       auto rightX = sortedIndices[i + 1].first - _currentNodePosition.x();
+                       if (leftX < rightX) {
+                           _currentNodeIndex = sortedIndices[i - 1].second;
+                           
+                       }
+                       else {
+                           _currentNodeIndex = sortedIndices[i + 1].second;
+                           
+                       }
+
+                       _currentNode = _nodeList[_currentNodeIndex];
+                       _currentNodePosition = QPointF(_nodePositions[_currentNodeIndex].first, _nodePositions[_currentNodeIndex].second);
+                       findNode(_currentNodePosition, "Left");
+                       float x = _currentNodePosition.x() / (_windowWidth / 100);
+                       float y = _currentNodePosition.y() / (_windowHeight / 100);
+                       _parent->getTransferFunctionControlAction().getNodeControlAction().changeNodePosition(x, 100 - y);
+                   
+                   break;
+               }
+           }
+
+           removeNode(toBeDeleted);
+       }
+    });
+    connect(&parent->getFirstButton(), &QPushButton::released, this, [this] {
+       _currentNode = _nodeList[0];
+       _currentNodeIndex = 0;
+       _currentNodePosition = QPointF(_nodePositions[0].first, _nodePositions[0].second);
+       findNode(_currentNodePosition, "Left");
+       float x = _currentNodePosition.x() / (_windowWidth / 100);
+       float y = _currentNodePosition.y() / (_windowHeight / 100);
+       _parent->getTransferFunctionControlAction().getNodeControlAction().changeNodePosition(x, 100 - y);
+   });
+
+    connect(&parent->getLastButton(), &QPushButton::released, this, [this] {
+       _currentNode = _nodeList[1];
+       _currentNodeIndex = 1;
+       _currentNodePosition = QPointF(_nodePositions[1].first, _nodePositions[1].second);
+       findNode(_currentNodePosition, "Left");
+       float x = _currentNodePosition.x() / (_windowWidth / 100);
+       float y = _currentNodePosition.y() / (_windowHeight / 100);
+       _parent->getTransferFunctionControlAction().getNodeControlAction().changeNodePosition(x, 100 - y);
+   });
+    connect(&parent->getPreviousButton(), &QPushButton::released, this, [this] {
+       std::vector<std::pair<float, int>> sortedIndices = sortNodes();
+       for (int i = 0; i < sortedIndices.size(); i++)
+       {
+           if (sortedIndices[i].first == _currentNodePosition.x()) {
+               if (i == 0) {
+                   QMessageBox msgBox;
+                   msgBox.setText("No previous node available, this is the first node.");
+                   msgBox.exec();
+               }
+               else {
+                   _currentNodeIndex = sortedIndices[i-1].second;
+                   _currentNode = _nodeList[_currentNodeIndex];
+                   _currentNodePosition = QPointF(_nodePositions[_currentNodeIndex].first, _nodePositions[_currentNodeIndex].second);
+                   findNode(_currentNodePosition, "Left");
+                   float x = _currentNodePosition.x() / (_windowWidth / 100);
+                   float y = _currentNodePosition.y() / (_windowHeight / 100);
+                   _parent->getTransferFunctionControlAction().getNodeControlAction().changeNodePosition(x, 100 - y);
+               }             
+               break;
+           }
+       }
+   });
+    connect(&parent->getNextButton(), &QPushButton::released, this, [this] {
+       std::vector<std::pair<float, int>> sortedIndices = sortNodes();
+       for (int i = 0; i < sortedIndices.size(); i++)
+       {
+           if (sortedIndices[i].first == _currentNodePosition.x()) {
+               if (i == sortedIndices.size()-1) {
+                   QMessageBox msgBox;
+                   msgBox.setText("No next node available, this is the final node.");
+                   msgBox.exec();
+               }
+               else {
+                   _currentNodeIndex = sortedIndices[i + 1].second;
+                   _currentNode = _nodeList[_currentNodeIndex];
+                   _currentNodePosition = QPointF(_nodePositions[_currentNodeIndex].first, _nodePositions[_currentNodeIndex].second);
+                   findNode(_currentNodePosition, "Left");
+                   float x = _currentNodePosition.x() / (_windowWidth / 100);
+                   float y = _currentNodePosition.y() / (_windowHeight / 100);
+                   _parent->getTransferFunctionControlAction().getNodeControlAction().changeNodePosition(x, 100 - y);
+               }
+               break;
+           }
+       }
+   });
 }
 
 // This function is used to gather all data created by this widget and cummulates this into a QImage with a height of 1 and a width of 256, this QImage is the created as a colormap.
@@ -175,6 +308,7 @@ std::vector<float> TransferWidget::getCurrentNodeInfo() {
     return info;
 }
 
+
 // This function finds a node that has been clicked on and determine what to do when the click action has taken place
 bool TransferWidget::findNode(QPointF position, std::string mouseButton) {
     bool found = false;
@@ -186,12 +320,25 @@ bool TransferWidget::findNode(QPointF position, std::string mouseButton) {
             found = true;
             _currentNode = _nodeList[i];
             _currentNodePosition = QPointF(_nodePositions[i].first, _nodePositions[i].second);
+            _currentNodeIndex = i;
+            _parent->getTransferFunctionControlAction().getNodeControlAction().changeNodeColor(_nodeColorList[_currentNodeIndex]);
+            
             // If the left mousebutton is used, only return true, this is handled in node.cpp.
             if (mouseButton == "Left") {
-                return found;
+                emit this->valueChanged(_currentNodePosition);
+               
             }
             // If middle mouse button is used and it is not one of the boundary nodes, remove the node. !!!!!!! This is aimed to be removed and changed to a garbage icon !!!!!!
             else if (mouseButton == "Middle") {
+                QColor color = QColorDialog::getColor(Qt::white, this);
+                if (color.isValid()) {
+                    _nodeColorList[i] = color;
+                    _nodeList[i]->update();
+                    createColorMap();
+                }
+            }
+            // If the right mousbutton is used a color for the selected node can be chosen.
+            else if (mouseButton == "Right") {
                 if (i == 0 || i == 1) {
                     QMessageBox msgBox;
                     msgBox.setText("This node cannot be removed");
@@ -199,15 +346,7 @@ bool TransferWidget::findNode(QPointF position, std::string mouseButton) {
                     break;
                 }
                 removeNode(position);
-            }
-            // If the right mousbutton is used a color for the selected node can be chosen.
-            else if (mouseButton == "Right") {
-                QColor color = QColorDialog::getColor(Qt::white, this);
-                if (color.isValid()) {
-                    _nodeColorList[i] = color;
-                    _nodeList[i]->update();
-                    createColorMap();
-                }
+                
             }    
         }
     }
@@ -215,9 +354,19 @@ bool TransferWidget::findNode(QPointF position, std::string mouseButton) {
     if (!found) {
         if (mouseButton == "Left") {
             addNode(position);
+            
         }     
     }
+    updateNodes();
+    this->update();
     return found;
+}
+
+void TransferWidget::updateNodes() {
+    for (int i = 0; i < _nodeList.size(); i++)
+    {
+        _nodeList[i]->update();
+    }
 }
 
 // This funcion is used to remove a node on a given position.
@@ -247,6 +396,10 @@ void TransferWidget::addNode(QPointF position) {
     _nodeList.push_back(newNode);
     _nodeColorList.push_back(Qt::yellow);
     _nodePositions.push_back(std::make_pair(position.x(), position.y()));
+    _currentNodePosition = position;
+    _currentNode = newNode;
+    _currentNodeIndex = _nodeList.length() - 1;
+    _parent->getTransferFunctionControlAction().getNodeControlAction().changeNodeColor(Qt::yellow);
     redrawEdges();
     createColorMap();
 }
@@ -282,7 +435,10 @@ void TransferWidget::redrawEdges() {
         _edgeList.push_back(newEdge);
         _scene->addItem(_edgeList[i]);
     }
-
+    float x = _currentNodePosition.x() / (_windowWidth / 100);
+    float y = _currentNodePosition.y() / (_windowHeight / 100);
+    _parent->getTransferFunctionControlAction().getNodeControlAction().changeNodePosition(x,100 - y);
+    
     // Recreate colormap after the edges and nodes have been changed.
     createColorMap();
 }
@@ -318,6 +474,12 @@ void TransferWidget::drawBackground(QPainter* painter,const QRectF& rect)
     QRectF axisRect(QPoint(0, _windowHeight), QPoint(_windowWidth, 0));
     painter->drawRect(axisRect);
 
+    pen.setWidth(1);
+    painter->setPen(pen);
+
+    QRectF colorMapRect(QPoint(0, _windowHeight+50), QPoint(_windowWidth, _windowHeight + 40));
+    painter->drawRect(colorMapRect);
+
     // Divide the windowheight in 4.
     auto lineHeightWidth = (float)_windowHeight / 4;
 
@@ -326,6 +488,8 @@ void TransferWidget::drawBackground(QPainter* painter,const QRectF& rect)
     painter->drawText(QPoint(-30, lineHeightWidth * 2), "50%");
     painter->drawText(QPoint(-30, lineHeightWidth * 3), "25%");
     painter->drawText(QPoint(-30, lineHeightWidth * 4), "0%");
+
+
 
     pen.setWidth(1);
     pen.setStyle(Qt::DashLine);
@@ -347,5 +511,16 @@ void TransferWidget::drawBackground(QPainter* painter,const QRectF& rect)
 
     QLine dashedLine25(QPoint(0, lineHeightWidth*3), QPoint(_windowWidth, lineHeightWidth*3));
     painter->drawLine(dashedLine25);
+
+    /*for (int i = 0; i < _windowWidth; i++)
+    {
+        
+        pen.setColor(_colorMap.pixelColor((int)((i / _windowWidth) * 100), 0));
+        QLine colorLine(QPoint(i, _windowHeight + 50), QPoint(i, _windowHeight + 40));
+        painter->setPen(pen);
+        painter->drawLine(colorLine);
+    }
+
+    _colorMap.pixelColor(1,0);*/
 }
 
