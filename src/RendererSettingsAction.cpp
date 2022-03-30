@@ -9,9 +9,4 @@ RendererSettingsAction::RendererSettingsAction(QObject* parent, ViewerWidget* vi
     _slicingAction(*this, viewerWidget),
     _coloringAction(*this)
 {
-    GroupsAction::GroupActions groupActions;
-
-    groupActions << &_dimensionAction << &_slicingAction << &_coloringAction;
-    
-    setGroupActions(groupActions);
 }

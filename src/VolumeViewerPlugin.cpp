@@ -63,6 +63,12 @@ void VolumeViewerPlugin::init()
     settingsLayout->addWidget(_rendererSettingsAction.createWidget(&_widget));
     settingsLayout->setMargin(6);
 
+    GroupsAction::GroupActions groupActions;
+
+    groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction();
+
+    _rendererSettingsAction.setGroupActions(groupActions);
+
     layout->addLayout(settingsLayout, 1);
 
     _widget.setAutoFillBackground(true);
