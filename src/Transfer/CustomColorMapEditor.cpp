@@ -5,7 +5,7 @@
 #include <vector>
 #include <cmath>
 /** Plugin headers */
-#include <Transfer/TransferWidget2.h>
+#include <Transfer/CustomColorMapEditor.h>
 #include <RendererSettingsAction.h>
 #include <VolumeViewerPlugin.h>
 /** HDPS headers */
@@ -29,7 +29,7 @@ using namespace hdps;
 using namespace hdps::gui;
 
 
-TransferWidget2::TransferWidget2(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* parent)
+CustomColorMapEditor::CustomColorMapEditor(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* parent)
     : QWidget(parent),
     _histogram(std::vector<int>(100, 0)),
     _dataLoaded(false),
@@ -44,13 +44,15 @@ TransferWidget2::TransferWidget2(VolumeViewerPlugin& VolumeViewerPlugin, QWidget
 {
     this->setFixedSize(400, 800);
     _transferWidget = new TransferWidget(this);
-    _transferWidget->setFixedHeight(260);
+    _transferWidget->setFixedHeight(250);
+   /* auto tWidget = new ColorMapView(this);
+    tWidget->setFixedHeight(15);*/
 
-   
+    
+    
+
     auto vertLayout = new QVBoxLayout();
     auto horLayout = new QHBoxLayout();
-
-    //auto buttons = new QButtonGroup(this);
     
     auto icon = QIcon("F:/LUMC/VolumeViewerPlugin/src/Transfer/control-stop-180.png");
     _firstButton.setIcon(icon);
@@ -58,7 +60,6 @@ TransferWidget2::TransferWidget2(VolumeViewerPlugin& VolumeViewerPlugin, QWidget
     _firstButton.setToolTip("Select first node");
     _firstButton.setFixedWidth(20);
     _firstButton.setFixedHeight(20);
-
     
     icon = QIcon("F:/LUMC/VolumeViewerPlugin/src/Transfer/control-180.png");
     _previousButton.setIcon(icon);
@@ -66,7 +67,6 @@ TransferWidget2::TransferWidget2(VolumeViewerPlugin& VolumeViewerPlugin, QWidget
     _previousButton.setToolTip("Select previous node");
     _previousButton.setFixedWidth(20);
     _previousButton.setFixedHeight(20);
-
     
     icon = QIcon("F:/LUMC/VolumeViewerPlugin/src/Transfer/control.png");
     _nextButton.setIcon(icon);
@@ -74,8 +74,7 @@ TransferWidget2::TransferWidget2(VolumeViewerPlugin& VolumeViewerPlugin, QWidget
     _nextButton.setToolTip("Select next node");
     _nextButton.setFixedWidth(20);
     _nextButton.setFixedHeight(20);
-
-    
+   
     icon = QIcon("F:/LUMC/VolumeViewerPlugin/src/Transfer/control-stop.png");
     _lastButton.setIcon(icon);
     _lastButton.setStatusTip("Select final node");
@@ -90,8 +89,6 @@ TransferWidget2::TransferWidget2(VolumeViewerPlugin& VolumeViewerPlugin, QWidget
     _deleteButton.setToolTip("Delete selected node");
     _deleteButton.setFixedWidth(20);
     _deleteButton.setFixedHeight(20);
-    
-    
 
     horLayout->addWidget(&_firstButton);
     horLayout->addWidget(&_previousButton);
@@ -99,19 +96,14 @@ TransferWidget2::TransferWidget2(VolumeViewerPlugin& VolumeViewerPlugin, QWidget
     horLayout->addWidget(&_lastButton);
     horLayout->addWidget(&_deleteButton);
 
-   
-    vertLayout->addWidget(_transferWidget, 1);
+    vertLayout->addWidget(_transferWidget, 1);    
     vertLayout->addLayout(horLayout, 2);
+    //vertLayout->addWidget(tWidget, 3);
     vertLayout->addWidget(_transferFunctionControlAction.createWidget(this),3);
     setLayout(vertLayout);
-    
-    
-    
-    
-    
 }
 
-void TransferWidget2::createHistogram(Points& data, int chosenDim) {
+void CustomColorMapEditor::createHistogram(Points& data, int chosenDim) {
 
     
     // get number of points from points dataset
@@ -145,7 +137,7 @@ void TransferWidget2::createHistogram(Points& data, int chosenDim) {
 
     float size = range[1] - (range[0] + 1);
     float binSize = size / 100;
-    std::cout << "created" << std::endl;
+    
 
     for (int i = 0; i < numPoints * numDimensions; i++) {
         dim = i % numDimensions;
@@ -163,15 +155,15 @@ void TransferWidget2::createHistogram(Points& data, int chosenDim) {
     
 }
 
-std::vector<int> TransferWidget2::getHistogram() {
+std::vector<int> CustomColorMapEditor::getHistogram() {
    
     return _histogram;
 }
 
-bool TransferWidget2::getDataLoaded() {
+bool CustomColorMapEditor::getDataLoaded() {
     return _dataLoaded;
 }
 
-TransferWidget& TransferWidget2::getTransferFunction() {
+TransferWidget& CustomColorMapEditor::getTransferFunction() {
     return *_transferWidget;
 }

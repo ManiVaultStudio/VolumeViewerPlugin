@@ -7,7 +7,7 @@
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
 #include "ViewerWidget.h"
-#include "Transfer/TransferWidget2.h"
+#include "Transfer/CustomColorMapEditor.h"
 #include <widgets/DropWidget.h>
 
 /** HDPS headers*/
@@ -51,7 +51,7 @@ void VolumeViewerPlugin::init()
 {
     // add the viewerwidget and dropwidget to the layout
     _viewerWidget = new ViewerWidget(*this);
-    _transferWidget = new TransferWidget2(*this);
+    _transferWidget = new CustomColorMapEditor(*this);
     
     _dropWidget = new DropWidget(_viewerWidget);
     _transferWidget->setMaximumHeight(125);

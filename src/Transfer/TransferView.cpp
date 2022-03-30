@@ -1,7 +1,5 @@
 #include "Transfer/TransferView.h"
 #include "Transfer/TransferWidget.h"
-//#include <QMouseEvent>
-//#include "Transfer/Node.h"
 
 TransferView::TransferView(TransferWidget* parent)
     :QGraphicsScene(parent),
@@ -27,6 +25,3 @@ void TransferView::mousePressEvent(QGraphicsSceneMouseEvent* event) {
     }
 }
 
-//QPointF TransferView::findPosition() {
-//
-//}

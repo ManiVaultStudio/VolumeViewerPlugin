@@ -21,7 +21,6 @@ NodeControlAction::NodeControlAction(TransferFunctionControlAction& transferFunc
 {
     setText("Node Control");
     setMayReset(false);
-    //bool toggled = false;
     
 }
 

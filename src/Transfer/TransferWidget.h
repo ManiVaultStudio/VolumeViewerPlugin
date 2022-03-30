@@ -9,13 +9,13 @@
 #include <Dataset.h>
 #include <PointData.h>
 #include <Transfer/Node.h>
-//#include <Transfer/TransferWidget2.h>
+//#include <Transfer/CustomColorMapEditor.h>
 
 
 
 //class VolumeViewerPlugin;
 using namespace hdps;
-class TransferWidget2;
+class CustomColorMapEditor;
 class Node;
 using namespace hdps::gui;
 
@@ -25,7 +25,7 @@ class TransferWidget : public QGraphicsView
 
 public:
 
-    TransferWidget(TransferWidget2* parent = nullptr);
+    TransferWidget(CustomColorMapEditor* parent = nullptr);
 
     /**Function used to find a node at a specific location and determine what to do based on a mouseclick.*/
     bool findNode(QPointF position, std::string mouseButton); 
@@ -85,7 +85,7 @@ protected:
 
 private:
 
-    TransferWidget2* _parent; 
+    CustomColorMapEditor* _parent; 
     bool _dataLoaded;
     QCursor _cursor;
     QGraphicsScene* _scene;

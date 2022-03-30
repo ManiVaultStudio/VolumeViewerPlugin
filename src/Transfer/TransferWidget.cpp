@@ -32,7 +32,7 @@ using namespace hdps;
 using namespace hdps::gui;
 
 
-TransferWidget::TransferWidget(TransferWidget2* parent)
+TransferWidget::TransferWidget(CustomColorMapEditor* parent)
     : QGraphicsView(parent),
     _parent(parent),
     _dataLoaded(false),
@@ -87,9 +87,6 @@ TransferWidget::TransferWidget(TransferWidget2* parent)
     _nodePositions = { {0,_windowHeight},{_windowWidth,0} };
     _currentNode = node2;
 
-    
-    
-
     connect(&parent->getTransferFunctionControlAction().getNodeControlAction().getIntensityAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
         int yPosition =(int)((100 - value) * (_windowHeight / 100));
         _currentNode->setY(yPosition);
@@ -97,9 +94,17 @@ TransferWidget::TransferWidget(TransferWidget2* parent)
         _nodePositions[_currentNodeIndex].second = yPosition;
         createColorMap();
     });
-
     connect(&parent->getTransferFunctionControlAction().getNodeControlAction().getValueAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
         int xPosition = (int)(value * (_windowWidth / 100));
+        std::vector<float> boundingNodes = getCurrentNodeInfo();
+        if (xPosition == boundingNodes[1] || xPosition > boundingNodes[1]) {        
+            _parent->getTransferFunctionControlAction().getNodeControlAction().getValueAction().setValue(boundingNodes[1]/(_windowWidth/100));
+            xPosition = boundingNodes[1] - 1;
+        }
+        else if (xPosition == boundingNodes[0] || xPosition < boundingNodes[0]) {
+            _parent->getTransferFunctionControlAction().getNodeControlAction().getValueAction().setValue(boundingNodes[0]/(_windowWidth/100));
+            xPosition = boundingNodes[0] + 1;
+        }
         _currentNode->setX(xPosition);
         _currentNodePosition.setX(xPosition);
         _nodePositions[_currentNodeIndex].first = xPosition;
@@ -250,7 +255,7 @@ void TransferWidget::createColorMap() {
         // Iterate over the pixelvalues inside the colormap to determine the values of the colors between the current and next nodes.
         for (int i = currentPosition; i < nextPosition; i++) {
             // Calculate linear interpolation between the 2 nodes of color and alpha of the current pixelvalue.
-            double ratio = (double)(i-currentPosition) / (double)(nextPosition - currentPosition);
+            double ratio = (double)(i - currentPosition) / (double)(nextPosition - currentPosition);
             double resultRed = currentColor.redF() + ratio * (nextColor.redF() - currentColor.redF());
             double resultGreen = currentColor.greenF() + ratio * (nextColor.greenF() - currentColor.greenF());
             double resultBlue = currentColor.blueF() + ratio * (nextColor.blueF() - currentColor.blueF());
@@ -268,7 +273,7 @@ void TransferWidget::createColorMap() {
 
     // Save the colormap.
     _colorMap = colorMap;
-    
+
     // Emit a signal that the colormap has been changed.
     emit colorMapChanged(_colorMap);    
 }
@@ -308,14 +313,14 @@ std::vector<float> TransferWidget::getCurrentNodeInfo() {
     return info;
 }
 
-
-// This function finds a node that has been clicked on and determine what to do when the click action has taken place
+// This function finds a node that has been clicked on and determine what to do when the click action has taken place. !!!TODO IN THIS FUNCTION !!
 bool TransferWidget::findNode(QPointF position, std::string mouseButton) {
     bool found = false;
    
     // Iterate over all the nodes to find if a node excists on the current x position.
     for (int i = 0; i < _nodePositions.size(); i++) {
-        // If there is a node in the x-position that has been clicked on. There is a boundary build-in in order to account for the visual circle.
+        // If there is a node in the x-position that has been clicked on. There is a boundary build-in in order to account for the visual circle. 
+        //!!! TODO: NEEDS TO BE ADJUSTED SO IT ALSO TAKES INTO ACCOUNT Y POSITION. AND NEED TO TAKE ACCOUNT OF INCREASES SIZE !!!!!!!!!!!
         if (position.x() > _nodePositions[i].first - 10 && position.x() < _nodePositions[i].first + 10) {
             found = true;
             _currentNode = _nodeList[i];
@@ -328,7 +333,7 @@ bool TransferWidget::findNode(QPointF position, std::string mouseButton) {
                 emit this->valueChanged(_currentNodePosition);
                
             }
-            // If middle mouse button is used and it is not one of the boundary nodes, remove the node. !!!!!!! This is aimed to be removed and changed to a garbage icon !!!!!!
+            // If middle mouse button is used the color of the selected node can be chosen.
             else if (mouseButton == "Middle") {
                 QColor color = QColorDialog::getColor(Qt::white, this);
                 if (color.isValid()) {
@@ -337,7 +342,7 @@ bool TransferWidget::findNode(QPointF position, std::string mouseButton) {
                     createColorMap();
                 }
             }
-            // If the right mousbutton is used a color for the selected node can be chosen.
+            // If the right mousbutton is used and it is not a boundary node it will be removed.
             else if (mouseButton == "Right") {
                 if (i == 0 || i == 1) {
                     QMessageBox msgBox;
@@ -477,8 +482,8 @@ void TransferWidget::drawBackground(QPainter* painter,const QRectF& rect)
     pen.setWidth(1);
     painter->setPen(pen);
 
-    QRectF colorMapRect(QPoint(0, _windowHeight+50), QPoint(_windowWidth, _windowHeight + 40));
-    painter->drawRect(colorMapRect);
+    //QRectF colorMapRect(QPoint(0, _windowHeight+50), QPoint(_windowWidth, _windowHeight + 45));
+    //painter->drawRect(colorMapRect);
 
     // Divide the windowheight in 4.
     auto lineHeightWidth = (float)_windowHeight / 4;
@@ -488,8 +493,6 @@ void TransferWidget::drawBackground(QPainter* painter,const QRectF& rect)
     painter->drawText(QPoint(-30, lineHeightWidth * 2), "50%");
     painter->drawText(QPoint(-30, lineHeightWidth * 3), "25%");
     painter->drawText(QPoint(-30, lineHeightWidth * 4), "0%");
-
-
 
     pen.setWidth(1);
     pen.setStyle(Qt::DashLine);
@@ -512,15 +515,19 @@ void TransferWidget::drawBackground(QPainter* painter,const QRectF& rect)
     QLine dashedLine25(QPoint(0, lineHeightWidth*3), QPoint(_windowWidth, lineHeightWidth*3));
     painter->drawLine(dashedLine25);
 
+    //QPixmap pixelMap;
+    //pixelMap.fromImage(_colorMap);
+    //painter->drawPixmap(colorMapRect.topLeft(), pixelMap);
+
     /*for (int i = 0; i < _windowWidth; i++)
-    {
-        
+    {        
         pen.setColor(_colorMap.pixelColor((int)((i / _windowWidth) * 100), 0));
         QLine colorLine(QPoint(i, _windowHeight + 50), QPoint(i, _windowHeight + 40));
-        painter->setPen(pen);
-        painter->drawLine(colorLine);
-    }
+        painter->drawPixmap(colorMapRect.topLeft(), pixelMap);
+    }*/
 
-    _colorMap.pixelColor(1,0);*/
+    //_colorMap.pixelColor(1,0);
+
+
 }
 

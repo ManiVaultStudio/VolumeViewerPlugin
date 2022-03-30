@@ -1,5 +1,5 @@
-#ifndef TransferWidget2_H
-#define TransferWidget2_H
+#ifndef CustomColorMapEditor_H
+#define CustomColorMapEditor_H
 
 /** QT headers*/
 #include <QWidget>
@@ -16,23 +16,23 @@ class VolumeViewerPlugin;
 using namespace hdps;
 class TransferWidget;
 
-class TransferWidget2 : public QWidget
+class CustomColorMapEditor : public QWidget
 {
     Q_OBJECT
 
 public:
-    TransferWidget2(VolumeViewerPlugin& volumeViewer, QWidget* parent = nullptr);
-    void TransferWidget2::createHistogram(Points& data, int chosenDim);
+    CustomColorMapEditor(VolumeViewerPlugin& volumeViewer, QWidget* parent = nullptr);
+    void CustomColorMapEditor::createHistogram(Points& data, int chosenDim);
 
     //void itemMoved();
-    std::vector<int> TransferWidget2::getHistogram();
-    TransferWidget& TransferWidget2::getTransferFunction();
+    std::vector<int> CustomColorMapEditor::getHistogram();
+    TransferWidget& CustomColorMapEditor::getTransferFunction();
 
     TransferFunctionControlAction& getTransferFunctionControlAction() {
         return _transferFunctionControlAction;
     }
 
-    bool TransferWidget2::getDataLoaded();
+    bool CustomColorMapEditor::getDataLoaded();
 
     QPushButton& getDeleteButton() {
         return _deleteButton;
@@ -71,4 +71,4 @@ private:
 
     
 };
-#endif // TransferWidget2_H
+#endif // CustomColorMapEditor_H
