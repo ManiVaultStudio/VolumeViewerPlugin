@@ -6,8 +6,9 @@
 #include <vector>
 #include <cmath>
 /** Plugin headers */
-
+//!!! verwijderen in verband met verplaatsing !!!
 #include <RendererSettingsAction.h>
+//!!! verwijderen in verband met verplaatsing !!!
 #include <VolumeViewerPlugin.h>
 #include <Transfer/TransferView.h>
 /** HDPS headers */
@@ -35,6 +36,7 @@ using namespace hdps::gui;
 TransferWidget::TransferWidget(CustomColorMapEditor* parent)
     : QGraphicsView(parent),
     _parent(parent),
+    //!!! verwijderen in verband met verplaatsing !!!
     _dataLoaded(false),
     _cursor(),
     _scene(nullptr),
@@ -57,6 +59,7 @@ TransferWidget::TransferWidget(CustomColorMapEditor* parent)
     this->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     
     // Get boolian that shows if data has been loaded in !!!!! needs to be removed when extracted from volumeviewer.
+    //!!! verwijderen in verband met verplaatsing !!!
     _dataLoaded = parent->getDataLoaded();
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

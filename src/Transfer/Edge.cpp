@@ -9,7 +9,9 @@
 /** Plugin headers */
 #include <Transfer/Node.h>
 #include <Transfer/Edge.h>
+//!!! verwijderen in verband met verplaatsing !!!
 #include <RendererSettingsAction.h>
+//!!! verwijderen in verband met verplaatsing !!!
 #include <VolumeViewerPlugin.h>
 /** HDPS headers */
 #include <Dataset.h>

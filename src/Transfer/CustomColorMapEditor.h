@@ -12,6 +12,7 @@
 #include <Transfer/TransferWidget.h>
 #include <Transfer/TransferFunctionControlAction.h>
 
+//!!! verwijderen in verband met verplaatsing !!!
 class VolumeViewerPlugin;
 using namespace hdps;
 class TransferWidget;
@@ -21,6 +22,7 @@ class CustomColorMapEditor : public QWidget
     Q_OBJECT
 
 public:
+    //!!!input aanpassen in verband met verplaatsing
     CustomColorMapEditor(VolumeViewerPlugin& volumeViewer, QWidget* parent = nullptr);
     void CustomColorMapEditor::createHistogram(Points& data, int chosenDim);
 
@@ -32,6 +34,7 @@ public:
         return _transferFunctionControlAction;
     }
 
+    //!!! verwijderen in verband met verplaatsing !!!
     bool CustomColorMapEditor::getDataLoaded();
 
     QPushButton& getDeleteButton() {
@@ -56,6 +59,7 @@ public:
 
 private:
     std::vector<int> _histogram;
+    //!!! verwijderen in verband met verplaatsing !!!
     bool _dataLoaded;
     TransferWidget* _transferWidget;
     QPushButton _firstButton;

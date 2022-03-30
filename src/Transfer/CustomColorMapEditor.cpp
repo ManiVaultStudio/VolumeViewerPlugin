@@ -28,10 +28,11 @@
 using namespace hdps;
 using namespace hdps::gui;
 
-
+//Input aanpassen in verband met verplaatsing
 CustomColorMapEditor::CustomColorMapEditor(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* parent)
     : QWidget(parent),
     _histogram(std::vector<int>(100, 0)),
+    //!!! verwijderen in verband met verplaatsing !!!V
     _dataLoaded(false),
     _transferWidget(),
     _transferFunctionControlAction(this,_transferWidget),
@@ -150,6 +151,7 @@ void CustomColorMapEditor::createHistogram(Points& data, int chosenDim) {
         }
     }
 
+    //!!! verwijderen in verband met verplaatsing !!!
     _dataLoaded = true;
     
     
@@ -160,6 +162,8 @@ std::vector<int> CustomColorMapEditor::getHistogram() {
     return _histogram;
 }
 
+
+//!!! verwijderen in verband met verplaatsing !!!
 bool CustomColorMapEditor::getDataLoaded() {
     return _dataLoaded;
 }

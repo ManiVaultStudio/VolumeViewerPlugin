@@ -86,6 +86,7 @@ protected:
 private:
 
     CustomColorMapEditor* _parent; 
+    //!!! verwijderen in verband met verplaatsing !!!
     bool _dataLoaded;
     QCursor _cursor;
     QGraphicsScene* _scene;

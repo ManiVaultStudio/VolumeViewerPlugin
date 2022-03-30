@@ -1,4 +1,5 @@
 #include "TransferFunctionControlAction.h"
+//!!! verwijderen in verband met verplaatsing !!!
 #include <ViewerWidget.h>
 
 using namespace hdps;
