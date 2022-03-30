@@ -32,7 +32,7 @@ class VolumeViewerPluginConan(ConanFile):
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": True, "fPIC": True}
 
-    requires = "qt/5.15.1@lkeb/stable", "vtk/9.1.0@lkeb/stable"
+    requires = "vtk/9.1.0@lkeb/stable"
 
     scm = {
         "type": "git",
