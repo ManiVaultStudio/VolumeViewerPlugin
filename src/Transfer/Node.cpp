@@ -6,7 +6,7 @@
 #include <vector>
 #include <cmath>
 /** Plugin headers */
-
+//!!! verwijderen in verband met verplaatsing !!!
 #include <RendererSettingsAction.h>
 //#include <VolumeViewerPlugin.h>
 /** HDPS headers */
