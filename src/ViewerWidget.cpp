@@ -261,7 +261,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
     points.selectedLocalIndices(selectionIndices, selected);
     int count = std::count(selected.begin(), selected.end(), true);
 
-   std::cout << count << std::endl;
+  
     //std::cout << selectionIndices.size() << std::endl;
 	vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
 
@@ -323,7 +323,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
 	}
 
     
-    std::cout << numSelectedLoaded << "indices : " << selectionIndices.size() << std::endl;
+    
 	// Add scalarData to the imageData object.
 	imData->GetPointData()->SetScalars(dataArray);
 	

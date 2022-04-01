@@ -684,6 +684,7 @@ void VolumeViewerPlugin::init()
 
     connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this]{
 
+        //_points->select
         // if data is loaded
         if (_dataLoaded) {
 
@@ -711,7 +712,7 @@ void VolumeViewerPlugin::init()
                 _dataSelected = true;
             }
             else {
-                _dataSelected = false;
+                _dataSelected = true;
             }
 
             // Render the data with the current slicing planes and selections
