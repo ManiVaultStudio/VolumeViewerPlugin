@@ -38,25 +38,19 @@ set(PLUGIN
 
 file(GLOB ACTIONS src/*Action.*)
 file(GLOB WIDGETS src/*Widget.*)
-file(GLOB MODEL src/*Model.*)
-file(GLOB TRANSFER src/Transfer/*)
-# file(GLOB NODE src/Node*.*)
-# file(GLOB EDGE src/Edge*.*)
-# file(GLOB HIST src/Histogram*.*)
-# file(GLOB BCK src/Background*.*)
-# file(GLOB PRST src/Preset*.*)
+
+
 
 file(GLOB JSON src/*.json)
 
 
-set(SOURCES ${PLUGIN} ${MODEL} ${RENDERING} ${WIDGETS} ${TRANSFER})
+set(SOURCES ${PLUGIN} ${MODEL} ${RENDERING} ${WIDGETS})
 set(AUX ${JSON} ${QRC})
 
 source_group(Plugin FILES ${PLUGIN})
 source_group(Widgets FILES ${WIDGETS})
 source_group(Actions FILES ${ACTIONS})
-source_group(Model FILES ${MODEL})
-source_group(Transferfunction FILES ${TRANSFER})
+
 
 include_directories("${INSTALL_DIR}/$<CONFIGURATION>/include/" src)
 
@@ -74,7 +68,7 @@ endif()
 target_link_libraries(${PROJECT} ${OPENGL_LIBRARIES})
 target_link_libraries(${PROJECT} Qt5::Widgets)
 target_link_libraries(${PROJECT} Qt5::WebEngineWidgets)
-target_link_libraries(${PROJECT} Qt5::Xml)
+#target_link_libraries(${PROJECT} Qt5::Xml)
 target_link_libraries(${PROJECT} ${VTK_LIBRARIES})
 vtk_module_autoinit(TARGETS ${PROJECT} MODULES ${VTK_LIBRARIES})
 
@@ -102,3 +96,11 @@ add_custom_command(TARGET ${PROJECT} POST_BUILD
 # 	"$<TARGET_FILE:${PROJECT}>"
 # 	"$ENV{HDPS_INSTALL_DIR}/$<CONFIGURATION>/Plugins/$<TARGET_FILE_NAME:${PROJECT}>"
 # )
+
+# Automatically set the debug environment (command + working directory) for MSVC in debug mode
+set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY  $<$<CONFIG:DEBUG>:${INSTALL_DIR}/debug>)
+set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_COMMAND $<$<CONFIG:DEBUG>:${INSTALL_DIR}/debug/HDPS.exe>)
+
+# Automatically set the debug environment (command + working directory) for MSVC in release mode
+set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY  $<$<CONFIG:RELEASE>:${INSTALL_DIR}/release>)
+set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_COMMAND $<$<CONFIG:RELEASE>:${INSTALL_DIR}/release/HDPS.exe>)

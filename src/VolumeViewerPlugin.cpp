@@ -7,7 +7,7 @@
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
 #include "ViewerWidget.h"
-#include "Transfer/CustomColorMapEditor.h"
+//#include "Transfer/CustomColorMapEditor.h"
 #include <widgets/DropWidget.h>
 
 /** HDPS headers*/
@@ -24,7 +24,7 @@ using namespace hdps::gui;
 VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
     _viewerWidget(nullptr),
-    _transferWidget(nullptr),
+    //_transferWidget(nullptr),
     _selectionData(vtkSmartPointer<vtkImageData>::New()),
     _imageData(vtkSmartPointer<vtkImageData>::New()),
     // initiate a planeCollection for the SlicingAction
@@ -51,28 +51,37 @@ void VolumeViewerPlugin::init()
 {
     // add the viewerwidget and dropwidget to the layout
     _viewerWidget = new ViewerWidget(*this);
-    _transferWidget = new CustomColorMapEditor(*this);
+    //_transferWidget = new CustomColorMapEditor(*this);
     
     _dropWidget = new DropWidget(_viewerWidget);
-    _transferWidget->setMaximumHeight(125);
+    //_transferWidget->setMaximumHeight(125);
     
-    auto vertLayout = new QVBoxLayout();
+    //auto vertLayout = new QVBoxLayout();
     auto layout = new QHBoxLayout();
     //auto layout2 = new QHBoxLayout();
     layout->setMargin(0);
     layout->setSpacing(0);
     
-    layout->addWidget(_viewerWidget,1);
-    //vertLayout->addWidget(_rendererSettingsAction.createWidget(this),1);
-    vertLayout->addWidget(_transferWidget);
-    
-    layout->addLayout(vertLayout);
-    //layout2->addWidget(_transferWidget);
-    //layout2->addWidget(_transferWidget);
-    setLayout(layout);
+    layout->addWidget(_viewerWidget, 4);
+
+    auto settingsLayout = new QVBoxLayout();
+
+    settingsLayout->addWidget(_rendererSettingsAction.createWidget(&_widget));
+    settingsLayout->setMargin(6);
+
+    GroupsAction::GroupActions groupActions;
+
+    groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction();
+
+    _rendererSettingsAction.setGroupActions(groupActions);
+
+    layout->addLayout(settingsLayout, 1);
+
+    _widget.setAutoFillBackground(true);
+    _widget.setLayout(layout);
     
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
-    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(this, "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
+    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&_widget, "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
 
     // Initialize the drop regions
     _dropWidget->initialize([this](const QMimeData* mimeData) -> DropWidget::DropRegions {
@@ -128,19 +137,19 @@ void VolumeViewerPlugin::init()
         unsigned int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
         
         // hide dropwidget
-        _dropWidget->setShowDropIndicator(FALSE);
+        _dropWidget->setShowDropIndicator(false);
 
         // check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0
         if (chosenDimension > _points->getNumDimensions() - 1) {
             // pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, 0, _interpolationOption, _colorMap);
-            _transferWidget->createHistogram(*_points, 0);
+            
             
         }
         else {
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
-            _transferWidget->createHistogram(*_points, chosenDimension);
+            
         }
         
         std::vector<vtkSmartPointer<vtkImageData>> imData;
@@ -655,23 +664,6 @@ void VolumeViewerPlugin::init()
         }
     });
 
-    connect(&_transferWidget->getTransferFunction(), &TransferWidget::colorMapChanged, this, [this](const QImage& colorMapImage) {
-
-        if (_dataLoaded) {
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-        }
-        
-    });
 
     connect(&getRendererSettingsAction().getColoringAction().getColorMapAction(), &ColorMapAction::imageChanged, this, [this](const QImage& colorMapImage) {
 

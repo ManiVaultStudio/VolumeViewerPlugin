@@ -1,5 +1,8 @@
 /** General headers */
 #include <math.h>
+#include <algorithm> 
+#include <vector>
+#include <cmath>
 /** Plugin headers */
 #include <ViewerWidget.h>
 #include <RendererSettingsAction.h>
@@ -120,7 +123,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
     double dataMinimum = imData[0]->GetScalarRange()[0] + 1;
     double background = imData[0]->GetScalarRange()[0];
     double dataMaximum = imData[0]->GetScalarRange()[1];
-    std::cout << dataMinimum << std::endl;
+    //std::cout << dataMinimum << std::endl;
     // Empty the renderer to avoid overlapping visualizations.
 	mRenderer->RemoveAllViewProps();
     
@@ -132,10 +135,10 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
 
     // Get the colormap image.
-	//auto colorMapImage = colorMapAction.getColorMapImage();
+	auto colorMapImage = colorMapAction.getColorMapImage();
 
 
-    auto colorMapImage = _VolumeViewerPlugin.getTransfertWidget().getTransferFunction().getColorMap();
+    //auto colorMapImage = _VolumeViewerPlugin.getTransfertWidget().getTransferFunction().getColorMap();
 
     // Loop to read in colors from the colormap qimage.
 	for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
@@ -252,8 +255,14 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
 	QVariant zQSize = points.getProperty("zDim");
 	int zSize = zQSize.toInt();
 	int dim;
-	
-	// Create empty floatarray for reading from pointsdata. 
+   
+    
+    std::vector<bool> selected;
+    points.selectedLocalIndices(selectionIndices, selected);
+    int count = std::count(selected.begin(), selected.end(), true);
+
+   std::cout << count << std::endl;
+    //std::cout << selectionIndices.size() << std::endl;
 	vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
 
 	// Create a vtkimagedata object of size xSize, ySize and zSize with vtk_float type vectors.
@@ -284,7 +293,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
             }
         }
     }
-	
+    
 	// Loop over the number of values in the pointsdata and write values into the dataArray if the current dimension  equals the chosen dimension and the selected indices.
 	for (int i = 0; i < numPoints * numDimensions; i++) {
 		// The remainder of the current value divided by the number of dimensions is the current dimension.
@@ -294,7 +303,8 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
 			// Ensure that numSelectedLoaded does not overflow the slectionIndeces vector to avoid a crash.
 			if (numSelectedLoaded != selectionIndices.size() ) {
 				// If the index is equal to the current point in the array.
-				if (selectionIndices[numSelectedLoaded] * numDimensions + chosenDim == i) {
+				if (selected[i / numDimensions]) {
+                    //std::cout << selectionIndices[numSelectedLoaded] << std::endl;
 					// Write value into the dataArray.
 					dataArray->SetValue(j, points.getValueAt(i));
 					numSelectedLoaded++;
@@ -311,7 +321,9 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std:
 			j++;
 		}
 	}
-	
+
+    
+    std::cout << numSelectedLoaded << "indices : " << selectionIndices.size() << std::endl;
 	// Add scalarData to the imageData object.
 	imData->GetPointData()->SetScalars(dataArray);
 	

@@ -20,7 +20,7 @@ SlicingAction::SlicingAction(RendererSettingsAction& rendererSettingsAction,View
     _zAxisPositionAction(this, "z-axis position", 0.0f, 100.0f, 0.0f, 0.0f, 0)
 {
     setText("Slicing parameters");
-    setMayReset(false);
+    
     //bool toggled = false;
     _xToggled = false; 
     _yToggled = false;

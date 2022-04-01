@@ -18,7 +18,6 @@ DimensionAction::DimensionAction(RendererSettingsAction& rendererSettingsAction,
     _viewerWidget(nullptr)
 {
     setText("Dimension parameters");
-    setMayReset(false);
     
     _viewerWidget = viewerWidget;
 

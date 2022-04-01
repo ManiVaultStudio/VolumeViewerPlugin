@@ -43,7 +43,7 @@ public:
     *   Next to the points data, an array containing the selected indices is also needed.
     *   The chosenDim input is an integer indicating which dimension is to be visualized, starting from 0.
     */
-    vtkSmartPointer<vtkImageData> ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim);
+    vtkSmartPointer<vtkImageData> setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim);
 
     void resizeEvent(QResizeEvent* e) override {
         _openGLWidget->setFixedSize(e->size());

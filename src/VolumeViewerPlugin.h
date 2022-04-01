@@ -6,12 +6,12 @@
 /** Plugin headers*/
 #include <ViewPlugin.h>
 #include <ViewerWidget.h>
-#include <Transfer/CustomColorMapEditor.h>
+//#include <Transfer/CustomColorMapEditor.h>
 /** HDPS headers*/
 #include <Dataset.h>
 #include <widgets/DropWidget.h>
 #include <RendererSettingsAction.h>
-#include <Transfer/TransferFunctionControlAction.h>
+//#include <Transfer/TransferFunctionControlAction.h>
 #include <PointData.h>
 /** VTK headers*/
 #include <vtkPlane.h>
@@ -69,9 +69,9 @@ public: // Miscellaneous
         return *_viewerWidget;
     }
 
-    CustomColorMapEditor& getTransfertWidget() {
-        return *_transferWidget;
-    }
+//    CustomColorMapEditor& getTransfertWidget() {
+//        return *_transferWidget;
+//    }
 
     /** Returns the render settings action*/
     RendererSettingsAction& getRendererSettingsAction() {
@@ -97,7 +97,7 @@ private:
     RendererSettingsAction              _rendererSettingsAction;    /** The options menu on the side of the viewer*/
     
     ViewerWidget*                       _viewerWidget;              /** The image viewer widget */
-    CustomColorMapEditor*                     _transferWidget;
+//    CustomColorMapEditor*                     _transferWidget;
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
     vtkSmartPointer<vtkImageData>       _selectionData;             /** The selected data*/

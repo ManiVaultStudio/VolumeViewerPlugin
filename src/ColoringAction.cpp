@@ -27,9 +27,4 @@ ColoringAction::ColoringAction(RendererSettingsAction& rendererSettingsAction) :
 
 {
     setText("Coloring parameters");
-    setMayReset(false);
-    QGraphicsScene* transferWindow = new QGraphicsScene(this);
-    transferWindow->setItemIndexMethod(QGraphicsScene::NoIndex);
-    transferWindow->setSceneRect(-50, -50, 100, 100);
-
 }
