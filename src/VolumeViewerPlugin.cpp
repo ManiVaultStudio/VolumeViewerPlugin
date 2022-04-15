@@ -7,6 +7,7 @@
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
 #include "ViewerWidget.h"
+//#include "Transfer/CustomColorMapEditor.h"
 #include <widgets/DropWidget.h>
 
 /** HDPS headers*/
@@ -16,11 +17,6 @@
 /** VTK headers*/
 #include <vtkPlaneCollection.h>
 #include <vtkPlane.h>
-//#include "vtkAutoInit.h"
-//#include "vtkRenderingOpenGLConfigure.h"
-//VTK_MODULE_INIT(vtkInteractionStyle)
-//VTK_MODULE_INIT(vtkRenderingFreeType)
-//VTK_MODULE_INIT(vtkRenderingOpenGL2)
 
 using namespace hdps;
 using namespace hdps::gui;
@@ -28,12 +24,14 @@ using namespace hdps::gui;
 VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
     _viewerWidget(nullptr),
+    //_transferWidget(nullptr),
     _selectionData(vtkSmartPointer<vtkImageData>::New()),
     _imageData(vtkSmartPointer<vtkImageData>::New()),
     // initiate a planeCollection for the SlicingAction
     _planeCollection(vtkSmartPointer<vtkPlaneCollection>::New()),
     _points(),
     _rendererSettingsAction(this,_viewerWidget),
+   
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
     _planeArray(std::vector<int>(3,0)), 
@@ -41,6 +39,10 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _dataLoaded(false),
     // boolian to indicate if data has been selected in a scatterplot
     _dataSelected(false),
+    // Boolian to indicate if shading has been enabled;
+    _shadingEnabled(false),
+    // Shading parameter vector.
+    _shadingParameters(std::vector<double>{0.9,0.2,0.1}),
     // string variable to keep track of the interpolation option with default being Nearest Neighbor
     _interpolationOption("NN")
 {}
@@ -49,10 +51,14 @@ void VolumeViewerPlugin::init()
 {
     // add the viewerwidget and dropwidget to the layout
     _viewerWidget = new ViewerWidget(*this);
+    //_transferWidget = new CustomColorMapEditor(*this);
+    
     _dropWidget = new DropWidget(_viewerWidget);
-
+    //_transferWidget->setMaximumHeight(125);
+    
+    //auto vertLayout = new QVBoxLayout();
     auto layout = new QHBoxLayout();
-
+    //auto layout2 = new QHBoxLayout();
     layout->setMargin(0);
     layout->setSpacing(0);
     
@@ -137,11 +143,18 @@ void VolumeViewerPlugin::init()
         if (chosenDimension > _points->getNumDimensions() - 1) {
             // pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, 0, _interpolationOption, _colorMap);
+            
+            
         }
         else {
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
+            
         }
+        
+        std::vector<vtkSmartPointer<vtkImageData>> imData;
+        imData.push_back(_imageData);
+        _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
 
         // set the maximum x, y and z values for the slicing options
         _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]); 
@@ -165,28 +178,113 @@ void VolumeViewerPlugin::init()
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
 
+            
+
+            // Get the selection set that changed
+            const auto& selectionSet = _points->getSelection<Points>();
+
+            // get selectionData
+            _selectionData = _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
+
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+            */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
             if (_dataSelected) {
-
-                // Get the selection set that changed
-                const auto& selectionSet = _points->getSelection<Points>();
-
-                // get selectionData
-                _selectionData = _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
                 imData.push_back(_selectionData);
+            }
                     
-                // Render the data with the current slicing planes and selections
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption,_colorMap);
+            // Render the data with the current slicing planes and selections
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption,_colorMap, _shadingEnabled, _shadingParameters);
+            
+        }
+    });
+
+    // Shading enabled/disabled.
+    connect(&this->getRendererSettingsAction().getColoringAction().getShadingAction(), &ToggleAction::toggled, this, [this](bool toggled) {
+        // Check if te slicing is turned on or off
+        _shadingEnabled = toggled;
+        if (_dataLoaded) {
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
             }
-            else {
-                _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
+
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        }
+        
+    });
+    // Shading parameter change.
+    // Ambient parameter.
+    connect(&this->getRendererSettingsAction().getColoringAction().getAmbientAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
+        // get the current value of the xSlicing tickbox
+        _shadingParameters[0] = value;
+
+        // Check if shading is enbabled.
+        if (_shadingEnabled) {
+            
+
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+            */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
             }
+
+            // Render the data.
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        }
+    });
+    // Ambient parameter.
+    connect(&this->getRendererSettingsAction().getColoringAction().getDiffuseAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
+        // get the current value of the xSlicing tickbox
+        _shadingParameters[1] = value;
+
+        // Check if shading is enbabled.
+        if (_shadingEnabled) {
+
+
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+            */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+
+            // Render the data.
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        }
+    });
+    // Specular parameter.
+    connect(&this->getRendererSettingsAction().getColoringAction().getSpecularAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
+        // get the current value of the xSlicing tickbox
+        _shadingParameters[2] = value;
+
+        // Check if shading is enbabled.
+        if (_shadingEnabled) {
+
+
+            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+            */
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+
+            // Render the data.
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
         }
     });
 
@@ -226,7 +324,7 @@ void VolumeViewerPlugin::init()
            }
 
            // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+           _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
        }
        else {
            // if the toggle is unclicked remove the xclipping plane from the collection
@@ -260,7 +358,7 @@ void VolumeViewerPlugin::init()
            }
 
            // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
        }
 	});
     // ySlicing tickbox
@@ -298,7 +396,7 @@ void VolumeViewerPlugin::init()
            }
 
            // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
        }
        else {
             // if the toggle is unclicked remove the yClipping plane from the collection
@@ -331,7 +429,7 @@ void VolumeViewerPlugin::init()
            }
 
            // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
        }
    });
     // zSlicing tickbox
@@ -368,7 +466,7 @@ void VolumeViewerPlugin::init()
            }
 
            // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
        }
        else {
             // if the toggle is unclicked remove the yClipping plane from the collection
@@ -401,7 +499,7 @@ void VolumeViewerPlugin::init()
            }
 
            // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
        }
    });
 
@@ -444,7 +542,7 @@ void VolumeViewerPlugin::init()
             }
 
             // Render the data with the current slicing planes
-            _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+            _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
         }
     });
     // xSlicing slider
@@ -484,7 +582,7 @@ void VolumeViewerPlugin::init()
             }
 
             // Render the data with the current slicing planes
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
         }
      });
     // xSlicing slider
@@ -524,7 +622,7 @@ void VolumeViewerPlugin::init()
             }
 
             // Render the data with the current slicing planes
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
         } 
       
     });
@@ -562,11 +660,10 @@ void VolumeViewerPlugin::init()
                 imData.push_back(_selectionData);
             }
 
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
         }
     });
 
-    
 
     connect(&getRendererSettingsAction().getColoringAction().getColorMapAction(), &ColorMapAction::imageChanged, this, [this](const QImage& colorMapImage) {
 
@@ -581,12 +678,13 @@ void VolumeViewerPlugin::init()
                 imData.push_back(_selectionData);
             }
 
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap);
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
         }
     });
 
     connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this]{
 
+        //_points->select
         // if data is loaded
         if (_dataLoaded) {
 
@@ -614,11 +712,11 @@ void VolumeViewerPlugin::init()
                 _dataSelected = true;
             }
             else {
-                _dataSelected = false;
+                _dataSelected = true;
             }
 
             // Render the data with the current slicing planes and selections
-            _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap);
+            _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
                 
                 
         }

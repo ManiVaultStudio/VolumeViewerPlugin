@@ -6,10 +6,12 @@
 /** Plugin headers*/
 #include <ViewPlugin.h>
 #include <ViewerWidget.h>
+//#include <Transfer/CustomColorMapEditor.h>
 /** HDPS headers*/
 #include <Dataset.h>
 #include <widgets/DropWidget.h>
 #include <RendererSettingsAction.h>
+//#include <Transfer/TransferFunctionControlAction.h>
 #include <PointData.h>
 /** VTK headers*/
 #include <vtkPlane.h>
@@ -67,10 +69,15 @@ public: // Miscellaneous
         return *_viewerWidget;
     }
 
+//    CustomColorMapEditor& getTransfertWidget() {
+//        return *_transferWidget;
+//    }
+
     /** Returns the render settings action*/
     RendererSettingsAction& getRendererSettingsAction() {
         return _rendererSettingsAction;
     }
+
 
     /** Returns the names of the points datasets in HDPS */
     QStringList getPointsDatasets() const {
@@ -88,7 +95,9 @@ signals:
 
 private:
     RendererSettingsAction              _rendererSettingsAction;    /** The options menu on the side of the viewer*/
+    
     ViewerWidget*                       _viewerWidget;              /** The image viewer widget */
+//    CustomColorMapEditor*                     _transferWidget;
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
     vtkSmartPointer<vtkImageData>       _selectionData;             /** The selected data*/
@@ -97,10 +106,12 @@ private:
     hdps::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */
     std::vector<int>                    _planeArray;                /** Array indicating the index+1 of the x,y and z clipping planes in the plane collection*/
+    std::vector<double>                  _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/
     std::string                         _interpolationOption;       /** String for storing the current color interpolation option*/
     std::string                         _colorMap;                  /** String for storing the current color map*/
     bool                                _dataLoaded;                /** Booling indicating if data has been loaded in*/
     bool                                _dataSelected;              /** Boolian indicating if data has been selected in a scatterplot*/
+    bool                                _shadingEnabled;            /** Boolian for inicating if shading should be enabled*/
 };
 
 /**
