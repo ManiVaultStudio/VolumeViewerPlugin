@@ -97,6 +97,10 @@ public: // Miscellaneous
         return _selectionOpaque;
     }
 
+    Dataset<Points>& getDataset() {
+        return _points;
+    }
+
 signals:
     /** Signals that list of point datasets in HDPS has changed */
     void pointsDatasetsChanged(QStringList pointsDatasets);

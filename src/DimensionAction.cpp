@@ -12,17 +12,14 @@ using namespace hdps;
 DimensionAction::DimensionAction(RendererSettingsAction& rendererSettingsAction, ViewerWidget* viewerWidget) :
     GroupAction(reinterpret_cast<QObject*>(&rendererSettingsAction)),
     _rendererSettingsAction(rendererSettingsAction),
-    
-    _chosenDimensionAction(this, "Current Dimension", 0.0f, 100.0f, 0.0f, 0.0f, 0),
-    
-    _viewerWidget(nullptr)
+
+    _viewerWidget(nullptr),
+    // Action to change the current dimension
+    _dimensionAction(this, "Data dimension")
 {
     setText("Dimension parameters");
     
     _viewerWidget = viewerWidget;
 
-    connect(&_chosenDimensionAction, &DecimalAction::valueChanged, this, [this](const float& value) {
-
-    });
     
 }

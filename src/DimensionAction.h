@@ -4,6 +4,8 @@
 #include "actions/ToggleAction.h"
 #include "actions/DecimalAction.h"
 
+#include <DimensionPickerAction.h>
+
 using namespace hdps::gui;
 
 class RendererSettingsAction;
@@ -30,11 +32,12 @@ public:
 
 public: /** Action getters */
 
-    DecimalAction& getChosenDimensionAction() { return _chosenDimensionAction; }
+    DimensionPickerAction& getDimensionPickerAction() { return _dimensionAction; }
 
 protected:
     RendererSettingsAction& _rendererSettingsAction;        /** Reference to renderer settings action */
     ViewerWidget* _viewerWidget;                            /** Pointer to the viewerWidget*/
-    DecimalAction               _chosenDimensionAction;     /** X-axis position action */
+    
+    DimensionPickerAction       _dimensionAction;           /** Action to pick the current dimension*/
     
 };

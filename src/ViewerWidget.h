@@ -48,9 +48,9 @@ public:
     void resizeEvent(QResizeEvent* e) override {
         _openGLWidget->setFixedSize(e->size());
     }
-
+    
 private:
-    QVTKOpenGLNativeWidget* _openGLWidget;                                /** OpenGl Widget for rendering*/
+    QVTKOpenGLNativeWidget* _openGLWidget;                          /** OpenGl Widget for rendering*/
     vtkSmartPointer<vtkRenderer> mRenderer;                         /** vtk Renderer*/
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> mRenderWindow;    /** vtk RenderWindow*/
     vtkSmartPointer<QVTKInteractor> mInteractor;                    /** qvtk Interactor*/

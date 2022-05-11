@@ -77,6 +77,8 @@ void VolumeViewerPlugin::init()
 
     groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
 
+    
+
     _rendererSettingsAction.setGroupActions(groupActions);
 
     layout->addLayout(settingsLayout, 1);
@@ -137,9 +139,11 @@ void VolumeViewerPlugin::init()
 
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_points, &Dataset<Points>::changed, this, [this, layout]() {
+        // Get current dimension index
+        unsigned int chosenDimension = _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
 
-        unsigned int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
-        
+        // Update the dimensionpicker action.
+        _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().setPointsDataset(Dataset<Points>(_points));
         // hide dropwidget
         _dropWidget->setShowDropIndicator(false);
 
@@ -164,25 +168,22 @@ void VolumeViewerPlugin::init()
         _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]); 
         _rendererSettingsAction.getSlicingAction().getYAxisPositionAction().setMaximum(_imageData->GetDimensions()[1]);
         _rendererSettingsAction.getSlicingAction().getZAxisPositionAction().setMaximum(_imageData->GetDimensions()[2]);
-
-        // set the maximum dimensions for the dimension 
-        _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().setMaximum(_points->getNumDimensions()-1);
         
         // notify that data is indeed loaded into the widget
         _dataLoaded = true;
     });
 
-    // When the chosenDimension in the options menu is changed reinitiate the data and rerender with the new dimension
-    connect(&this->getRendererSettingsAction().getDimensionAction().getChosenDimensionAction(), &DecimalAction::valueChanged,  this, [this](const float& value) {
+    // Dropdown menu for chosen dimension.
+    connect(&this->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction(), &DimensionPickerAction::currentDimensionIndexChanged, this, [this](const int& value) {
         // check if there is a dataset loaded in
         if (_dataLoaded) {
             // get the value of the chosenDimension
-            int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue(); 
+            int chosenDimension = value;
 
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
 
-            
+
 
             // Get the selection set that changed
             const auto& selectionSet = _points->getSelection<Points>();
@@ -199,10 +200,10 @@ void VolumeViewerPlugin::init()
             if (_dataSelected) {
                 imData.push_back(_selectionData);
             }
-                    
+
             // Render the data with the current slicing planes and selections
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption,_colorMap, _shadingEnabled, _shadingParameters);
-            
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+
         }
     });
 
@@ -805,7 +806,7 @@ void VolumeViewerPlugin::init()
             const auto& selectionSet = _points->getSelection<Points>();
 
             // Get ChosenDimension
-            int chosenDimension = _rendererSettingsAction.getDimensionAction().getChosenDimensionAction().getValue();
+            int chosenDimension = _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
 
             const auto backGroundValue = _imageData->GetScalarRange()[0];
 
