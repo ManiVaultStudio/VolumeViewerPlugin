@@ -59,6 +59,8 @@ public: // Inherited from ViewPlugin
 
     void reInitializeLayout(QHBoxLayout layout);
 
+    void runRenderData();
+
     /** Returns a pointer to the core interface */
     hdps::CoreInterface* core() { return _core; }
 

@@ -216,13 +216,7 @@ void VolumeViewerPlugin::init()
         this->getRendererSettingsAction().getColoringAction().getSpecularAction().setDisabled(!toggled);
 
         if (_dataLoaded) {
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            runRenderData();
         }
         
     });
@@ -334,18 +328,7 @@ void VolumeViewerPlugin::init()
                 // store the index+1 of the x slicing plane
                 _planeArray[0] = _planeCollection->GetNumberOfItems();
 
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-
-                // Render the data with the current slicing planes
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
             else {
                 // if the toggle is unclicked remove the xclipping plane from the collection
@@ -368,18 +351,7 @@ void VolumeViewerPlugin::init()
                 _planeArray[0] = 0;
 
 
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-
-                // Render the data with the current slicing planes
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
         }
 	});
@@ -419,18 +391,7 @@ void VolumeViewerPlugin::init()
                 // store the index+1 of the y slicing plane
                 _planeArray[1] = _planeCollection->GetNumberOfItems();
 
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-
-                // Render the data with the current slicing planes
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
             else {
                 // if the toggle is unclicked remove the yClipping plane from the collection
@@ -452,18 +413,7 @@ void VolumeViewerPlugin::init()
                 // Set the yPlane index to 0  (not active)
                 _planeArray[1] = 0;
 
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-
-                // Render the data with the current slicing planes
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
         }
    });
@@ -502,18 +452,7 @@ void VolumeViewerPlugin::init()
                 // store the index+1 of the z slicing plane
                 _planeArray[2] = _planeCollection->GetNumberOfItems();
 
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-
-                // Render the data with the current slicing planes
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
             else {
                 // if the toggle is unclicked remove the yClipping plane from the collection
@@ -535,18 +474,7 @@ void VolumeViewerPlugin::init()
                 // Set the zPlane index to 0  (not active)
                 _planeArray[2] = 0;
 
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-
-                // Render the data with the current slicing planes
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
         }
    });
@@ -581,18 +509,7 @@ void VolumeViewerPlugin::init()
                 // store the index+1 of the x slicing plane
                 _planeArray[0] = _planeCollection->GetNumberOfItems();
 
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-
-                // Render the data with the current slicing planes
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
         }
     });
@@ -624,18 +541,7 @@ void VolumeViewerPlugin::init()
                 // store the index+1 of the y slicing plane
                 _planeArray[1] = _planeCollection->GetNumberOfItems();
 
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-
-                // Render the data with the current slicing planes
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
         }
      });
@@ -667,18 +573,7 @@ void VolumeViewerPlugin::init()
                 // store the index+1 of the y slicing plane
                 _planeArray[2] = _planeCollection->GetNumberOfItems();
 
-                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-                */
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-
-                // Render the data with the current slicing planes
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
         }
     });
@@ -710,13 +605,7 @@ void VolumeViewerPlugin::init()
            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
            */
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            runRenderData();
         }
     });
 
@@ -735,12 +624,7 @@ void VolumeViewerPlugin::init()
         }
 
         if (_dataSelected) {
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            runRenderData();
         }
     });
     // Background alpha slider
@@ -748,12 +632,7 @@ void VolumeViewerPlugin::init()
         if (_backgroundEnabled) {
             _backgroundAlpha = value;
             if (_dataSelected) {
-                std::vector<vtkSmartPointer<vtkImageData>> imData;
-                imData.push_back(_imageData);
-                if (_dataSelected) {
-                    imData.push_back(_selectionData);
-                }
-                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                runRenderData();
             }
         }
         
@@ -768,12 +647,7 @@ void VolumeViewerPlugin::init()
         }
 
         if (_dataSelected) {
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            runRenderData();
         }
     });
 
@@ -785,13 +659,7 @@ void VolumeViewerPlugin::init()
            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
            */
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            runRenderData();
         }
     });
 
@@ -861,4 +729,15 @@ hdps::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
     DataTypes supportedTypes;
     supportedTypes.append(PointType);
     return supportedTypes;
+}
+
+// Function to run the renderer with selected data if present.
+void VolumeViewerPlugin::runRenderData() {
+    std::vector<vtkSmartPointer<vtkImageData>> imData;
+    imData.push_back(_imageData);
+    if (_dataSelected) {
+        imData.push_back(_selectionData);
+    }
+
+    _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
 }
