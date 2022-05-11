@@ -190,11 +190,6 @@ void VolumeViewerPlugin::init()
 
             // get selectionData
             _selectionData = _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-            */
             std::vector<vtkSmartPointer<vtkImageData>> imData;
             imData.push_back(_imageData);
             if (_dataSelected) {
@@ -228,12 +223,6 @@ void VolumeViewerPlugin::init()
 
         // Check if shading is enbabled.
         if (_shadingEnabled) {
-            
-
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-            */
             std::vector<vtkSmartPointer<vtkImageData>> imData;
             imData.push_back(_imageData);
             if (_dataSelected) {
@@ -251,12 +240,6 @@ void VolumeViewerPlugin::init()
 
         // Check if shading is enbabled.
         if (_shadingEnabled) {
-
-
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-            */
             std::vector<vtkSmartPointer<vtkImageData>> imData;
             imData.push_back(_imageData);
             if (_dataSelected) {
@@ -274,12 +257,6 @@ void VolumeViewerPlugin::init()
 
         // Check if shading is enbabled.
         if (_shadingEnabled) {
-
-
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-            */
             std::vector<vtkSmartPointer<vtkImageData>> imData;
             imData.push_back(_imageData);
             if (_dataSelected) {
@@ -601,10 +578,7 @@ void VolumeViewerPlugin::init()
             _interpolationOption = "NN";
         }
         if (_dataLoaded) {
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
+           
             runRenderData();
         }
     });
@@ -635,7 +609,6 @@ void VolumeViewerPlugin::init()
                 runRenderData();
             }
         }
-        
     });
     // Selection alpha setting selector
     connect(&this->getRendererSettingsAction().getSelectedPointsAction().getSelectionAlphaAction(), &OptionAction::currentTextChanged, this, [this](const QString& opaqueOrTf) {
@@ -645,7 +618,6 @@ void VolumeViewerPlugin::init()
         else {
             _selectionOpaque = false;
         }
-
         if (_dataSelected) {
             runRenderData();
         }
@@ -653,20 +625,13 @@ void VolumeViewerPlugin::init()
 
     // Colormap selector
     connect(&getRendererSettingsAction().getColoringAction().getColorMapAction(), &ColorMapAction::imageChanged, this, [this](const QImage& colorMapImage) {
-
         if (_dataLoaded) {
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
             runRenderData();
         }
     });
 
     // Selection changed connection.
     connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this]{
-
-        //_points->select
         // if data is loaded
         if (_dataLoaded) {
 
@@ -680,11 +645,6 @@ void VolumeViewerPlugin::init()
 
             // create a selectiondata imagedata object with 0 values for all non selected items
             _selectionData = _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-            */
             std::vector<vtkSmartPointer<vtkImageData>> imData;
             imData.push_back(_imageData);
 
@@ -731,7 +691,10 @@ hdps::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
     return supportedTypes;
 }
 
-// Function to run the renderer with selected data if present.
+/** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+*   Vector is needed due to the possibility of having data selected in a scatterplot wich
+*   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+*/
 void VolumeViewerPlugin::runRenderData() {
     std::vector<vtkSmartPointer<vtkImageData>> imData;
     imData.push_back(_imageData);
