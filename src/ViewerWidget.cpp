@@ -137,7 +137,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
     // Get the colormap image.
 	auto colorMapImage = colorMapAction.getColorMapImage();
 
-
+    bool backgroundEndabled = _VolumeViewerPlugin.getBackgroundEndabled();
     //auto colorMapImage = _VolumeViewerPlugin.getTransfertWidget().getTransferFunction().getColorMap();
 
     // Loop to read in colors from the colormap qimage.
@@ -146,6 +146,18 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 		const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
 		color->AddRGBPoint(normalizedPixelX * (dataMaximum - dataMinimum) + dataMinimum, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
 	}
+
+    vtkSmartPointer<vtkPiecewiseFunction> colormapOpacity = vtkSmartPointer<vtkPiecewiseFunction>::New();
+    // Set the opacity of the non-object voxels to 0.
+    colormapOpacity->AddPoint(background, 0, 1, 1);
+
+    // Loop to read in colors from the colormap qimage.
+    for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
+        const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
+        const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
+        colormapOpacity->AddPoint(normalizedPixelX * (dataMaximum - dataMinimum) + dataMinimum,pixelColor.alphaF());
+        
+    }
     
 	// Loop through the imData vector, can contain 1 or 2 objects, the second one is always the selected data.
 	for (int i = 0; i < imData.size(); i++) {
@@ -183,11 +195,18 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// Checks if there is 1 or 2 objects in the imdata vector.
 			if (imData.size() < 2) {
 				// If only 1 object is present then the opacity of all data is set to opague.
-				compositeOpacity->AddSegment(dataMinimum, 1 , dataMaximum, 1);
+				//compositeOpacity->AddSegment(dataMinimum, 1 , dataMaximum, 1);
+                compositeOpacity = colormapOpacity;
 			}
 			else {
-				// If there are 2 objects (so also dataSelected) then the fulldata opacity is set to be semi-translucent.
-				compositeOpacity->AddSegment(dataMinimum, 0.02, dataMaximum, 0.02);
+                if (backgroundEndabled) {
+                    float backgroundAlpha = _VolumeViewerPlugin.getBackgroundAlpha();
+                    // If there are 2 objects (so also dataSelected) then the fulldata opacity is set to be semi-translucent.
+                    compositeOpacity->AddSegment(dataMinimum, backgroundAlpha, dataMaximum, backgroundAlpha);
+                }
+                else {
+                    compositeOpacity->AddSegment(dataMinimum, 0, dataMaximum, 0);
+                }
 			}
 			// Add the Opacity options to volumeproperty.
 			volumeProperty->SetScalarOpacity(compositeOpacity);
@@ -202,9 +221,16 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 			// Create piecewise function for opacity table.
 			vtkSmartPointer<vtkPiecewiseFunction> compositeOpacity = vtkSmartPointer<vtkPiecewiseFunction>::New();
 
-			// Set object values as opague.
-			compositeOpacity->AddSegment(dataMinimum, 1, dataMaximum, 1);
-
+            // Check the currently selected option for selection opacity
+            if (_VolumeViewerPlugin.getSelectionOpaque()) {
+                // Set object values as opague.
+                compositeOpacity->AddSegment(dataMinimum, 1, dataMaximum, 1);
+            }
+            else {
+                // Use the transfer function values
+                compositeOpacity = colormapOpacity;
+            }
+			
 			// Set non-object values as seethrough.
 			compositeOpacity->AddPoint(background, 0, 1, 1);
 

@@ -7,6 +7,7 @@ RendererSettingsAction::RendererSettingsAction(QObject* parent, ViewerWidget* vi
     GroupsAction(parent),
     _dimensionAction(*this, viewerWidget),
     _slicingAction(*this, viewerWidget),
-    _coloringAction(*this)
+    _coloringAction(*this),
+    _selectedPointsAction(*this)
 {
 }

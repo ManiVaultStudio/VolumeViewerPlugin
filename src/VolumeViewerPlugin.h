@@ -69,10 +69,6 @@ public: // Miscellaneous
         return *_viewerWidget;
     }
 
-//    CustomColorMapEditor& getTransfertWidget() {
-//        return *_transferWidget;
-//    }
-
     /** Returns the render settings action*/
     RendererSettingsAction& getRendererSettingsAction() {
         return _rendererSettingsAction;
@@ -87,6 +83,18 @@ public: // Miscellaneous
     /** Returns the imageData */
     vtkSmartPointer<vtkImageData> getImageData() {
         return _imageData;
+    }
+
+    bool& getBackgroundEndabled() {
+        return _backgroundEnabled;
+    }
+
+    float& getBackgroundAlpha() {
+        return _backgroundAlpha;
+    }
+
+    bool& getSelectionOpaque() {
+        return _selectionOpaque;
     }
 
 signals:
@@ -112,6 +120,9 @@ private:
     bool                                _dataLoaded;                /** Booling indicating if data has been loaded in*/
     bool                                _dataSelected;              /** Boolian indicating if data has been selected in a scatterplot*/
     bool                                _shadingEnabled;            /** Boolian for inicating if shading should be enabled*/
+    bool                                _backgroundEnabled;         /** Boolian for indicating if the non-selected datapoints should be shown*/
+    bool                                _selectionOpaque;           /** Boolian indicating wether the selected datapoints should be opaque or use the transfer function*/
+    float                               _backgroundAlpha;           /** Float indcating the alpha value of the background during selection.*/
 };
 
 /**

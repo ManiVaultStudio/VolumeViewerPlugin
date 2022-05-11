@@ -41,6 +41,12 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _dataSelected(false),
     // Boolian to indicate if shading has been enabled;
     _shadingEnabled(false),
+    // Boolian to indicate if non-selected data should be shown
+    _backgroundEnabled(true),
+    // float to indicate alpha value of background when data is selected
+    _backgroundAlpha(0.02),
+    // Boolian to indicate wheter selected data should be opaque or use the transfer function
+    _selectionOpaque(true),
     // Shading parameter vector.
     _shadingParameters(std::vector<double>{0.9,0.2,0.1}),
     // string variable to keep track of the interpolation option with default being Nearest Neighbor
@@ -51,17 +57,15 @@ void VolumeViewerPlugin::init()
 {
     // add the viewerwidget and dropwidget to the layout
     _viewerWidget = new ViewerWidget(*this);
-    //_transferWidget = new CustomColorMapEditor(*this);
+   
     
     _dropWidget = new DropWidget(_viewerWidget);
-    //_transferWidget->setMaximumHeight(125);
     
-    //auto vertLayout = new QVBoxLayout();
+    
+    
     auto layout = new QHBoxLayout();
-    //auto layout2 = new QHBoxLayout();
     layout->setMargin(0);
     layout->setSpacing(0);
-    
     layout->addWidget(_viewerWidget, 4);
 
     auto settingsLayout = new QVBoxLayout();
@@ -71,7 +75,7 @@ void VolumeViewerPlugin::init()
 
     GroupsAction::GroupActions groupActions;
 
-    groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction();
+    groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
 
     _rendererSettingsAction.setGroupActions(groupActions);
 
@@ -206,6 +210,10 @@ void VolumeViewerPlugin::init()
     connect(&this->getRendererSettingsAction().getColoringAction().getShadingAction(), &ToggleAction::toggled, this, [this](bool toggled) {
         // Check if te slicing is turned on or off
         _shadingEnabled = toggled;
+        this->getRendererSettingsAction().getColoringAction().getAmbientAction().setDisabled(!toggled);
+        this->getRendererSettingsAction().getColoringAction().getDiffuseAction().setDisabled(!toggled);
+        this->getRendererSettingsAction().getColoringAction().getSpecularAction().setDisabled(!toggled);
+
         if (_dataLoaded) {
             std::vector<vtkSmartPointer<vtkImageData>> imData;
             imData.push_back(_imageData);
@@ -292,339 +300,386 @@ void VolumeViewerPlugin::init()
 
     // xSlicing tickbox
     connect(&this->getRendererSettingsAction().getSlicingAction().getXAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
-        // Check if te slicing is turned on or off
-       if (toggled) {
-           // check if ther is already a x slicing plane active, if so remove it
-           if (_planeArray[0] != 0) {
-               _planeCollection->RemoveItem(_planeArray[0] - 1);
-           }
+        if (toggled) {
+            // Enable the x-Position slider when the slice is enabled.
+            this->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().setDisabled(false);
+        }
+        else {
+            // Disable the x-Position slider when the slice is disabled.
+            this->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().setDisabled(true);
 
-           // get the x value for which the slice needs to be performed
-           int value = _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().getValue();
-           
-           // Create a clipping plane for the xvalue
-           vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-           clipPlane->SetOrigin(value, 0.0, 0.0);
-           clipPlane->SetNormal(1, 0.0, 0.0);
-           
-           // add the plane to the to the collection
-           _planeCollection->AddItem(clipPlane);
+        }
 
-           // store the index+1 of the x slicing plane
-           _planeArray[0]=_planeCollection->GetNumberOfItems();
+        // Check if data is loaded to prevent errors.
+        if (_dataLoaded) {
+            // Check if te slicing is turned on or off
+            if (toggled) {
+                // check if ther is already a x slicing plane active, if so remove it
+                if (_planeArray[0] != 0) {
+                    _planeCollection->RemoveItem(_planeArray[0] - 1);
+                }
 
-           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich 
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
-           std::vector<vtkSmartPointer<vtkImageData>> imData;
-           imData.push_back(_imageData);
-           if (_dataSelected) {
-               imData.push_back(_selectionData);
-           }
+                // get the x value for which the slice needs to be performed
+                int value = _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().getValue();
 
-           // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-       }
-       else {
-           // if the toggle is unclicked remove the xclipping plane from the collection
-           _planeCollection->RemoveItem(_planeArray[0] - 1);
+                // Create a clipping plane for the xvalue
+                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+                clipPlane->SetOrigin(value, 0.0, 0.0);
+                clipPlane->SetNormal(1, 0.0, 0.0);
 
-           // due to the removal of the xPlane, if the was not the last item in the plane collection the others will slide back,
-           // to compensate this in the index tracker the following 2 if functions are created.
-           // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
+                // add the plane to the to the collection
+                _planeCollection->AddItem(clipPlane);
 
-           // if the xPlane index was smaller than the yplane index and the yplaneindex is present, slide the yindex back 1 spot
-           if (_planeArray[0] < _planeArray[1] && _planeArray[1] != 0) {
-               _planeArray[1] = _planeArray[1] - 1;
-           }
-           // if the xPlane index was smaller than the yPlane index and the yplaneindex is present, slide the yindex back 1 spot
-           if (_planeArray[0] < _planeArray[2] && _planeArray[2] != 0) {
-               _planeArray[2] = _planeArray[2] - 1;
-           }
+                // store the index+1 of the x slicing plane
+                _planeArray[0] = _planeCollection->GetNumberOfItems();
 
-           // Set the xPlane index to 0  (not active)
-           _planeArray[0] = 0;
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
+
+                // Render the data with the current slicing planes
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            }
+            else {
+                // if the toggle is unclicked remove the xclipping plane from the collection
+                _planeCollection->RemoveItem(_planeArray[0] - 1);
+
+                // due to the removal of the xPlane, if the was not the last item in the plane collection the others will slide back,
+                // to compensate this in the index tracker the following 2 if functions are created.
+                // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
+
+                // if the xPlane index was smaller than the yplane index and the yplaneindex is present, slide the yindex back 1 spot
+                if (_planeArray[0] < _planeArray[1] && _planeArray[1] != 0) {
+                    _planeArray[1] = _planeArray[1] - 1;
+                }
+                // if the xPlane index was smaller than the yPlane index and the yplaneindex is present, slide the yindex back 1 spot
+                if (_planeArray[0] < _planeArray[2] && _planeArray[2] != 0) {
+                    _planeArray[2] = _planeArray[2] - 1;
+                }
+
+                // Set the xPlane index to 0  (not active)
+                _planeArray[0] = 0;
 
 
-           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
-           std::vector<vtkSmartPointer<vtkImageData>> imData;
-           imData.push_back(_imageData);
-           if (_dataSelected) {
-               imData.push_back(_selectionData);
-           }
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
 
-           // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-       }
+                // Render the data with the current slicing planes
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            }
+        }
 	});
     // ySlicing tickbox
     connect(&this->getRendererSettingsAction().getSlicingAction().getYAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
-        // Check if te slicing is turned on or off
         if (toggled) {
-           // check if ther is already a y slicing plane active, if so remove it
+            // Enable the y-Position slider when the slice is enabled.
+            this->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction().setDisabled(false);
+        }
+        else {
+            // Disable the y-Position slider when the slice is disabled.
+            this->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction().setDisabled(true);
 
-           if (_planeArray[1] != 0) {
-               _planeCollection->RemoveItem(_planeArray[1] - 1);
-           }
+        }
 
-           // get the y value for which the slice needs to be performed
-           int value = _rendererSettingsAction.getSlicingAction().getYAxisPositionAction().getValue();
+        // Dataloaded check to prevent errors
+        if (_dataLoaded) {
+            // Check if te slicing is turned on or off
+            if (toggled) {
+                // check if ther is already a y slicing plane active, if so remove it
 
-           // Create a clipping plane for the yValue
-           vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-           clipPlane->SetOrigin(0.0, value, 0.0);
-           clipPlane->SetNormal(0, 1, 0.0);
+                if (_planeArray[1] != 0) {
+                    _planeCollection->RemoveItem(_planeArray[1] - 1);
+                }
 
-           // add the plane to the to the collection
-           _planeCollection->AddItem(clipPlane);
+                // get the y value for which the slice needs to be performed
+                int value = _rendererSettingsAction.getSlicingAction().getYAxisPositionAction().getValue();
 
-           // store the index+1 of the y slicing plane
-           _planeArray[1] = _planeCollection->GetNumberOfItems();
+                // Create a clipping plane for the yValue
+                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+                clipPlane->SetOrigin(0.0, value, 0.0);
+                clipPlane->SetNormal(0, 1, 0.0);
 
-           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich 
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
-           std::vector<vtkSmartPointer<vtkImageData>> imData;
-           imData.push_back(_imageData);
-           if (_dataSelected) {
-               imData.push_back(_selectionData);
-           }
+                // add the plane to the to the collection
+                _planeCollection->AddItem(clipPlane);
 
-           // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-       }
-       else {
-            // if the toggle is unclicked remove the yClipping plane from the collection
-           _planeCollection->RemoveItem(_planeArray[1] - 1);
+                // store the index+1 of the y slicing plane
+                _planeArray[1] = _planeCollection->GetNumberOfItems();
 
-           // due to the removal of the yPlane, if the was not the last item in the plane collection the others will slide back,
-           // to compensate this in the index tracker the following 2 if functions are created.
-           // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
 
-           // if the yPlane index was smaller than the xPlane index and the yplaneindex is present, slide the xIndex back 1 spot
-           if (_planeArray[1] < _planeArray[0] && _planeArray[0] != 0) {
-               _planeArray[0] = _planeArray[0] - 1;
-           }
-           // if the yPlane index was smaller than the zPlane index and the zplaneindex is present, slide the zIndex back 1 spot
-           if (_planeArray[1] < _planeArray[2] && _planeArray[2] != 0) {
-               _planeArray[2] = _planeArray[2] - 1;
-           }
+                // Render the data with the current slicing planes
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            }
+            else {
+                // if the toggle is unclicked remove the yClipping plane from the collection
+                _planeCollection->RemoveItem(_planeArray[1] - 1);
 
-           // Set the yPlane index to 0  (not active)
-           _planeArray[1] = 0;
+                // due to the removal of the yPlane, if the was not the last item in the plane collection the others will slide back,
+                // to compensate this in the index tracker the following 2 if functions are created.
+                // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
 
-           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
-           std::vector<vtkSmartPointer<vtkImageData>> imData;
-           imData.push_back(_imageData);
-           if (_dataSelected) {
-               imData.push_back(_selectionData);
-           }
+                // if the yPlane index was smaller than the xPlane index and the yplaneindex is present, slide the xIndex back 1 spot
+                if (_planeArray[1] < _planeArray[0] && _planeArray[0] != 0) {
+                    _planeArray[0] = _planeArray[0] - 1;
+                }
+                // if the yPlane index was smaller than the zPlane index and the zplaneindex is present, slide the zIndex back 1 spot
+                if (_planeArray[1] < _planeArray[2] && _planeArray[2] != 0) {
+                    _planeArray[2] = _planeArray[2] - 1;
+                }
 
-           // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-       }
+                // Set the yPlane index to 0  (not active)
+                _planeArray[1] = 0;
+
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
+
+                // Render the data with the current slicing planes
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            }
+        }
    });
     // zSlicing tickbox
     connect(&this->getRendererSettingsAction().getSlicingAction().getZAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
-        // Check if te slicing is turned on or off
         if (toggled) {
-            // check if ther is already a z slicing plane active, if so remove it
-           if (_planeArray[2] != 0) {
-               _planeCollection->RemoveItem(_planeArray[2] - 1);
-           }
+            // Enable the z-Position slider when the slice is enabled.
+            this->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction().setDisabled(false);
+        }
+        else {
+            // Disable the z-Position slider when the slice is disabled.
+            this->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction().setDisabled(true);
 
-           // get the z value for which the slice needs to be performed
-           int value = _rendererSettingsAction.getSlicingAction().getZAxisPositionAction().getValue();
+        }
 
-           // Create a clipping plane for the zValue
-           vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-           clipPlane->SetOrigin(0.0, 0.0, value);
-           clipPlane->SetNormal(0, 0.0, 1);
+        // Dataloaded check to prevent errors
+        if (_dataLoaded) {
+            // Check if te slicing is turned on or off
+            if (toggled) {
+                // check if ther is already a z slicing plane active, if so remove it
+                if (_planeArray[2] != 0) {
+                    _planeCollection->RemoveItem(_planeArray[2] - 1);
+                }
 
-           // add the plane to the to the collection
-           _planeCollection->AddItem(clipPlane);
+                // get the z value for which the slice needs to be performed
+                int value = _rendererSettingsAction.getSlicingAction().getZAxisPositionAction().getValue();
 
-           // store the index+1 of the z slicing plane
-           _planeArray[2] = _planeCollection->GetNumberOfItems();
+                // Create a clipping plane for the zValue
+                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+                clipPlane->SetOrigin(0.0, 0.0, value);
+                clipPlane->SetNormal(0, 0.0, 1);
 
-           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
-           std::vector<vtkSmartPointer<vtkImageData>> imData;
-           imData.push_back(_imageData);
-           if (_dataSelected) {
-               imData.push_back(_selectionData);
-           }
+                // add the plane to the to the collection
+                _planeCollection->AddItem(clipPlane);
 
-           // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-       }
-       else {
-            // if the toggle is unclicked remove the yClipping plane from the collection
-           _planeCollection->RemoveItem(_planeArray[2] - 1);
+                // store the index+1 of the z slicing plane
+                _planeArray[2] = _planeCollection->GetNumberOfItems();
 
-           // due to the removal of the yPlane, if the was not the last item in the plane collection the others will slide back,
-          // to compensate this in the index tracker the following 2 if functions are created.
-          // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
 
-           // if the zPlane index was smaller than the xPlane index and the yplaneindex is present, slide the xIndex back 1 spot
-           if (_planeArray[2] < _planeArray[0] && _planeArray[0] != 0) {
-               _planeArray[0] = _planeArray[0] - 1;
-           }
-           // if the zPlane index was smaller than the yPlane index and the zplaneindex is present, slide the yIndex back 1 spot
-           if (_planeArray[2] < _planeArray[1] && _planeArray[1] != 0) {
-               _planeArray[1] = _planeArray[1] - 1;
-           }
+                // Render the data with the current slicing planes
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            }
+            else {
+                // if the toggle is unclicked remove the yClipping plane from the collection
+                _planeCollection->RemoveItem(_planeArray[2] - 1);
 
-           // Set the zPlane index to 0  (not active)
-           _planeArray[2] = 0;
+                // due to the removal of the yPlane, if the was not the last item in the plane collection the others will slide back,
+               // to compensate this in the index tracker the following 2 if functions are created.
+               // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
 
-           /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-           *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-           *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-           */
-           std::vector<vtkSmartPointer<vtkImageData>> imData;
-           imData.push_back(_imageData);
-           if (_dataSelected) {
-               imData.push_back(_selectionData);
-           }
+                // if the zPlane index was smaller than the xPlane index and the yplaneindex is present, slide the xIndex back 1 spot
+                if (_planeArray[2] < _planeArray[0] && _planeArray[0] != 0) {
+                    _planeArray[0] = _planeArray[0] - 1;
+                }
+                // if the zPlane index was smaller than the yPlane index and the zplaneindex is present, slide the yIndex back 1 spot
+                if (_planeArray[2] < _planeArray[1] && _planeArray[1] != 0) {
+                    _planeArray[1] = _planeArray[1] - 1;
+                }
 
-           // Render the data with the current slicing planes
-           _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-       }
+                // Set the zPlane index to 0  (not active)
+                _planeArray[2] = 0;
+
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
+
+                // Render the data with the current slicing planes
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            }
+        }
    });
 
     // When the value of the x,y and z slicing sliders are changed change the slicing index if the tickbox is ticked
 
     // xSlicing slider
     connect(&this->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
-        // get the current value of the xSlicing tickbox
-        bool toggled = _rendererSettingsAction.getSlicingAction().getXToggled();
+        //Check if data is loaded to prevent errors.
+        if (_dataLoaded) {
+            // get the current value of the xSlicing tickbox
+            bool toggled = _rendererSettingsAction.getSlicingAction().getXToggled();
 
-        // if the tickbox is enabled perform the slicing change
-        if (toggled) {
-            // check if ther is already a x slicing plane active, if so remove it
-            if (_planeArray[0] != 0) {
-                _planeCollection->RemoveItem(_planeArray[0] - 1);
+            // if the tickbox is enabled perform the slicing change
+            if (toggled) {
+                // check if ther is already a x slicing plane active, if so remove it
+                if (_planeArray[0] != 0) {
+                    _planeCollection->RemoveItem(_planeArray[0] - 1);
+                }
+
+                // convert float value to integer
+                int intValue = value;
+
+                // Create a clipping plane for the xValue
+                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+                clipPlane->SetOrigin(intValue, 0.0, 0.0);
+                clipPlane->SetNormal(1, 0.0, 0.0);
+
+                // add the plane to the to the collection
+                _planeCollection->AddItem(clipPlane);
+
+                // store the index+1 of the x slicing plane
+                _planeArray[0] = _planeCollection->GetNumberOfItems();
+
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
+
+                // Render the data with the current slicing planes
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
             }
-
-            // convert float value to integer
-            int intValue = value;
-
-            // Create a clipping plane for the xValue
-            vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-            clipPlane->SetOrigin(intValue, 0.0, 0.0);
-            clipPlane->SetNormal(1, 0.0, 0.0);
-
-            // add the plane to the to the collection
-            _planeCollection->AddItem(clipPlane);
-
-            // store the index+1 of the x slicing plane
-            _planeArray[0] = _planeCollection->GetNumberOfItems();
-
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-            */
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            // Render the data with the current slicing planes
-            _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
         }
     });
     // xSlicing slider
     connect(&this->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
-        // get the current value of the ySlicing tickbox
-        bool toggled = _rendererSettingsAction.getSlicingAction().getYToggled();
+        //Check if data is loaded to prevent errors.
+        if (_dataLoaded) {
+            // get the current value of the ySlicing tickbox
+            bool toggled = _rendererSettingsAction.getSlicingAction().getYToggled();
 
-        // if the tickbox is enabled perform the slicing change
-        if (toggled) {
-            // check if ther is already a y slicing plane active, if so remove it
-            if (_planeArray[1] != 0) {
-                 _planeCollection->RemoveItem(_planeArray[1] - 1);
+            // if the tickbox is enabled perform the slicing change
+            if (toggled) {
+                // check if ther is already a y slicing plane active, if so remove it
+                if (_planeArray[1] != 0) {
+                    _planeCollection->RemoveItem(_planeArray[1] - 1);
+                }
+
+                // convert float value to integer
+                int intValue = value;
+
+                // Create a clipping plane for the yValue
+                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+                clipPlane->SetOrigin(0.0, intValue, 0.0);
+                clipPlane->SetNormal(0.0, 1, 0.0);
+
+                // add the plane to the to the collection
+                _planeCollection->AddItem(clipPlane);
+
+                // store the index+1 of the y slicing plane
+                _planeArray[1] = _planeCollection->GetNumberOfItems();
+
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
+
+                // Render the data with the current slicing planes
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
             }
-
-            // convert float value to integer
-            int intValue = value;
-
-            // Create a clipping plane for the yValue
-            vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-            clipPlane->SetOrigin(0.0, intValue,  0.0);
-            clipPlane->SetNormal(0.0, 1,  0.0);
-
-            // add the plane to the to the collection
-            _planeCollection->AddItem(clipPlane);
-
-            // store the index+1 of the y slicing plane
-            _planeArray[1] = _planeCollection->GetNumberOfItems();
-
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-            */
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-               imData.push_back(_selectionData);
-            }
-
-            // Render the data with the current slicing planes
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
         }
      });
     // xSlicing slider
     connect(&this->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
-        // get the current value of the zSlicing tickbox
-        bool toggled = _rendererSettingsAction.getSlicingAction().getZToggled();
-        
-        // if the tickbox is enabled perform the slicing change
-        if (toggled) {
-            // check if ther is already a z slicing plane active, if so remove it
-            if (_planeArray[2] != 0) {
-                _planeCollection->RemoveItem(_planeArray[2] - 1);
+        //Check if data is loaded to prevent errors.
+        if (_dataLoaded) {
+            // get the current value of the zSlicing tickbox
+            bool toggled = _rendererSettingsAction.getSlicingAction().getZToggled();
+
+            // if the tickbox is enabled perform the slicing change
+            if (toggled) {
+                // check if ther is already a z slicing plane active, if so remove it
+                if (_planeArray[2] != 0) {
+                    _planeCollection->RemoveItem(_planeArray[2] - 1);
+                }
+
+                // convert float value to integer
+                int intValue = value;
+
+                // Create a clipping plane for the zValue
+                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
+                clipPlane->SetOrigin(0.0, 0.0, intValue);
+                clipPlane->SetNormal(0.0, 0.0, 1);
+
+                // add the plane to the to the collection
+                _planeCollection->AddItem(clipPlane);
+
+                // store the index+1 of the y slicing plane
+                _planeArray[2] = _planeCollection->GetNumberOfItems();
+
+                /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
+                *   Vector is needed due to the possibility of having data selected in a scatterplot wich
+                *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
+                */
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
+
+                // Render the data with the current slicing planes
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
             }
-
-            // convert float value to integer
-            int intValue = value;
-
-            // Create a clipping plane for the zValue
-            vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-            clipPlane->SetOrigin(0.0, 0.0, intValue);
-            clipPlane->SetNormal(0.0, 0.0, 1);
-
-            // add the plane to the to the collection
-            _planeCollection->AddItem(clipPlane);
-
-            // store the index+1 of the y slicing plane
-            _planeArray[2] = _planeCollection->GetNumberOfItems();
-
-            /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-            *   Vector is needed due to the possibility of having data selected in a scatterplot wich
-            *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-            */
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            // Render the data with the current slicing planes
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-        } 
-      
+        }
     });
 
     // Interpolation Selector
@@ -664,7 +719,64 @@ void VolumeViewerPlugin::init()
         }
     });
 
+    // Surrounding data enabled selector
+    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getBackgroundShowAction(), &OptionAction::currentTextChanged, this, [this](const QString& show) {
+        // Selector option handeling
+        if (show == "Show background") {
+            _backgroundEnabled = true;
+            // Enable the alpha slider for the background
+            this->getRendererSettingsAction().getSelectedPointsAction().getBackgroundAlphaAction().setDisabled(false);
+        }
+        else {
+            _backgroundEnabled = false;
+            // Disable the alpha slider for the background
+            this->getRendererSettingsAction().getSelectedPointsAction().getBackgroundAlphaAction().setDisabled(true);
+        }
 
+        if (_dataSelected) {
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        }
+    });
+    // Background alpha slider
+    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getBackgroundAlphaAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
+        if (_backgroundEnabled) {
+            _backgroundAlpha = value;
+            if (_dataSelected) {
+                std::vector<vtkSmartPointer<vtkImageData>> imData;
+                imData.push_back(_imageData);
+                if (_dataSelected) {
+                    imData.push_back(_selectionData);
+                }
+                _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            }
+        }
+        
+    });
+    // Selection alpha setting selector
+    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getSelectionAlphaAction(), &OptionAction::currentTextChanged, this, [this](const QString& opaqueOrTf) {
+        if (opaqueOrTf == "Opaque") {
+            _selectionOpaque = true;
+        }
+        else {
+            _selectionOpaque = false;
+        }
+
+        if (_dataSelected) {
+            std::vector<vtkSmartPointer<vtkImageData>> imData;
+            imData.push_back(_imageData);
+            if (_dataSelected) {
+                imData.push_back(_selectionData);
+            }
+            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        }
+    });
+
+    // Colormap selector
     connect(&getRendererSettingsAction().getColoringAction().getColorMapAction(), &ColorMapAction::imageChanged, this, [this](const QImage& colorMapImage) {
 
         if (_dataLoaded) {
@@ -682,6 +794,7 @@ void VolumeViewerPlugin::init()
         }
     });
 
+    // Selection changed connection.
     connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this]{
 
         //_points->select
@@ -712,7 +825,7 @@ void VolumeViewerPlugin::init()
                 _dataSelected = true;
             }
             else {
-                _dataSelected = true;
+                _dataSelected = false;
             }
 
             // Render the data with the current slicing planes and selections

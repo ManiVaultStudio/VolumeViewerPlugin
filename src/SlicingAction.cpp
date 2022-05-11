@@ -20,8 +20,13 @@ SlicingAction::SlicingAction(RendererSettingsAction& rendererSettingsAction,View
     _zAxisPositionAction(this, "z-axis position", 0.0f, 100.0f, 0.0f, 0.0f, 0)
 {
     setText("Slicing parameters");
+
+    // Disable sliders by default due to disabled toggles
+    _xAxisPositionAction.setDisabled(true);
+    _yAxisPositionAction.setDisabled(true);
+    _zAxisPositionAction.setDisabled(true);
+
     
-    //bool toggled = false;
     _xToggled = false; 
     _yToggled = false;
     _zToggled = false;

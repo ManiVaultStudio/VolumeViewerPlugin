@@ -19,7 +19,7 @@ ColoringAction::ColoringAction(RendererSettingsAction& rendererSettingsAction) :
     _colorMapAction(this, "Transfer Function"),
     // Shading enable option.
     _shadingEnableAction(this, "shading enabled"),
-    _customColorMap (this, "custom map"),
+    
     // Shading parameters options.
     _ambientConstantAction(this, "Ambient constant", 0.0f, 1.0f, 0.9f, 0.9f, 4),
     _diffuseConstantAction(this, "Diffuse constant", 0.0f, 1.0f, 0.2f, 0.2f, 4),
@@ -27,4 +27,8 @@ ColoringAction::ColoringAction(RendererSettingsAction& rendererSettingsAction) :
 
 {
     setText("Coloring parameters");
+
+    _ambientConstantAction.setDisabled(true);
+    _diffuseConstantAction.setDisabled(true);
+    _specularConstantAction.setDisabled(true);
 }
