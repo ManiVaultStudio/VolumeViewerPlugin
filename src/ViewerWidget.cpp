@@ -161,11 +161,20 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
     
 	// Loop through the imData vector, can contain 1 or 2 objects, the second one is always the selected data.
 	for (int i = 0; i < imData.size(); i++) {
+
+        // Inverts i when data is selected in order to render the selected area inside the total render instead of projected on top of it.
+        int j;
+        if (imData.size() == 2) {
+            j = 1 - i;
+        }
+        else {
+            j = i;
+        }
         
 		// Creates a volumeMapper with its input being the current imageData object in the vector.
 		vtkSmartPointer<vtkSmartVolumeMapper> volMapper = vtkSmartPointer<vtkSmartVolumeMapper>::New();
 		volMapper->SetBlendModeToComposite();
-		volMapper->SetInputData(imData[i]);
+		volMapper->SetInputData(imData[j]);
 
 		// Create volumeProperty for collormapping and opacitymapping.
 		vtkSmartPointer<vtkVolumeProperty> volumeProperty = vtkSmartPointer<vtkVolumeProperty>::New();
@@ -182,7 +191,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 		}
 		
 		// If funtion to indicate whether we are in the fulldata (i==0) or in the selected data (i!=0) for opacity mapping purposes.
-		if (i == 0) {
+		if (j == 0) {
 			// Clipping planes are only applied in the fullData not in the selected data.
 			volMapper->SetClippingPlanes(planeCollection);
 			volMapper->Update();
