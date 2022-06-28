@@ -64,14 +64,14 @@ void VolumeViewerPlugin::init()
     
     
     auto layout = new QHBoxLayout();
-    layout->setMargin(0);
+    layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
     layout->addWidget(_viewerWidget, 4);
 
     auto settingsLayout = new QVBoxLayout();
 
     settingsLayout->addWidget(_rendererSettingsAction.createWidget(&_widget));
-    settingsLayout->setMargin(6);
+    settingsLayout->setContentsMargins(6, 6, 6, 6);
 
     GroupsAction::GroupActions groupActions;
 
