@@ -25,13 +25,12 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
     _viewerWidget(nullptr),
     //_transferWidget(nullptr),
-    _selectionData(vtkSmartPointer<vtkImageData>::New()),
+    //_selectionData(vtkSmartPointer<vtkImageData>::New()),
     _imageData(vtkSmartPointer<vtkImageData>::New()),
     // initiate a planeCollection for the SlicingAction
     _planeCollection(vtkSmartPointer<vtkPlaneCollection>::New()),
     _points(),
     _rendererSettingsAction(this,_viewerWidget),
-   
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
     _planeArray(std::vector<int>(3,0)), 
@@ -49,20 +48,19 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _selectionOpaque(true),
     // Shading parameter vector.
     _shadingParameters(std::vector<double>{0.9,0.2,0.1}),
-    // string variable to keep track of the interpolation option with default being Nearest Neighbor
+    // string variable to keep track of the interpolation option with default being Nearest Neighbour
     _interpolationOption("NN")
 {}
 
 void VolumeViewerPlugin::init()
 {
-    // add the viewerwidget and dropwidget to the layout
+    // Add the viewerwidget and dropwidget to the layout.
     _viewerWidget = new ViewerWidget(*this);
-   
-    
+   // Add the dropwidget to the layout.
     _dropWidget = new DropWidget(_viewerWidget);
     
     
-    
+    // Create the layout.
     auto layout = new QHBoxLayout();
     layout->setMargin(0);
     layout->setSpacing(0);
@@ -73,12 +71,9 @@ void VolumeViewerPlugin::init()
     settingsLayout->addWidget(_rendererSettingsAction.createWidget(&_widget));
     settingsLayout->setMargin(6);
 
+    // Add the actions.
     GroupsAction::GroupActions groupActions;
-
     groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
-
-    
-
     _rendererSettingsAction.setGroupActions(groupActions);
 
     layout->addLayout(settingsLayout, 1);
@@ -147,22 +142,18 @@ void VolumeViewerPlugin::init()
         // hide dropwidget
         _dropWidget->setShowDropIndicator(false);
 
-        // check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0
+        // Check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0.
         if (chosenDimension > _points->getNumDimensions() - 1) {
-            // pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
+            // Pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations.
             _imageData = _viewerWidget->setData(*_points, 0, _interpolationOption, _colorMap);
-            
-            
         }
         else {
-            // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
+            // Pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations.
             _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
-            
         }
-        
-        std::vector<vtkSmartPointer<vtkImageData>> imData;
-        imData.push_back(_imageData);
-        _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+
+        //Initial render.
+        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
 
         // set the maximum x, y and z values for the slicing options
         _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]); 
@@ -183,21 +174,12 @@ void VolumeViewerPlugin::init()
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
             _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
 
-
-
             // Get the selection set that changed
             const auto& selectionSet = _points->getSelection<Points>();
 
             // get selectionData
-            _selectionData = _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            // Render the data with the current slicing planes and selections
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
+            runRenderData();
 
         }
     });
@@ -223,14 +205,7 @@ void VolumeViewerPlugin::init()
 
         // Check if shading is enbabled.
         if (_shadingEnabled) {
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            // Render the data.
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            runRenderData();
         }
     });
     // Ambient parameter.
@@ -238,17 +213,7 @@ void VolumeViewerPlugin::init()
         // get the current value of the xSlicing tickbox
         _shadingParameters[1] = value;
 
-        // Check if shading is enbabled.
-        if (_shadingEnabled) {
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            // Render the data.
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-        }
+        runRenderData();
     });
     // Specular parameter.
     connect(&this->getRendererSettingsAction().getColoringAction().getSpecularAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
@@ -257,14 +222,7 @@ void VolumeViewerPlugin::init()
 
         // Check if shading is enbabled.
         if (_shadingEnabled) {
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
-            if (_dataSelected) {
-                imData.push_back(_selectionData);
-            }
-
-            // Render the data.
-            _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            runRenderData();
         }
     });
 
@@ -644,13 +602,12 @@ void VolumeViewerPlugin::init()
             const auto backGroundValue = _imageData->GetScalarRange()[0];
 
             // create a selectiondata imagedata object with 0 values for all non selected items
-            _selectionData = _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-            std::vector<vtkSmartPointer<vtkImageData>> imData;
-            imData.push_back(_imageData);
+            _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
+            
 
             // if the selection is not empty add the selection to the vector 
             if (selectionSet->indices.size() != 0) {
-                imData.push_back(_selectionData);
+                
                 _dataSelected = true;
             }
             else {
@@ -658,7 +615,7 @@ void VolumeViewerPlugin::init()
             }
 
             // Render the data with the current slicing planes and selections
-            _viewerWidget->renderData(_planeCollection,  imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            _viewerWidget->renderData(_planeCollection,  _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
                 
                 
         }
@@ -696,11 +653,5 @@ hdps::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
 *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
 */
 void VolumeViewerPlugin::runRenderData() {
-    std::vector<vtkSmartPointer<vtkImageData>> imData;
-    imData.push_back(_imageData);
-    if (_dataSelected) {
-        imData.push_back(_selectionData);
-    }
-
-    _viewerWidget->renderData(_planeCollection, imData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+    _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
 }

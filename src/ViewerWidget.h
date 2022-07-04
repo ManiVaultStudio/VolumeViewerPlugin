@@ -37,13 +37,13 @@ public:
     
     *  An interpolation option string is also required due to the 3 different type of colormap interpolations that are available, namely NN, LIN and CUBE 
     */
-    void renderData(vtkSmartPointer<vtkPlaneCollection> planeCollection, std::vector<vtkSmartPointer<vtkImageData>> imData, std::string interpolationOption, std::string colorMap, bool shadingEnabled, std::vector<double> shadingParameters);
+    void renderData(vtkSmartPointer<vtkPlaneCollection> planeCollection, vtkSmartPointer<vtkImageData> imData, std::string interpolationOption, std::string colorMap, bool shadingEnabled, std::vector<double> shadingParameters);
 
     /** This function returns a vtkImageData object containing the selected data points.
     *   Next to the points data, an array containing the selected indices is also needed.
     *   The chosenDim input is an integer indicating which dimension is to be visualized, starting from 0.
     */
-    vtkSmartPointer<vtkImageData> setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim);
+   void setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim);
 
     void resizeEvent(QResizeEvent* e) override {
         _openGLWidget->setFixedSize(e->size());
@@ -57,6 +57,8 @@ private:
     vtkSmartPointer<vtkInteractorStyle> mInteractorStyle;           /** interactorStyle*/
     int numPoints;                                                  /** Number of points in current dataset*/
     int numDimensions;                                              /** Number of dimensions in current dataset*/
+    vtkSmartPointer<vtkImageData> _labelMap;                          /** imagedata indicating the label wether data is part of selection or not*/
+    bool _dataSelected;                                              /** Boolian to indicate wether or not data is selected*/
 
 protected:
     VolumeViewerPlugin& _VolumeViewerPlugin;
