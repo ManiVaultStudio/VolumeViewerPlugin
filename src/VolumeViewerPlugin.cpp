@@ -10,6 +10,8 @@
 //#include "Transfer/CustomColorMapEditor.h"
 #include <widgets/DropWidget.h>
 
+#include <actions/PluginTriggerAction.h>
+
 /** HDPS headers*/
 #include <PointData.h>
 #include <ClusterData.h>
@@ -631,9 +633,9 @@ hdps::CoreInterface* VolumeViewerPlugin::getCore()
     return _core;
 }
 
-QIcon VolumeViewerPluginFactory::getIcon() const
+QIcon VolumeViewerPluginFactory::getIcon(const QColor& color /*= Qt::black*/) const
 {
-    return hdps::Application::getIconFont("FontAwesome").getIcon("images");
+    return hdps::Application::getIconFont("FontAwesome").getIcon("cube", color);
 }
 
 VolumeViewerPlugin* VolumeViewerPluginFactory::produce()
@@ -646,6 +648,34 @@ hdps::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
     DataTypes supportedTypes;
     supportedTypes.append(PointType);
     return supportedTypes;
+}
+
+hdps::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActions(const hdps::Datasets& datasets) const
+{
+    PluginTriggerActions pluginTriggerActions;
+
+    const auto getInstance = [this]() -> VolumeViewerPlugin* {
+        return dynamic_cast<VolumeViewerPlugin*>(Application::core()->requestPlugin(getKind()));
+    };
+
+    const auto numberOfDatasets = datasets.count();
+
+    if (PluginFactory::areAllDatasetsOfTheSameType(datasets, PointType)) {
+        if (numberOfDatasets >= 1) {
+            if (datasets.first()->getDataType() == PointType) {
+                auto pluginTriggerAction = createPluginTriggerAction("Volume viewer", "Load dataset in volume viewer", datasets, "cube");
+
+                connect(pluginTriggerAction, &QAction::triggered, [this, getInstance, datasets]() -> void {
+                    for (auto dataset : datasets)
+                        getInstance()->loadData(Datasets({ dataset }));
+                });
+
+                pluginTriggerActions << pluginTriggerAction;
+            }
+        }
+    }
+
+    return pluginTriggerActions;
 }
 
 /** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
