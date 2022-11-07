@@ -70,7 +70,7 @@ void VolumeViewerPlugin::init()
 
     auto settingsLayout = new QVBoxLayout();
 
-    settingsLayout->addWidget(_rendererSettingsAction.createWidget(&_widget));
+    settingsLayout->addWidget(_rendererSettingsAction.createWidget(&getWidget()));
     settingsLayout->setContentsMargins(6, 6, 6, 6);
 
     // Add the actions.
@@ -80,11 +80,11 @@ void VolumeViewerPlugin::init()
 
     layout->addLayout(settingsLayout, 1);
 
-    _widget.setAutoFillBackground(true);
-    _widget.setLayout(layout);
+    getWidget().setAutoFillBackground(true);
+    getWidget().setLayout(layout);
     
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
-    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&_widget, "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
+    _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
 
     // Initialize the drop regions
     _dropWidget->initialize([this](const QMimeData* mimeData) -> DropWidget::DropRegions {
