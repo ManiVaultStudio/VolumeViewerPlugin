@@ -3,6 +3,9 @@
 #include "actions/GroupAction.h"
 #include "actions/ColorMapAction.h"
 #include "actions/OptionAction.h"
+#include "PositionAction.h"
+#include "ThresholdAction.h"
+
 
 
 using namespace hdps::gui;
@@ -36,6 +39,12 @@ public: /** Action getters */
     //
     DecimalAction& getBackgroundAlphaAction() { return _backgroundAlphaAction; }
     OptionAction& getSelectionAlphaAction() { return  _selectionAlphaAction; }
+    PositionAction& getPositionAction() { return _positionAction; }
+    TriggerAction& getSelectPointAction() { return  _selectPointAction; }
+    ThresholdAction& getThresholdAction() { return _thresholdAction; }
+
+    
+
     //DecimalAction& getDiffuseAction() { return _diffuseConstantAction; }
     //DecimalAction& getSpecularAction() { return _specularConstantAction; }
 
@@ -50,4 +59,8 @@ protected:
     OptionAction                    _selectionAlphaAction;
     //DecimalAction                _diffuseConstantAction;               /** Input box for diffuse color constant.*/
     //DecimalAction                _specularConstantAction;               /** Input box for specular color constant.*/
+    TriggerAction                   _selectPointAction;                 /** Activate point selection*/
+    PositionAction                  _positionAction;
+    ThresholdAction                 _thresholdAction;
+
 };

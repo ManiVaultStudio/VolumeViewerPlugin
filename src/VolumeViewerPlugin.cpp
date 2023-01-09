@@ -34,6 +34,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
     _planeArray(std::vector<int>(3,0)), 
+    _position(std::vector<double>(3,0)),
     // boolian to indicate if data is loaded for selection visualization purposes
     _dataLoaded(false),
     // boolian to indicate if data has been selected in a scatterplot
@@ -579,6 +580,20 @@ void VolumeViewerPlugin::init()
         if (_dataSelected) {
             runRenderData();
         }
+    });   
+    
+    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getSelectPointAction(), &TriggerAction::triggered, this, [this]() {
+        float lowerThreshold = this->getRendererSettingsAction().getSelectedPointsAction().getThresholdAction().getLowerThresholdAction().getValue();
+        float upperThreshold = this->getRendererSettingsAction().getSelectedPointsAction().getThresholdAction().getUpperThresholdAction().getValue();
+        
+        //_points->setSelectionIndices();
+        int chosenDimension = _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
+        _viewerWidget->connectedSelection(*_points, chosenDimension, _viewerWidget->getSelectedCellCoordinate(), upperThreshold, lowerThreshold);
+        const auto& selectionSet = _points->getSelection<Points>();
+        //auto test = selectionSet->indices;
+        _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
+        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        _core->notifyDatasetSelectionChanged(_points);
     });
 
     // Colormap selector
@@ -654,4 +669,11 @@ hdps::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
 */
 void VolumeViewerPlugin::runRenderData() {
     _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+}
+
+void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {
+    _position[0] = x;
+    _position[1] = y;
+    _position[2] = z;
+   
 }

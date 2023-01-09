@@ -61,6 +61,8 @@ public: // Inherited from ViewPlugin
 
     void runRenderData();
 
+    void setSelectionPosition(double x, double y, double z);
+
     /** Returns a pointer to the core interface */
     hdps::CoreInterface* core() { return _core; }
 
@@ -118,6 +120,7 @@ private:
     QString                             _currentDatasetName;        /** Name of the current dataset */
     std::vector<int>                    _planeArray;                /** Array indicating the index+1 of the x,y and z clipping planes in the plane collection*/
     std::vector<double>                  _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/
+    std::vector<double>                 _position;
     std::string                         _interpolationOption;       /** String for storing the current color interpolation option*/
     std::string                         _colorMap;                  /** String for storing the current color map*/
     bool                                _dataLoaded;                /** Booling indicating if data has been loaded in*/

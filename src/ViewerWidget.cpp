@@ -3,6 +3,9 @@
 #include <algorithm> 
 #include <vector>
 #include <cmath>
+#include <iostream>
+#include <vector>
+#include <algorithm>
 /** Plugin headers */
 #include <ViewerWidget.h>
 #include <RendererSettingsAction.h>
@@ -30,8 +33,70 @@
 #include <vtkIntArray.h>
 #include <vtkGPUVolumeRayCastMapper.h>
 
+#include <vtkInteractorStyleTrackballCamera.h>
+#include <vtkPointPicker.h>
+#include <vtkRendererCollection.h>
+#include <vtkNamedColors.h>
+#include <vtkCellPicker.h>
+#include <vtkCellLocator.h>
+#include <vtkPoints.h>
+#include "C:/Program Files (x86)/VTK/include/vtk-9.1/vtkImageThresholdConnectivity.h"
+#include <vtkImageThreshold.h>
+
+
+
+//#include <vtkIdTypeArray.h>
+//#include <vtkSelectionNode.h>
+//#include <vtkSelection.h>
+//#include <vtkExtractSelection.h>
+//#include <vtkUnstructuredGrid.h>
+
 using namespace hdps;
 using namespace hdps::gui;
+
+namespace {
+// Catch mouse events
+class MouseInteractorStyle : public vtkInteractorStyleTrackballCamera
+{
+    public:
+        static MouseInteractorStyle* New();
+        MouseInteractorStyle()
+        {
+            selectedMapper = vtkSmartPointer<vtkGPUVolumeRayCastMapper>::New();
+            selectedActor = vtkSmartPointer<vtkActor>::New();
+        }
+        virtual void OnLeftButtonDown() override
+        {
+            vtkNew<vtkNamedColors> colors;
+
+            // Get the location of the click (in window coordinates)
+            int* pos = this->GetInteractor()->GetEventPosition();
+
+            vtkNew<vtkCellPicker> picker;
+            picker->SetTolerance(0.0005);
+
+            // Pick from this location.
+            picker->Pick(pos[0], pos[1], 0, this->GetDefaultRenderer());
+            double* worldPosition = picker->GetPickPosition();
+            int cellID = picker->GetCellId();
+            auto xyz = picker->GetCellIJK();          
+            _widget->setSelectedCell(cellID, xyz);
+
+            // Forward events
+            vtkInteractorStyleTrackballCamera::OnLeftButtonDown();
+        }
+
+        void setViewer(ViewerWidget* widget) {
+            _widget = widget;
+        }        
+        ViewerWidget* _widget;
+        vtkSmartPointer<vtkGPUVolumeRayCastMapper> selectedMapper;
+        vtkSmartPointer<vtkActor> selectedActor;
+    };
+
+vtkStandardNewMacro(MouseInteractorStyle);
+
+} // namespace
 
 
 ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* parent) :
@@ -39,29 +104,41 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
 	mRenderWindow(vtkSmartPointer<vtkGenericOpenGLRenderWindow>::New()),
 	mRenderer(vtkSmartPointer<vtkRenderer>::New()),
 	mInteractor(vtkSmartPointer<QVTKInteractor>::New()),
-	mInteractorStyle(vtkSmartPointer<vtkInteractorStyle>::New()),
+	//mInteractorStyle(vtkSmartPointer<MouseInteractorStyle>::New()),
     _labelMap(vtkSmartPointer<vtkImageData>::New()),
+    _imData(vtkSmartPointer<vtkImageData>::New()),
 	numDimensions(),
 	numPoints(),
 	_VolumeViewerPlugin(VolumeViewerPlugin),
 	_openGLWidget(),
-    _dataSelected(false)
+    _dataSelected(false),
+    _selectedCell(),
+    _selectedCellCoordinate(),
+    _thresholded(false),
+    _lowerThreshold(),
+    _upperThreshold()
 
 {
 	setAcceptDrops(true);
 	// Initiate the QVTKOpenGLWidget.
 	_openGLWidget = new QVTKOpenGLNativeWidget(this);
-
+    vtkNew<MouseInteractorStyle> mStyle;
 	// Setup the Renderwindow.
 	mRenderWindow->AddRenderer(mRenderer);
 	mInteractor->SetRenderWindow(mRenderWindow);
 	_openGLWidget->setRenderWindow(mRenderWindow);
 	mInteractor->Initialize();
-
+    mStyle->SetDefaultRenderer(mRenderer);
+    mStyle->setViewer(this);
+    //mInteractorStyle->get
+    mInteractor->SetInteractorStyle(mStyle);
+    
 	// Set the background color.
 	mRenderer->SetBackground(0, 0, 0);
 	numDimensions = 0;
 	numPoints = 0;
+    _selectedCell = -1;
+    
 }
 
 ViewerWidget::~ViewerWidget()
@@ -76,7 +153,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim,
     
 	// Get number of dimensions from points dataset.
 	numDimensions = data.getNumDimensions();
-
+    
 	// Get x, y and z size from the points dataset.
 	QVariant xQSize = data.getProperty("xDim");
 	int xSize = xQSize.toInt();
@@ -85,7 +162,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim,
 	QVariant zQSize = data.getProperty("zDim");
 	int zSize = zQSize.toInt();
 	int dim;
-
+    _xSize, _ySize, _zSize = xSize, ySize, zSize;
 	// Create empty floatarray for reading from pointsdata.
 	vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
 
@@ -121,7 +198,7 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim,
     
 	// Create an empty planeCollection in order to conform to the requirements off callinf renderData. (due to implementation of slicing action)
 	vtkSmartPointer<vtkPlaneCollection> planeCollection = vtkSmartPointer<vtkPlaneCollection>::New();
-    
+    _imData = imData;
 	// Return the imData object for later use in VolumeViewerPlugin.
 	return imData;
 }
@@ -131,10 +208,10 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
     double dataMinimum = imData->GetScalarRange()[0] + 1;
     double background = imData->GetScalarRange()[0];
     double dataMaximum = imData->GetScalarRange()[1];
-   
+
     // Empty the renderer to avoid overlapping visualizations.
 	mRenderer->RemoveAllViewProps();
-    
+   
     // Create color transfer function.
 	vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
     color->AddRGBPoint(background, 0, 0, 0, 1, 1);
@@ -148,7 +225,6 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
     // Get background enabled parameter.
     bool backgroundEndabled = _VolumeViewerPlugin.getBackgroundEndabled();
    
-
     // Loop to read in colors from the colormap qimage.
 	for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
 		const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
@@ -174,7 +250,6 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	volMapper->SetInputData(imData);
     volMapper->SetMaskInput(_labelMap);
         
-
 	// Create volumeProperty for collormapping and opacitymapping.
 	vtkSmartPointer<vtkVolumeProperty> volumeProperty = vtkSmartPointer<vtkVolumeProperty>::New();
 
@@ -203,7 +278,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 	vtkSmartPointer<vtkPiecewiseFunction> compositeOpacity = vtkSmartPointer<vtkPiecewiseFunction>::New();
     vtkSmartPointer<vtkPiecewiseFunction> compositeOpacityBackground = vtkSmartPointer<vtkPiecewiseFunction>::New();
     compositeOpacityBackground->AddPoint(background, 0, 1, 1);
-
+  
 	// Checks if there is data is selected.
 	if (!_dataSelected) {
         // Use the opacity information indicated in the colormap.
@@ -211,7 +286,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
         // Add the Opacity options to volumeproperty.
         volumeProperty->SetScalarOpacity(compositeOpacity);
 	}
-	else {
+    else {
         
         if (backgroundEndabled) {
             // Get background alpha parameter.
@@ -231,7 +306,6 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             }
         }
         else {
-
             //Check the currently selected option for selection opacity
             if (_VolumeViewerPlugin.getSelectionOpaque()) {
                 // Set object values as opague.
@@ -283,7 +357,7 @@ void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std
         QVariant zQSize = points.getProperty("zDim");
         int zSize = zQSize.toInt();
         int dim;
-
+        
         // Create bool variable to indicate if data has been selected.
         std::vector<bool> selected;
         points.selectedLocalIndices(selectionIndices, selected);
@@ -330,7 +404,7 @@ void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std
                 if (numSelectedLoaded != selectionIndices.size()) {
                     // If the index is equal to the current point in the array.
                     if (selected[i / numDimensions]) {
-                        //std::cout << selectionIndices[numSelectedLoaded] << std::endl;
+                        
                         // Write value into the dataArray.
                         dataArray->SetValue(j, points.getValueAt(i));
                         labelArray->SetValue(j, 1);
@@ -351,13 +425,9 @@ void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std
             }
         }
 
-
-
         // Add scalarData to the imageData object.
        
         _labelMap->GetPointData()->SetScalars(labelArray);
-
-        
 
         if (selectionIndices.size() == 0) {
             _dataSelected = false;
@@ -365,7 +435,51 @@ void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std
         else {
             _dataSelected = true;
         }
-        // Return the selection imagedata object.
-        
+        // Return the selection imagedata object.   
+}
+
+
+vtkSmartPointer<vtkImageData> ViewerWidget::connectedSelection(Points& points,int chosenDim, int *seedpoint, float upperThreshold, float lowerThreshold) {
+    double dataMinimum = _imData->GetScalarRange()[0]+1;
+
+    double dataMaximum = _imData->GetScalarRange()[1];
+
+    auto dataBounds = _imData->GetExtent();
+
+    float onePercent = (abs(dataMaximum - dataMinimum))/ 100;
     
+    _upperThreshold = _imData->GetScalarComponentAsFloat(seedpoint[0], seedpoint[1], seedpoint[2], 0) + upperThreshold * onePercent;
+    _lowerThreshold = _imData->GetScalarComponentAsFloat(seedpoint[0], seedpoint[1], seedpoint[2], 0) - lowerThreshold * onePercent;
+    
+    _thresholded = true;
+    std::vector<unsigned int> selectionIndeces;
+    int dim = 0;
+   
+    // Loop over the number of values in the pointsdata and write values into the dataArray if the current dimension  equals the chosen dimension and the selected indices.
+    for (int i = 0; i < numPoints * numDimensions; i++) {
+        // The remainder of the current value divided by the number of dimensions is the current dimension.
+        dim = i % numDimensions;
+
+        if (chosenDim == dim) {
+            if (points.getValueAt(i) <= _upperThreshold && points.getValueAt(i) >= _lowerThreshold) {               
+                selectionIndeces.push_back(i/numDimensions);               
+            }
+        }
+    }
+    points.setSelectionIndices(selectionIndeces);
+   
+    if (selectionIndeces.size() == 0) {
+        _dataSelected = false;
+    }
+    else {
+        _dataSelected = true;
+    }
+  
+    return _imData;
+}
+
+void ViewerWidget::setSelectedCell(int cellID, int *xyz) {
+    _selectedCell = cellID;   
+    _selectedCellCoordinate = xyz;
+    _VolumeViewerPlugin.getRendererSettingsAction().getSelectedPointsAction().getPositionAction().changeValue(xyz);
 }

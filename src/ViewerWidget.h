@@ -15,8 +15,11 @@
 #include <QVTKOpenGLNativeWidget.h>
 #include <vtkSmartVolumeMapper.h>   
 
+
 class VolumeViewerPlugin;
 using namespace hdps;
+
+
 
 class ViewerWidget : public QWidget
 {
@@ -45,6 +48,13 @@ public:
     */
    void setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim);
 
+   void setSelectedCell(int cellID, int *xyz);
+   int* getSelectedCellCoordinate() {
+       return _selectedCellCoordinate;
+   }
+
+   vtkSmartPointer<vtkImageData> connectedSelection(Points& points,int choseDim, int *seedpoint,float upThreshold, float lowThreshold);
+
     void resizeEvent(QResizeEvent* e) override {
         _openGLWidget->setFixedSize(e->size());
     }
@@ -54,11 +64,21 @@ private:
     vtkSmartPointer<vtkRenderer> mRenderer;                         /** vtk Renderer*/
     vtkSmartPointer<vtkGenericOpenGLRenderWindow> mRenderWindow;    /** vtk RenderWindow*/
     vtkSmartPointer<QVTKInteractor> mInteractor;                    /** qvtk Interactor*/
-    vtkSmartPointer<vtkInteractorStyle> mInteractorStyle;           /** interactorStyle*/
+    //vtkSmartPointer<vtkInteractorStyle> mInteractorStyle;           /** interactorStyle*/
     int numPoints;                                                  /** Number of points in current dataset*/
     int numDimensions;                                              /** Number of dimensions in current dataset*/
     vtkSmartPointer<vtkImageData> _labelMap;                          /** imagedata indicating the label wether data is part of selection or not*/
+    vtkSmartPointer<vtkImageData> _imData;
     bool _dataSelected;                                              /** Boolian to indicate wether or not data is selected*/
+    int _xSize;
+    int _ySize;
+    int _zSize;
+    int _selectedCell;
+    int *_selectedCellCoordinate;
+    bool _thresholded;
+    float _upperThreshold;
+    float _lowerThreshold;
+    
 
 protected:
     VolumeViewerPlugin& _VolumeViewerPlugin;
