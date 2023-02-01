@@ -595,7 +595,7 @@ void VolumeViewerPlugin::init()
         //auto test = selectionSet->indices;
         _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
         _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-        _core->notifyDatasetSelectionChanged(_points);
+        events().notifyDatasetSelectionChanged(_points);
     });
 
     // Colormap selector
@@ -670,7 +670,7 @@ hdps::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActio
     PluginTriggerActions pluginTriggerActions;
 
     const auto getInstance = [this]() -> VolumeViewerPlugin* {
-        return dynamic_cast<VolumeViewerPlugin*>(Application::core()->requestPlugin(getKind()));
+        return dynamic_cast<VolumeViewerPlugin*>(plugins().requestPlugin(getKind()));
     };
 
     const auto numberOfDatasets = datasets.count();
@@ -678,9 +678,7 @@ hdps::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActio
     if (PluginFactory::areAllDatasetsOfTheSameType(datasets, PointType)) {
         if (numberOfDatasets >= 1) {
             if (datasets.first()->getDataType() == PointType) {
-                auto pluginTriggerAction = createPluginTriggerAction("Volume viewer", "Load dataset in volume viewer", datasets, "cube");
-
-                connect(pluginTriggerAction, &QAction::triggered, [this, getInstance, datasets]() -> void {
+                auto pluginTriggerAction = new PluginTriggerAction(const_cast<VolumeViewerPluginFactory*>(this), this, "Volume viewer", "Load dataset in volume viewer", getIcon(), [this, getInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
                     for (auto dataset : datasets)
                         getInstance()->loadData(Datasets({ dataset }));
                 });

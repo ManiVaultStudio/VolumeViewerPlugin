@@ -40,7 +40,6 @@
 #include <vtkCellPicker.h>
 #include <vtkCellLocator.h>
 #include <vtkPoints.h>
-#include "C:/Program Files (x86)/VTK/include/vtk-9.1/vtkImageThresholdConnectivity.h"
 #include <vtkImageThreshold.h>
 
 
