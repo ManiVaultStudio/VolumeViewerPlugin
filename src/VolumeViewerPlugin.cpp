@@ -670,7 +670,7 @@ hdps::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActio
     PluginTriggerActions pluginTriggerActions;
 
     const auto getInstance = [this]() -> VolumeViewerPlugin* {
-        return dynamic_cast<VolumeViewerPlugin*>(plugins().requestPlugin(getKind()));
+        return dynamic_cast<VolumeViewerPlugin*>(plugins().requestViewPlugin(getKind()));
     };
 
     const auto numberOfDatasets = datasets.count();
