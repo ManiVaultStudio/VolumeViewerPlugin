@@ -12,7 +12,7 @@
 #include <VolumeViewerPlugin.h>
 /** HDPS headers */
 #include <Dataset.h>
-#include <PointData.h>
+#include "PointData/PointData.h"
 /** QT headers */
 #include <qwidget.h>
 #include <qdialog.h>

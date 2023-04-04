@@ -13,9 +13,9 @@
 #include <actions/PluginTriggerAction.h>
 
 /** HDPS headers*/
-#include <PointData.h>
-#include <ClusterData.h>
-#include <ColorData.h>
+#include "PointData/PointData.h"
+#include "ClusterData/ClusterData.h"
+#include "ColorData/ColorData.h"
 /** VTK headers*/
 #include <vtkPlaneCollection.h>
 #include <vtkPlane.h>
