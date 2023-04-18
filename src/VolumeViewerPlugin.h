@@ -12,7 +12,7 @@
 #include <widgets/DropWidget.h>
 #include <RendererSettingsAction.h>
 //#include <Transfer/TransferFunctionControlAction.h>
-#include <PointData.h>
+#include <PointData/PointData.h>
 /** VTK headers*/
 #include <vtkPlane.h>
 #include <vtkPlaneCollection.h>
