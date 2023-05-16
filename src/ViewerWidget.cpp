@@ -32,6 +32,9 @@
 #include <vtkCamera.h>
 #include <vtkIntArray.h>
 #include <vtkGPUVolumeRayCastMapper.h>
+#include <vtkPolyData.h>
+#include <vtkPolyDataMapper.h>
+#include <vtkNamedColors.h>
 
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkPointPicker.h>
@@ -44,6 +47,9 @@
 
 
 
+#include <vtkPointSource.h>
+#include <vtkCellArray.h>
+#include <vtkVertexGlyphFilter.h>
 //#include <vtkIdTypeArray.h>
 //#include <vtkSelectionNode.h>
 //#include <vtkSelection.h>
@@ -95,6 +101,7 @@ class MouseInteractorStyle : public vtkInteractorStyleTrackballCamera
 
 vtkStandardNewMacro(MouseInteractorStyle);
 
+
 } // namespace
 
 
@@ -115,7 +122,9 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
     _selectedCellCoordinate(),
     _thresholded(false),
     _lowerThreshold(),
-    _upperThreshold()
+    _upperThreshold(),
+    _pointData(vtkSmartPointer<vtkPoints>::New()),
+    _vertices(vtkSmartPointer<vtkCellArray>::New())
 
 {
 	setAcceptDrops(true);
@@ -173,8 +182,39 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim,
 	// Set the number of values in the dataArray equal to the number of points in the pointsdataset.
 	dataArray->SetNumberOfValues(numPoints);
 	
-	// Counter for the amount of values that have been read.
-	int j = 0;
+	
+
+    vtkSmartPointer<vtkCellArray> vertices = vtkSmartPointer<vtkCellArray>::New();
+
+    vtkSmartPointer<vtkPoints> vtkPointObject = vtkSmartPointer<vtkPoints>::New();
+    vtkPointObject->SetNumberOfPoints(numPoints);
+    int pointCounter = 0;
+    for (int i = 0; i < numPoints*numDimensions; i++)
+    {
+        if (i == 0 || i%numDimensions == 0) {
+            double p[3] = { data.getValueAt(i), data.getValueAt(i + 1), data.getValueAt(i + 2) };
+
+            vtkPointObject->SetPoint(pointCounter, p);
+            vertices->InsertNextCell(pointCounter);
+            pointCounter++;
+            
+            
+        }
+        
+        
+    }
+
+    
+
+    std::cout << pointCounter << std::endl;
+    _pointData = vtkPointObject;
+    _vertices = vertices;
+    
+
+    
+    //polyData->s
+    // Counter for the amount of values that have been read.
+    int j = 0;
 
 	// Loop over the number of values in the pointsdata and write values into the dataArray if the current dimension  equals the chosen dimension.
 	for (int i = 0; i < numPoints * numDimensions; i++) {
@@ -242,6 +282,9 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
         colormapOpacity->AddPoint(normalizedPixelX * (dataMaximum - dataMinimum) + dataMinimum,pixelColor.alphaF());
         
     }
+
+
+
 
 	// Creates a volumeMapper with its input being the current imageData object in the vector.
 	vtkSmartPointer<vtkGPUVolumeRayCastMapper > volMapper = vtkSmartPointer<vtkGPUVolumeRayCastMapper >::New();
@@ -339,8 +382,36 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
         volumeProperty->SetDiffuse(0);
         volumeProperty->SetSpecular(0);
     }
+
+
+    
+
+    vtkSmartPointer<vtkPolyData> pointsPolyData = vtkSmartPointer<vtkPolyData>::New();
+    pointsPolyData->SetPoints(_pointData);
+    //polyData->SetVerts(_vertices);
+
+    vtkSmartPointer<vtkVertexGlyphFilter> vertexFilt = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+    vertexFilt->SetInputData(pointsPolyData);
+    vertexFilt->Update();
+    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+    polyData->ShallowCopy(vertexFilt->GetOutput());
+
+    vtkNew<vtkPolyDataMapper> inputMapper;
+    inputMapper->SetInputData(polyData);
+
+    vtkNew<vtkNamedColors> colors;
+    
+
+
+
+    vtkNew<vtkActor> inputActor;
+    inputActor->SetMapper(inputMapper);
+
+    inputActor->GetProperty()->SetColor(colors->GetColor3d("Lime").GetData());
+    inputActor->GetProperty()->SetPointSize(3);
+
 	// Add the current volume to the renderer.
-	mRenderer->AddViewProp(volActor);
+	mRenderer->AddViewProp(inputActor);
 	// Center camera.
 	mRenderer->ResetCamera();
 	// Render.
