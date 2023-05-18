@@ -92,6 +92,10 @@ public: // Miscellaneous
     bool& getBackgroundEndabled() {
         return _backgroundEnabled;
     }
+    
+    bool& getPointCloudEndabled() {
+        return _pointCloudEnabled;
+    }
 
     float& getBackgroundAlpha() {
         return _backgroundAlpha;
@@ -115,6 +119,7 @@ private:
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
     Dataset<Points>                     _points;                    /** Declare a points dataset reference */
+    Dataset<Points>                     _pointsParent;                    /** Declare a points dataset reference */
     QStringList                         _pointsDatasets;            /** Point datasets loaded in HDPS */
     hdps::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */
@@ -127,6 +132,7 @@ private:
     bool                                _dataSelected;              /** Boolian indicating if data has been selected in a scatterplot*/
     bool                                _shadingEnabled;            /** Boolian for inicating if shading should be enabled*/
     bool                                _backgroundEnabled;         /** Boolian for indicating if the non-selected datapoints should be shown*/
+    bool                                _pointCloudEnabled;         /** Boolian for indicating the render option*/
     bool                                _selectionOpaque;           /** Boolian indicating wether the selected datapoints should be opaque or use the transfer function*/
     float                               _backgroundAlpha;           /** Float indcating the alpha value of the background during selection.*/
 };

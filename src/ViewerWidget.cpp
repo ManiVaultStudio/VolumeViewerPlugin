@@ -50,6 +50,7 @@
 #include <vtkPointSource.h>
 #include <vtkCellArray.h>
 #include <vtkVertexGlyphFilter.h>
+#include <vtkLookupTable.h>
 //#include <vtkIdTypeArray.h>
 //#include <vtkSelectionNode.h>
 //#include <vtkSelection.h>
@@ -124,7 +125,7 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
     _lowerThreshold(),
     _upperThreshold(),
     _pointData(vtkSmartPointer<vtkPoints>::New()),
-    _vertices(vtkSmartPointer<vtkCellArray>::New())
+    _values(vtkSmartPointer<vtkFloatArray>::New())
 
 {
 	setAcceptDrops(true);
@@ -179,66 +180,80 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim,
 	imData->SetDimensions(xSize, ySize, zSize);
 	imData->AllocateScalars(VTK_FLOAT, 1);
 
-	// Set the number of values in the dataArray equal to the number of points in the pointsdataset.
-	dataArray->SetNumberOfValues(numPoints);
 	
-	
+    bool pointCloud = _VolumeViewerPlugin.getPointCloudEndabled();
+    if (pointCloud) {
+        // Set the number of values in the dataArray equal to the number of points in the pointsdataset.
+        _values->SetNumberOfValues(numPoints);
+        
+        vtkSmartPointer<vtkCellArray> vertices = vtkSmartPointer<vtkCellArray>::New();
 
-    vtkSmartPointer<vtkCellArray> vertices = vtkSmartPointer<vtkCellArray>::New();
+        vtkSmartPointer<vtkPoints> vtkPointObject = vtkSmartPointer<vtkPoints>::New();
+        vtkPointObject->SetNumberOfPoints(numPoints);
+        int pointCounter = 0;
+        for (int i = 0; i < numPoints * numDimensions; i++)
+        {
+            if (i == 0 || i % numDimensions == 0) {
+                double p[3] = { data.getValueAt(i), data.getValueAt(i + 1), data.getValueAt(i + 2) };
 
-    vtkSmartPointer<vtkPoints> vtkPointObject = vtkSmartPointer<vtkPoints>::New();
-    vtkPointObject->SetNumberOfPoints(numPoints);
-    int pointCounter = 0;
-    for (int i = 0; i < numPoints*numDimensions; i++)
-    {
-        if (i == 0 || i%numDimensions == 0) {
-            double p[3] = { data.getValueAt(i), data.getValueAt(i + 1), data.getValueAt(i + 2) };
+                vtkPointObject->SetPoint(pointCounter, p);
+                
+                vertices->InsertNextCell(pointCounter);
+                
+                    _values->SetValue(pointCounter, 1);
+               
+                  
+                
 
-            vtkPointObject->SetPoint(pointCounter, p);
-            vertices->InsertNextCell(pointCounter);
-            pointCounter++;
-            
-            
+                pointCounter++;
+
+
+            }
+
+
         }
         
+
+       
         
+        
+        _pointData = vtkPointObject;
+        
+      
+        //_vertices = vertices;
+
     }
+    else {
+        // Set the number of values in the dataArray equal to the number of points in the pointsdataset.
+        dataArray->SetNumberOfValues(numPoints);
+        //polyData->s
+        // Counter for the amount of values that have been read.
+        int j = 0;
 
-    
+        // Loop over the number of values in the pointsdata and write values into the dataArray if the current dimension  equals the chosen dimension.
+        for (int i = 0; i < numPoints * numDimensions; i++) {
+            // The remainder of the current value divided by the number of dimensions is the current dimension.
+            dim = i % numDimensions;
+            if (chosenDim == dim) {
+                // write value into the dataArray
+                dataArray->SetValue(j, data.getValueAt(i));
+                j++;
+            }
+        }
 
-    std::cout << pointCounter << std::endl;
-    _pointData = vtkPointObject;
-    _vertices = vertices;
-    
+        // Give the Points in the ImageData object the dataArray values.
+        imData->GetPointData()->SetScalars(dataArray);
 
-    
-    //polyData->s
-    // Counter for the amount of values that have been read.
-    int j = 0;
+        _labelMap->SetOrigin(imData->GetOrigin());
+        _labelMap->SetSpacing(imData->GetSpacing());
+        _labelMap->SetDimensions(imData->GetDimensions());
+        _labelMap->AllocateScalars(VTK_UNSIGNED_CHAR, 0);
 
-	// Loop over the number of values in the pointsdata and write values into the dataArray if the current dimension  equals the chosen dimension.
-	for (int i = 0; i < numPoints * numDimensions; i++) {
-		// The remainder of the current value divided by the number of dimensions is the current dimension.
-		dim = i % numDimensions;
-		if (chosenDim == dim) {
-			// write value into the dataArray
-			dataArray->SetValue(j, data.getValueAt(i));
-			j++;
-		}
-	}
-
-	// Give the Points in the ImageData object the dataArray values.
-	imData->GetPointData()->SetScalars(dataArray);
-
-    _labelMap->SetOrigin(imData->GetOrigin());
-    _labelMap->SetSpacing(imData->GetSpacing());
-    _labelMap->SetDimensions(imData->GetDimensions());
-    _labelMap->AllocateScalars(VTK_UNSIGNED_CHAR, 0);
-    
-	// Create an empty planeCollection in order to conform to the requirements off callinf renderData. (due to implementation of slicing action)
-	vtkSmartPointer<vtkPlaneCollection> planeCollection = vtkSmartPointer<vtkPlaneCollection>::New();
-    _imData = imData;
-	// Return the imData object for later use in VolumeViewerPlugin.
+        // Create an empty planeCollection in order to conform to the requirements off callinf renderData. (due to implementation of slicing action)
+        vtkSmartPointer<vtkPlaneCollection> planeCollection = vtkSmartPointer<vtkPlaneCollection>::New();
+        _imData = imData;
+        // Return the imData object for later use in VolumeViewerPlugin.
+    }
 	return imData;
 }
 	
@@ -384,34 +399,60 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
     }
 
 
-    
+    bool pointCloud = _VolumeViewerPlugin.getPointCloudEndabled();
+    if (pointCloud) {
+        vtkSmartPointer<vtkPolyData> pointsPolyData = vtkSmartPointer<vtkPolyData>::New();
+        pointsPolyData->SetPoints(_pointData);
+        pointsPolyData->GetPointData()->SetScalars(_values);
+        
+        
+        //polyData->SetVerts(_vertices);
 
-    vtkSmartPointer<vtkPolyData> pointsPolyData = vtkSmartPointer<vtkPolyData>::New();
-    pointsPolyData->SetPoints(_pointData);
-    //polyData->SetVerts(_vertices);
+        vtkSmartPointer<vtkVertexGlyphFilter> vertexFilt = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+        vertexFilt->SetInputData(pointsPolyData);
+        vertexFilt->Update();
+        vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+        polyData->ShallowCopy(vertexFilt->GetOutput());
 
-    vtkSmartPointer<vtkVertexGlyphFilter> vertexFilt = vtkSmartPointer<vtkVertexGlyphFilter>::New();
-    vertexFilt->SetInputData(pointsPolyData);
-    vertexFilt->Update();
-    vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
-    polyData->ShallowCopy(vertexFilt->GetOutput());
-
-    vtkNew<vtkPolyDataMapper> inputMapper;
-    inputMapper->SetInputData(polyData);
-
-    vtkNew<vtkNamedColors> colors;
-    
-
+        
+        vtkNew<vtkLookupTable> lut;
+        lut->SetValueRange(0, 1);
+        lut->SetNumberOfColors(2);
+        lut->Build();
+        lut->SetTableValue(0, 0, 0, 0, 0);
+        lut->Build();
+        lut->SetTableValue(1, 0, 1, 0, 1);
 
 
-    vtkNew<vtkActor> inputActor;
-    inputActor->SetMapper(inputMapper);
+        vtkNew<vtkPolyDataMapper> inputMapper;
+        inputMapper->SetInputData(polyData);
+        inputMapper->SetLookupTable(lut);
+        
+        //inputMapper->SetScalarModeToUseCellData();
+        //inputMapper->SetColorModeToMapScalars();
+        //inputMapper->SetScalarRange(0, 1);
+        //inputMapper->SetLookupTable(lut);
+        inputMapper->Update();
+        
 
-    inputActor->GetProperty()->SetColor(colors->GetColor3d("Lime").GetData());
-    inputActor->GetProperty()->SetPointSize(3);
+        vtkNew<vtkNamedColors> colors;
 
-	// Add the current volume to the renderer.
-	mRenderer->AddViewProp(inputActor);
+
+        
+
+        vtkNew<vtkActor> inputActor;
+        inputActor->SetMapper(inputMapper);
+        
+        //inputActor->GetProperty()->SetColor(colors->GetColor3d("Lime").GetData());
+        inputActor->GetProperty()->SetPointSize(3);
+        
+
+        // Add the current volume to the renderer.
+        mRenderer->AddViewProp(inputActor);
+    }
+    else {
+        mRenderer->AddViewProp(volActor);
+    }
 	// Center camera.
 	mRenderer->ResetCamera();
 	// Render.
@@ -419,6 +460,71 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 }
 
 void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim) {
+    bool pointCloud = _VolumeViewerPlugin.getPointCloudEndabled();
+    if (pointCloud) {
+        // Get x, yand z size from the points dataset.
+         QVariant xQSize = points.getProperty("xDim");
+        int xSize = xQSize.toInt();
+        QVariant yQSize = points.getProperty("yDim");
+        int ySize = yQSize.toInt();
+        QVariant zQSize = points.getProperty("zDim");
+        int zSize = zQSize.toInt();
+        int dim;
+
+        // Create bool variable to indicate if data has been selected.
+        std::vector<bool> selected;
+        points.selectedLocalIndices(selectionIndices, selected);
+        // Count the number of selected datapoints.
+        int count = std::count(selected.begin(), selected.end(), true);
+
+        //Array to store selected image data.
+        vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
+        
+
+        // Set the number of values in the dataArray equal to the number of points in the pointsdataset.
+        dataArray->SetNumberOfValues(numPoints);
+        
+
+        // Counter for the amount of values that have been read.
+        int j = 0;
+        // Counter for the number of selected datapoints to avoid overflowing selectionIndices vector.
+        int numSelectedLoaded = 0;
+
+        
+
+        // Loop over the number of values in the pointsdata and write values into the dataArray if the current dimension  equals the chosen dimension and the selected indices.
+        for (int i = 0; i < numPoints * numDimensions; i++) {
+            // The remainder of the current value divided by the number of dimensions is the current dimension.
+            dim = i % numDimensions;
+
+            if (chosenDim == dim) {
+                // Ensure that numSelectedLoaded does not overflow the slectionIndeces vector to avoid a crash.
+                if (numSelectedLoaded != selectionIndices.size()) {
+                    // If the index is equal to the current point in the array.
+                    if (selected[i / numDimensions]) {
+
+                        // Write value into the dataArray.
+                        dataArray->SetValue(j, points.getValueAt(i));
+                       
+                        numSelectedLoaded++;
+                    }
+                    else {
+                        // All other indices are non-Object.
+                        dataArray->SetValue(j, 0);
+                        
+                    }
+                }
+                else {
+                    // All other indices are non-Object.
+                    dataArray->SetValue(j, 0);
+                    
+                }
+                j++;
+            }
+        }
+        _values = dataArray;
+    }
+    else {
         // Get x, y and z size from the points dataset.
         QVariant xQSize = points.getProperty("xDim");
         int xSize = xQSize.toInt();
@@ -427,7 +533,7 @@ void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std
         QVariant zQSize = points.getProperty("zDim");
         int zSize = zQSize.toInt();
         int dim;
-        
+
         // Create bool variable to indicate if data has been selected.
         std::vector<bool> selected;
         points.selectedLocalIndices(selectionIndices, selected);
@@ -474,7 +580,7 @@ void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std
                 if (numSelectedLoaded != selectionIndices.size()) {
                     // If the index is equal to the current point in the array.
                     if (selected[i / numDimensions]) {
-                        
+
                         // Write value into the dataArray.
                         dataArray->SetValue(j, points.getValueAt(i));
                         labelArray->SetValue(j, 1);
@@ -496,7 +602,7 @@ void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std
         }
 
         // Add scalarData to the imageData object.
-       
+
         _labelMap->GetPointData()->SetScalars(labelArray);
 
         if (selectionIndices.size() == 0) {
@@ -506,6 +612,8 @@ void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std
             _dataSelected = true;
         }
         // Return the selection imagedata object.   
+    }
+        
 }
 
 

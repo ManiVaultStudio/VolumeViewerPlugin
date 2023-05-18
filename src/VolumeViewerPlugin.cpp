@@ -32,6 +32,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     // initiate a planeCollection for the SlicingAction
     _planeCollection(vtkSmartPointer<vtkPlaneCollection>::New()),
     _points(),
+    _pointsParent(),
     _rendererSettingsAction(this,_viewerWidget),
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
@@ -45,6 +46,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _shadingEnabled(false),
     // Boolian to indicate if non-selected data should be shown
     _backgroundEnabled(true),
+    _pointCloudEnabled(true),
     // float to indicate alpha value of background when data is selected
     _backgroundAlpha(0.02),
     // Boolian to indicate wheter selected data should be opaque or use the transfer function
@@ -118,6 +120,10 @@ void VolumeViewerPlugin::init()
                 if (!_points.isValid()) {
                     dropRegions << new DropWidget::DropRegion(this, "Position", description, "cube", true, [this, candidateDataset]() {
                         _points = candidateDataset;
+                        if (_points->getDataHierarchyItem().hasParent()) {
+                            _pointsParent = _points->getParent();
+                        }
+                        
                     });
                 }
                 else {
@@ -127,6 +133,9 @@ void VolumeViewerPlugin::init()
                     else {
                         dropRegions << new DropWidget::DropRegion(this, "Voxels", description, "cube", true, [this, candidateDataset]() {
                             _points = candidateDataset;
+                            if (_points->getDataHierarchyItem().hasParent()) {
+                                _pointsParent = _points->getParent();
+                            }
                         });
                     }
                 }
@@ -186,6 +195,7 @@ void VolumeViewerPlugin::init()
 
         }
     });
+   
 
     // Shading enabled/disabled.
     connect(&this->getRendererSettingsAction().getColoringAction().getShadingAction(), &ToggleAction::toggled, this, [this](bool toggled) {
@@ -562,6 +572,23 @@ void VolumeViewerPlugin::init()
             runRenderData();
         }
     });
+    
+    // full render or point cloud
+    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getPointCloudAction(), &OptionAction::currentTextChanged, this, [this](const QString& option) {
+        // Selector option handeling
+        if (option == "Point Cloud") {
+            _pointCloudEnabled = true;
+            
+        }
+        else {
+            _pointCloudEnabled = false;
+            
+        }
+
+        //if (_dataSelected) {
+        //    runRenderData();
+        //}
+    });
     // Background alpha slider
     connect(&this->getRendererSettingsAction().getSelectedPointsAction().getBackgroundAlphaAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
         if (_backgroundEnabled) {
@@ -608,6 +635,7 @@ void VolumeViewerPlugin::init()
     // Selection changed connection.
     connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this]{
         // if data is loaded
+       
         if (_dataLoaded) {
 
             // Get the selection set that changed
@@ -636,7 +664,41 @@ void VolumeViewerPlugin::init()
                 
                 
         }
+    });// Selection changed connection.
+    connect(&_pointsParent, &Dataset<Points>::dataSelectionChanged, this, [this]{
+        // if data is loaded
+       
+        if (_dataLoaded) {
+
+            // Get the selection set that changed
+            const auto& selectionSet = _pointsParent->getSelection<Points>();
+
+            // Get ChosenDimension
+            int chosenDimension = _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
+
+            const auto backGroundValue = _imageData->GetScalarRange()[0];
+
+            // create a selectiondata imagedata object with 0 values for all non selected items
+            _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
+            
+
+            // if the selection is not empty add the selection to the vector 
+            if (selectionSet->indices.size() != 0) {
+                
+                _dataSelected = true;
+            }
+            else {
+                _dataSelected = false;
+            }
+
+            // Render the data with the current slicing planes and selections
+            _viewerWidget->renderData(_planeCollection,  _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+                
+                
+        }
     });
+
+    
 }
 
 void VolumeViewerPlugin::reInitializeLayout(QHBoxLayout layout) {

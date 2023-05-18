@@ -71,7 +71,7 @@ private:
     vtkSmartPointer<vtkImageData> _labelMap;                          /** imagedata indicating the label wether data is part of selection or not*/
     vtkSmartPointer<vtkImageData> _imData;
     vtkSmartPointer<vtkPoints> _pointData;
-    vtkSmartPointer<vtkCellArray> _vertices;
+    vtkSmartPointer<vtkFloatArray> _values;
     bool _dataSelected;                                              /** Boolian to indicate wether or not data is selected*/
     int _xSize;
     int _ySize;

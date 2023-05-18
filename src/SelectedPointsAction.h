@@ -34,6 +34,7 @@ public:
 public: /** Action getters */
 
     OptionAction& getBackgroundShowAction() { return  _backgroundShowAction; }
+    OptionAction& getPointCloudAction() { return  _pointCloudShowAction; }
     //ColorMapAction& getColorMapAction() { return  _colorMapAction; }
     //ToggleAction& getShadingAction() { return  _shadingEnableAction; }
     //
@@ -52,6 +53,7 @@ public: /** Action getters */
 protected:
     RendererSettingsAction&     _rendererSettingsAction;        /** Reference to renderer settings action */
     OptionAction                _backgroundShowAction;      /** Option menu for selecting interpolation mode*/
+    OptionAction                _pointCloudShowAction;      /** Option menu for selecting interpolation mode*/
     //ColorMapAction              _colorMapAction;                 /** Color map Action */
     //ToggleAction                _shadingEnableAction;      /** Option menu for selecting interpolation mode*/
     //
