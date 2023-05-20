@@ -14,14 +14,21 @@
 
 /** HDPS headers*/
 #include "PointData/PointData.h"
-#include "ClusterData/ClusterData.h"
+#include <ClusterData/Cluster.h>
+#include <ClusterData/ClusterData.h>
+
+
 #include "ColorData/ColorData.h"
+
 /** VTK headers*/
 #include <vtkPlaneCollection.h>
 #include <vtkPlane.h>
 
+
+
 using namespace hdps;
 using namespace hdps::gui;
+using namespace hdps::util;
 
 VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
@@ -33,11 +40,12 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _planeCollection(vtkSmartPointer<vtkPlaneCollection>::New()),
     _points(),
     _pointsParent(),
-    _rendererSettingsAction(this,_viewerWidget),
+    _pointsColorCluster(),
+    _rendererSettingsAction(this, _viewerWidget),
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
-    _planeArray(std::vector<int>(3,0)), 
-    _position(std::vector<double>(3,0)),
+    _planeArray(std::vector<int>(3, 0)),
+    _position(std::vector<double>(3, 0)),
     // boolian to indicate if data is loaded for selection visualization purposes
     _dataLoaded(false),
     // boolian to indicate if data has been selected in a scatterplot
@@ -52,7 +60,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     // Boolian to indicate wheter selected data should be opaque or use the transfer function
     _selectionOpaque(true),
     // Shading parameter vector.
-    _shadingParameters(std::vector<double>{0.9,0.2,0.1}),
+    _shadingParameters(std::vector<double>{0.9, 0.2, 0.1}),
     // string variable to keep track of the interpolation option with default being Nearest Neighbour
     _interpolationOption("NN")
 {}
@@ -61,10 +69,10 @@ void VolumeViewerPlugin::init()
 {
     // Add the viewerwidget and dropwidget to the layout.
     _viewerWidget = new ViewerWidget(*this);
-   // Add the dropwidget to the layout.
+    // Add the dropwidget to the layout.
     _dropWidget = new DropWidget(_viewerWidget);
-    
-    
+
+
     // Create the layout.
     auto layout = new QHBoxLayout();
     layout->setContentsMargins(0, 0, 0, 0);
@@ -85,7 +93,7 @@ void VolumeViewerPlugin::init()
 
     getWidget().setAutoFillBackground(true);
     getWidget().setLayout(layout);
-    
+
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
     _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
 
@@ -123,7 +131,7 @@ void VolumeViewerPlugin::init()
                         if (_points->getDataHierarchyItem().hasParent()) {
                             _pointsParent = _points->getParent();
                         }
-                        
+
                     });
                 }
                 else {
@@ -137,8 +145,58 @@ void VolumeViewerPlugin::init()
                                 _pointsParent = _points->getParent();
                             }
                         });
+                        //if (candidateDataset->getNumPoints() == _points->getNumPoints()) {
+
+                        //    // The number of points is equal, so offer the option to use the points dataset as source for points colors
+                        //    dropRegions << new DropWidget::DropRegion(this, "Point color", QString("Colorize %1 points with %2"), "palette", true, [this, candidateDataset]() {
+                        //        //_settingsAction.getColoringAction().addColorDataset(candidateDataset);
+                        //        //_settingsAction.getColoringAction().setCurrentColorDataset(candidateDataset);
+                        //        _pointsColorCluster = candidateDataset;
+                        //    });
+
                     }
                 }
+            }
+        }
+        // Cluster dataset is about to be dropped
+        if (dataType == ClusterType) {
+
+
+            // Get clusters dataset from the core
+            auto candidateDataset = _core->requestDataset<Clusters>(datasetGuid);
+            
+
+            // Establish drop region description
+            const auto description = QString("Color points by %1").arg(candidateDataset->getGuiName());
+
+            // Only allow user to color by clusters when there is a positions dataset loaded
+            if (_points.isValid()) {
+
+                if (true) {
+
+                    // The clusters dataset is already loaded
+                    dropRegions << new DropWidget::DropRegion(this, "Color", description, "palette", true, [this, candidateDataset]() {
+                        //auto test = candidateDataset->getClusters();
+                        
+                        
+                        //auto t = test[0];
+                        //std::cout << t.toString().toStdString() << std::endl;
+                        _pointsColorCluster = candidateDataset;
+                    });
+                }
+                else {
+
+                    // Use the clusters set for points color
+                    dropRegions << new DropWidget::DropRegion(this, "Color", description, "palette", true, [this, candidateDataset]() {
+                        //_settingsAction.getColoringAction().addColorDataset(candidateDataset);
+                        //_settingsAction.getColoringAction().setCurrentColorDataset(candidateDataset);
+                    });
+                }
+            }
+            else {
+
+                // Only allow user to color by clusters when there is a positions dataset loaded
+                dropRegions << new DropWidget::DropRegion(this, "No points data loaded", "Clusters can only be visualized in concert with points data", "exclamation-circle", false);
             }
         }
         return dropRegions;
@@ -168,12 +226,24 @@ void VolumeViewerPlugin::init()
         _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
 
         // set the maximum x, y and z values for the slicing options
-        _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]); 
+        _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]);
         _rendererSettingsAction.getSlicingAction().getYAxisPositionAction().setMaximum(_imageData->GetDimensions()[1]);
         _rendererSettingsAction.getSlicingAction().getZAxisPositionAction().setMaximum(_imageData->GetDimensions()[2]);
-        
+
         // notify that data is indeed loaded into the widget
         _dataLoaded = true;
+    });
+
+    // Respond when the name of the dataset in the dataset reference changes
+    connect(&_pointsColorCluster, &Dataset<DatasetImpl>::changed, this, [this, layout]() {
+        //_pointsColorCluster->getClusters();
+        std::cout << _pointsColorCluster->getRawDataSize() << std::endl;
+        std::cout << _pointsColorCluster->getRawDataSize() << std::endl;
+        _viewerWidget->setClusterColor(*_pointsColorCluster);
+
+        //Initial render.
+        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+
     });
 
     // Dropdown menu for chosen dimension.
@@ -195,7 +265,7 @@ void VolumeViewerPlugin::init()
 
         }
     });
-   
+
 
     // Shading enabled/disabled.
     connect(&this->getRendererSettingsAction().getColoringAction().getShadingAction(), &ToggleAction::toggled, this, [this](bool toggled) {
@@ -208,7 +278,7 @@ void VolumeViewerPlugin::init()
         if (_dataLoaded) {
             runRenderData();
         }
-        
+
     });
     // Shading parameter change.
     // Ambient parameter.
@@ -302,7 +372,7 @@ void VolumeViewerPlugin::init()
                 runRenderData();
             }
         }
-	});
+    });
     // ySlicing tickbox
     connect(&this->getRendererSettingsAction().getSlicingAction().getYAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
         if (toggled) {
@@ -364,7 +434,7 @@ void VolumeViewerPlugin::init()
                 runRenderData();
             }
         }
-   });
+    });
     // zSlicing tickbox
     connect(&this->getRendererSettingsAction().getSlicingAction().getZAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
         if (toggled) {
@@ -425,7 +495,7 @@ void VolumeViewerPlugin::init()
                 runRenderData();
             }
         }
-   });
+    });
 
     // When the value of the x,y and z slicing sliders are changed change the slicing index if the tickbox is ticked
 
@@ -492,7 +562,7 @@ void VolumeViewerPlugin::init()
                 runRenderData();
             }
         }
-     });
+    });
     // xSlicing slider
     connect(&this->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
         //Check if data is loaded to prevent errors.
@@ -536,12 +606,12 @@ void VolumeViewerPlugin::init()
             _interpolationOption = "NN";
         }
         else if (type == "Linear") {
-            
-            qDebug() <<  "Changed interpolation type to: LINEAR";
+
+            qDebug() << "Changed interpolation type to: LINEAR";
             _interpolationOption = "LIN";
         }
         else if (type == "Cubic") {
-            qDebug() <<  "Changed interpolation type to: CUBIC";
+            qDebug() << "Changed interpolation type to: CUBIC";
             _interpolationOption = "CUBE";
         }
         else {
@@ -549,7 +619,7 @@ void VolumeViewerPlugin::init()
             _interpolationOption = "NN";
         }
         if (_dataLoaded) {
-           
+
             runRenderData();
         }
     });
@@ -572,17 +642,17 @@ void VolumeViewerPlugin::init()
             runRenderData();
         }
     });
-    
+
     // full render or point cloud
     connect(&this->getRendererSettingsAction().getSelectedPointsAction().getPointCloudAction(), &OptionAction::currentTextChanged, this, [this](const QString& option) {
         // Selector option handeling
         if (option == "Point Cloud") {
             _pointCloudEnabled = true;
-            
+
         }
         else {
             _pointCloudEnabled = false;
-            
+
         }
 
         //if (_dataSelected) {
@@ -609,12 +679,12 @@ void VolumeViewerPlugin::init()
         if (_dataSelected) {
             runRenderData();
         }
-    });   
-    
+    });
+
     connect(&this->getRendererSettingsAction().getSelectedPointsAction().getSelectPointAction(), &TriggerAction::triggered, this, [this]() {
         float lowerThreshold = this->getRendererSettingsAction().getSelectedPointsAction().getThresholdAction().getLowerThresholdAction().getValue();
         float upperThreshold = this->getRendererSettingsAction().getSelectedPointsAction().getThresholdAction().getUpperThresholdAction().getValue();
-        
+
         //_points->setSelectionIndices();
         int chosenDimension = _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
         _viewerWidget->connectedSelection(*_points, chosenDimension, _viewerWidget->getSelectedCellCoordinate(), upperThreshold, lowerThreshold);
@@ -633,9 +703,9 @@ void VolumeViewerPlugin::init()
     });
 
     // Selection changed connection.
-    connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this]{
+    connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this] {
         // if data is loaded
-       
+
         if (_dataLoaded) {
 
             // Get the selection set that changed
@@ -648,11 +718,11 @@ void VolumeViewerPlugin::init()
 
             // create a selectiondata imagedata object with 0 values for all non selected items
             _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-            
+
 
             // if the selection is not empty add the selection to the vector 
             if (selectionSet->indices.size() != 0) {
-                
+
                 _dataSelected = true;
             }
             else {
@@ -660,14 +730,14 @@ void VolumeViewerPlugin::init()
             }
 
             // Render the data with the current slicing planes and selections
-            _viewerWidget->renderData(_planeCollection,  _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-                
-                
+            _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+
+
         }
     });// Selection changed connection.
-    connect(&_pointsParent, &Dataset<Points>::dataSelectionChanged, this, [this]{
+    connect(&_pointsParent, &Dataset<Points>::dataSelectionChanged, this, [this] {
         // if data is loaded
-       
+
         if (_dataLoaded) {
 
             // Get the selection set that changed
@@ -680,11 +750,11 @@ void VolumeViewerPlugin::init()
 
             // create a selectiondata imagedata object with 0 values for all non selected items
             _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-            
+
 
             // if the selection is not empty add the selection to the vector 
             if (selectionSet->indices.size() != 0) {
-                
+
                 _dataSelected = true;
             }
             else {
@@ -692,13 +762,13 @@ void VolumeViewerPlugin::init()
             }
 
             // Render the data with the current slicing planes and selections
-            _viewerWidget->renderData(_planeCollection,  _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
-                
-                
+            _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+
+
         }
     });
 
-    
+
 }
 
 void VolumeViewerPlugin::reInitializeLayout(QHBoxLayout layout) {
@@ -765,5 +835,5 @@ void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {
     _position[0] = x;
     _position[1] = y;
     _position[2] = z;
-   
+
 }

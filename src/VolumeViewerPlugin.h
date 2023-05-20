@@ -13,12 +13,17 @@
 #include <RendererSettingsAction.h>
 //#include <Transfer/TransferFunctionControlAction.h>
 #include <PointData/PointData.h>
+#include <ClusterData/ClusterData.h>
+//#include <ClusterData/Cluster.h>
 /** VTK headers*/
 #include <vtkPlane.h>
 #include <vtkPlaneCollection.h>
 
+#include <common.h>
+
 using hdps::plugin::ViewPluginFactory;
 using hdps::plugin::ViewPlugin;
+using namespace hdps::plugin;
 using namespace hdps::util;
 using namespace hdps;
 
@@ -89,10 +94,14 @@ public: // Miscellaneous
         return _imageData;
     }
 
+    //Dataset<Cluster> getColorCluster() {
+    //    return _pointsColorCluster;
+    //}
+
     bool& getBackgroundEndabled() {
         return _backgroundEnabled;
     }
-    
+
     bool& getPointCloudEndabled() {
         return _pointCloudEnabled;
     }
@@ -115,13 +124,14 @@ signals:
 
 private:
     RendererSettingsAction              _rendererSettingsAction;    /** The options menu on the side of the viewer*/
-    ViewerWidget*                       _viewerWidget;              /** The image viewer widget */
+    ViewerWidget* _viewerWidget;              /** The image viewer widget */
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
     Dataset<Points>                     _points;                    /** Declare a points dataset reference */
     Dataset<Points>                     _pointsParent;                    /** Declare a points dataset reference */
+    Dataset<Clusters>                     _pointsColorCluster;                    /** Declare a points dataset reference */
     QStringList                         _pointsDatasets;            /** Point datasets loaded in HDPS */
-    hdps::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
+    hdps::gui::DropWidget* _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */
     std::vector<int>                    _planeArray;                /** Array indicating the index+1 of the x,y and z clipping planes in the plane collection*/
     std::vector<double>                  _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/
