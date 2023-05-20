@@ -75,6 +75,7 @@ private:
     vtkSmartPointer<vtkImageData> _imData;
     vtkSmartPointer<vtkPoints> _pointData;
     vtkSmartPointer<vtkFloatArray> _values;
+    vtkSmartPointer<vtkFloatArray> _valuesSelected;
     Dataset<Clusters> _clusterData;
     bool _clusterLoaded;
 

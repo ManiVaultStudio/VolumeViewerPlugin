@@ -130,7 +130,8 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
     _pointData(vtkSmartPointer<vtkPoints>::New()),
     _values(vtkSmartPointer<vtkFloatArray>::New()),
     _clusterData(),
-    _clusterLoaded(false)
+    _clusterLoaded(false),
+    _valuesSelected()
 
 {
     setAcceptDrops(true);
@@ -444,7 +445,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             if (_dataSelected) {
                 for (int i = 0; i < _values->GetNumberOfValues(); i++)
                 {
-                    if (_values->GetValue(i) == 0) {
+                    if (_valuesSelected->GetValue(i) == 0) {
                         dataArray->SetValue(i, 0);
                     }
                     
@@ -472,12 +473,17 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             lut->SetValueRange(0, 1);
             lut->SetNumberOfColors(2);
             lut->Build();
-            lut->SetTableValue(0, 0, 0, 0, 0);
+            lut->SetTableValue(0, 1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
             lut->Build();
             lut->SetTableValue(1, 0, 1, 0, 1);
             
             pointsPolyData->SetPoints(_pointData);
-            pointsPolyData->GetPointData()->SetScalars(_values);
+            if (_dataSelected) {
+                pointsPolyData->GetPointData()->SetScalars(_valuesSelected);
+            }else{
+                pointsPolyData->GetPointData()->SetScalars(_values);
+            }
+            
 
             //polyData->SetVerts(_vertices);
 
@@ -572,7 +578,7 @@ void ViewerWidget::setSelectedData(Points& points, std::vector<unsigned int, std
                 j++;
             }
         }
-        _values = dataArray;
+        _valuesSelected = dataArray;
     }
     else {
         // Get x, y and z size from the points dataset.
