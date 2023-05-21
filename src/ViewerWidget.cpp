@@ -425,13 +425,14 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             lut->SetNumberOfTableValues(numberOfClusters+1);
             
             
-            int pointIterator = 0;
+            
             lut->SetTableValue(0, 1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
             for (const auto& cluster : _clusterData->getClusters()) {
                 auto indices = cluster.getIndices();
-                for (int i = 0; i < indices.size(); i++) {
-                    dataArray->SetValue(pointIterator, k);
-                    pointIterator++;
+                for (auto index : indices) {
+                    
+                    dataArray->SetValue(index, k);
+                    
                 }
                 
                 auto currentColor = cluster.getColor();
