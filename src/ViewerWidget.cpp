@@ -465,7 +465,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             inputMapper->SetInputData(polyData);
             inputMapper->SetLookupTable(lut);
             inputMapper->SetColorModeToMapScalars();
-            inputMapper->SetScalarRange(0, 9);
+            inputMapper->SetScalarRange(0, numberOfClusters);
             
             inputMapper->Update();
         }

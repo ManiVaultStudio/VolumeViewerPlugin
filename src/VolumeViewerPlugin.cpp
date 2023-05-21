@@ -235,16 +235,24 @@ void VolumeViewerPlugin::init()
     });
 
     // Respond when the name of the dataset in the dataset reference changes
-    connect(&_pointsColorCluster, &Dataset<DatasetImpl>::changed, this, [this, layout]() {
-        //_pointsColorCluster->getClusters();
-        std::cout << _pointsColorCluster->getRawDataSize() << std::endl;
-        std::cout << _pointsColorCluster->getRawDataSize() << std::endl;
+    connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this, layout]() {
+        
         _viewerWidget->setClusterColor(*_pointsColorCluster);
 
         //Initial render.
         _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
 
     });
+    // Respond when the name of the dataset in the dataset reference changes// Respond when the name of the dataset in the dataset reference changes
+    connect(&_pointsColorCluster, &Dataset<Clusters>::dataChanged, this, [this, layout]() {
+        
+        _viewerWidget->setClusterColor(*_pointsColorCluster);
+
+        //Initial render.
+        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+
+    });// Respond when the name of the dataset in the dataset reference changes
+    
 
     // Dropdown menu for chosen dimension.
     connect(&this->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction(), &DimensionPickerAction::currentDimensionIndexChanged, this, [this](const int& value) {
