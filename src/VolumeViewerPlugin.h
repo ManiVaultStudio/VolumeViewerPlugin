@@ -130,6 +130,7 @@ private:
     Dataset<Points>                     _points;                    /** Declare a points dataset reference */
     Dataset<Points>                     _pointsParent;                    /** Declare a points dataset reference */
     Dataset<Clusters>                     _pointsColorCluster;                    /** Declare a points dataset reference */
+    Dataset<Points>                     _pointsColorPoints;                    /** Declare a points dataset reference */
     QStringList                         _pointsDatasets;            /** Point datasets loaded in HDPS */
     hdps::gui::DropWidget* _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */

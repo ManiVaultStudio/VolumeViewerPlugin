@@ -131,6 +131,8 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
     _values(vtkSmartPointer<vtkFloatArray>::New()),
     _clusterData(),
     _clusterLoaded(false),
+    _pointsColorData(),
+    _pointsLoaded(false),
     _valuesSelected()
 
 {
@@ -208,21 +210,9 @@ vtkSmartPointer<vtkImageData> ViewerWidget::setData(Points& data, int chosenDim,
 
                 _values->SetValue(pointCounter, 1);
 
-
-
-
                 pointCounter++;
-
-
             }
-
-
         }
-
-
-
-
-
         _pointData = vtkPointObject;
 
 
@@ -414,8 +404,6 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
             dataArray->SetNumberOfValues(_values->GetNumberOfValues());
             
-            
-
             int k = 1;
             int numberOfClusters = _clusterData->getClusters().size();
             
@@ -467,6 +455,111 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             inputMapper->SetColorModeToMapScalars();
             inputMapper->SetScalarRange(0, numberOfClusters);
             
+            inputMapper->Update();
+        }
+        else if (_pointsLoaded) {
+
+            vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
+            dataArray->SetNumberOfValues(_pointsColorData->getNumPoints());
+            
+            float dataMin = _pointsColorData->getValueAt(0);
+            float dataMax = _pointsColorData->getValueAt(0);
+
+            for (int i = 0; i < _pointsColorData->getNumPoints(); i++)
+            {
+                
+                for (int dim = 0; dim < _pointsColorData->getNumDimensions(); dim++)
+                {
+                    if (dim == 0)
+                    {
+                        
+                        if (_pointsColorData->getValueAt(i * _pointsColorData->getNumDimensions()) < dataMin)
+                        {
+                            dataMin = _pointsColorData->getValueAt(i * _pointsColorData->getNumDimensions());
+                        }
+                        else if (_pointsColorData->getValueAt(i * _pointsColorData->getNumDimensions()) > dataMax) {
+                            dataMax = _pointsColorData->getValueAt(i * _pointsColorData->getNumDimensions());
+                        }
+                        dataArray->SetValue(i, _pointsColorData->getValueAt(i* _pointsColorData->getNumDimensions()));
+                    }
+                }
+            }
+            
+
+            // Create color transfer function.
+            vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
+            color->AddRGBPoint(background, 0, 0, 0, 1, 1);
+
+            // Get the colormap action.
+            auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
+
+            // Get the colormap image.
+            auto colorMapImage = colorMapAction.getColorMapImage();
+
+            // Get background enabled parameter.
+            bool backgroundEndabled = _VolumeViewerPlugin.getBackgroundEndabled();
+
+            // Loop to read in colors from the colormap qimage.
+            for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
+                const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
+                const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
+                color->AddRGBPoint(normalizedPixelX * (dataMax - dataMin) + dataMin, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
+            }
+            
+
+           /* int k = 1;
+            int numberOfClusters = _clusterData->getClusters().size();
+
+            lut->SetValueRange(0, numberOfClusters);
+            lut->SetRange(0, numberOfClusters);
+            lut->SetNumberOfColors(numberOfClusters + 1);
+            lut->SetNumberOfTableValues(numberOfClusters + 1);
+
+
+
+            lut->SetTableValue(0, 1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
+            for (const auto& cluster : _clusterData->getClusters()) {
+                auto indices = cluster.getIndices();
+                for (auto index : indices) {
+
+                    dataArray->SetValue(index, k);
+
+                }
+
+                auto currentColor = cluster.getColor();
+
+
+                lut->SetTableValue(k, currentColor.redF(), currentColor.greenF(), currentColor.blueF(), 1);
+
+                k++;
+            }*/
+
+
+            //lut->Build();
+            if (_dataSelected) {
+                for (int i = 0; i < _values->GetNumberOfValues(); i++)
+                {
+                    if (_valuesSelected->GetValue(i) == 0) {
+                        dataArray->SetValue(i, 0);
+                    }
+
+                }
+
+            }
+            pointsPolyData->SetPoints(_pointData);
+            pointsPolyData->GetPointData()->SetScalars(dataArray);
+
+            vtkSmartPointer<vtkVertexGlyphFilter> vertexFilt = vtkSmartPointer<vtkVertexGlyphFilter>::New();
+            vertexFilt->SetInputData(pointsPolyData);
+            vertexFilt->Update();
+            vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
+            polyData->ShallowCopy(vertexFilt->GetOutput());
+
+            inputMapper->SetInputData(polyData);
+            inputMapper->SetLookupTable(color);
+            inputMapper->SetColorModeToMapScalars();
+            //inputMapper->SetScalarRange(0, numberOfClusters);
+
             inputMapper->Update();
         }
         else {
@@ -729,4 +822,11 @@ void ViewerWidget::setClusterColor(const Dataset<Clusters>& clusterData) {
         cluster.getIndices();
         
     }
+}
+void ViewerWidget::setPointsColor(const Dataset<Points>& pointsData) {
+    //auto test = clusterData->getRawDataSize();
+    //std::cout << test << std::endl;
+    _pointsColorData = pointsData;
+    _pointsLoaded = true;
+    
 }

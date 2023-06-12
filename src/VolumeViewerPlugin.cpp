@@ -41,6 +41,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _points(),
     _pointsParent(),
     _pointsColorCluster(),
+    _pointsColorPoints(),
     _rendererSettingsAction(this, _viewerWidget),
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
@@ -133,6 +134,7 @@ void VolumeViewerPlugin::init()
                         }
 
                     });
+                    
                 }
                 else {
                     if (candidateDataset == _points) {
@@ -143,6 +145,12 @@ void VolumeViewerPlugin::init()
                             _points = candidateDataset;
                             if (_points->getDataHierarchyItem().hasParent()) {
                                 _pointsParent = _points->getParent();
+                            }
+                        });
+                        dropRegions << new DropWidget::DropRegion(this, "Colors", "Color points by scalars", "palette", true, [this, candidateDataset]() {
+                            //_points = candidateDataset;
+                            if (_points->getDataHierarchyItem().hasParent()) {
+                                _pointsColorPoints = candidateDataset;
                             }
                         });
                         //if (candidateDataset->getNumPoints() == _points->getNumPoints()) {
@@ -238,6 +246,16 @@ void VolumeViewerPlugin::init()
     connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this, layout]() {
         
         _viewerWidget->setClusterColor(*_pointsColorCluster);
+
+        //Initial render.
+        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+
+    });
+    
+    // Respond when the name of the dataset in the dataset reference changes
+    connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this, layout]() {
+        
+        _viewerWidget->setPointsColor(*_pointsColorPoints);
 
         //Initial render.
         _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
