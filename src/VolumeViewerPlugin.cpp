@@ -42,6 +42,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _pointsParent(),
     _pointsColorCluster(),
     _pointsColorPoints(),
+    _pointsOpacityPoints(),
     _rendererSettingsAction(this, _viewerWidget),
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
@@ -153,6 +154,13 @@ void VolumeViewerPlugin::init()
                                 _pointsColorPoints = candidateDataset;
                             }
                         });
+                        
+                        dropRegions << new DropWidget::DropRegion(this, "Point Opacity", "Opacity by scalars", "brush", true, [this, candidateDataset]() {
+                            //_points = candidateDataset;
+                            if (_points->getDataHierarchyItem().hasParent()) {
+                                _pointsOpacityPoints = candidateDataset;
+                            }
+                        });
                         //if (candidateDataset->getNumPoints() == _points->getNumPoints()) {
 
                         //    // The number of points is equal, so offer the option to use the points dataset as source for points colors
@@ -256,6 +264,15 @@ void VolumeViewerPlugin::init()
     connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this, layout]() {
         
         _viewerWidget->setPointsColor(*_pointsColorPoints);
+
+        //Initial render.
+        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+
+    });
+    // Respond when the name of the dataset in the dataset reference changes
+    connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this, layout]() {
+        
+        _viewerWidget->setPointsOpacity(*_pointsOpacityPoints);
 
         //Initial render.
         _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);

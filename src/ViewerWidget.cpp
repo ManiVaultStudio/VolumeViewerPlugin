@@ -53,6 +53,7 @@
 #include <vtkCellArray.h>
 #include <vtkVertexGlyphFilter.h>
 #include <vtkLookupTable.h>
+
 //#include <vtkIdTypeArray.h>
 //#include <vtkSelectionNode.h>
 //#include <vtkSelection.h>
@@ -133,9 +134,11 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
     _clusterLoaded(false),
     _pointsColorData(),
     _pointsLoaded(false),
+    _opacityLoaded(false),
     _valuesSelected()
 
 {
+    
     setAcceptDrops(true);
     // Initiate the QVTKOpenGLWidget.
     _openGLWidget = new QVTKOpenGLNativeWidget(this);
@@ -484,11 +487,16 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                     }
                 }
             }
+
+
+
             
 
             // Create color transfer function.
             vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
-            color->AddRGBPoint(background, 0, 0, 0, 1, 1);
+            color->AddRGBPoint(-1, 1, 1, 1, 1, 1);
+            
+            
 
             // Get the colormap action.
             auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
@@ -504,6 +512,37 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                 const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
                 const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
                 color->AddRGBPoint(normalizedPixelX * (dataMax - dataMin) + dataMin, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
+            }
+
+
+            lut->SetValueRange(dataMin, dataMax);
+            lut->SetRange(0, colorMapImage.width());
+            lut->SetNumberOfColors(colorMapImage.width());
+            lut->SetNumberOfTableValues(colorMapImage.width());
+            lut->SetNanColor(1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
+
+
+
+            //lut->SetTableValue(0, 1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
+            
+            if (_opacityLoaded) {
+                for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
+
+                    const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
+
+                    lut->SetTableValue(pixelX, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF(), pixelX);
+                }
+                lut->Build();
+            }
+            else {
+                // Loop to read in colors from the colormap qimage.
+                for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
+
+                    const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
+
+                    lut->SetTableValue(pixelX, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF(), 0.8);
+                }
+                lut->Build();
             }
             
 
@@ -540,7 +579,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                 for (int i = 0; i < _values->GetNumberOfValues(); i++)
                 {
                     if (_valuesSelected->GetValue(i) == 0) {
-                        dataArray->SetValue(i, 0);
+                        dataArray->SetValue(i, NAN);
                     }
 
                 }
@@ -549,6 +588,9 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             pointsPolyData->SetPoints(_pointData);
             pointsPolyData->GetPointData()->SetScalars(dataArray);
 
+
+            
+
             vtkSmartPointer<vtkVertexGlyphFilter> vertexFilt = vtkSmartPointer<vtkVertexGlyphFilter>::New();
             vertexFilt->SetInputData(pointsPolyData);
             vertexFilt->Update();
@@ -556,8 +598,10 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             polyData->ShallowCopy(vertexFilt->GetOutput());
 
             inputMapper->SetInputData(polyData);
-            inputMapper->SetLookupTable(color);
+            inputMapper->SetLookupTable(lut);
+            
             inputMapper->SetColorModeToMapScalars();
+            
             //inputMapper->SetScalarRange(0, numberOfClusters);
 
             inputMapper->Update();
@@ -828,5 +872,12 @@ void ViewerWidget::setPointsColor(const Dataset<Points>& pointsData) {
     //std::cout << test << std::endl;
     _pointsColorData = pointsData;
     _pointsLoaded = true;
+    
+}
+void ViewerWidget::setPointsOpacity(const Dataset<Points>& pointsData) {
+    //auto test = clusterData->getRawDataSize();
+    //std::cout << test << std::endl;
+    _pointsOpacityData = pointsData;
+    _opacityLoaded = true;
     
 }

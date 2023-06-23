@@ -46,6 +46,7 @@ public:
 
     void setClusterColor(const Dataset<Clusters>& clusterData);
     void setPointsColor(const Dataset<Points>& pointsData);
+    void setPointsOpacity(const Dataset<Points>& pointsData);
 
     /** This function returns a vtkImageData object containing the selected data points.
     *   Next to the points data, an array containing the selected indices is also needed.
@@ -81,7 +82,9 @@ private:
     bool _clusterLoaded;
     Dataset<Points> _pointsColorData;
     bool _pointsLoaded;
-
+    Dataset<Points> _pointsOpacityData;
+    bool _opacityLoaded;
+   
     bool _dataSelected;                                              /** Boolian to indicate wether or not data is selected*/
     int _xSize;
     int _ySize;
