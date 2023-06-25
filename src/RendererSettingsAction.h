@@ -7,6 +7,7 @@
 #include "DimensionAction.h"
 #include "SelectedPointsAction.h"
 
+
 using namespace hdps::gui;
 
 /**
@@ -36,11 +37,13 @@ public: /** Action getters */
     ColoringAction& getColoringAction() { return _coloringAction; }
 
     SelectedPointsAction& getSelectedPointsAction() { return _selectedPointsAction; }
+    
 
 protected:
     DimensionAction _dimensionAction;
     SlicingAction   _slicingAction;     /** Slicing action */
     ColoringAction  _coloringAction;    /** Coloring action */
     SelectedPointsAction _selectedPointsAction; /** Action dealing with data selection*/
+    
     
 };

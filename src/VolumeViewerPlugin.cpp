@@ -64,7 +64,9 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     // Shading parameter vector.
     _shadingParameters(std::vector<double>{0.9, 0.2, 0.1}),
     // string variable to keep track of the interpolation option with default being Nearest Neighbour
-    _interpolationOption("NN")
+    _interpolationOption("NN"),
+    _pointColorLoaded(false),
+    _clusterLoaded(false)
 {}
 
 void VolumeViewerPlugin::init()
@@ -192,11 +194,7 @@ void VolumeViewerPlugin::init()
 
                     // The clusters dataset is already loaded
                     dropRegions << new DropWidget::DropRegion(this, "Color", description, "palette", true, [this, candidateDataset]() {
-                        //auto test = candidateDataset->getClusters();
                         
-                        
-                        //auto t = test[0];
-                        //std::cout << t.toString().toStdString() << std::endl;
                         _pointsColorCluster = candidateDataset;
                     });
                 }
@@ -239,7 +237,7 @@ void VolumeViewerPlugin::init()
         }
 
         //Initial render.
-        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        runRenderData();
 
         // set the maximum x, y and z values for the slicing options
         _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]);
@@ -253,38 +251,38 @@ void VolumeViewerPlugin::init()
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this, layout]() {
         
-        _viewerWidget->setClusterColor(*_pointsColorCluster);
-
+        _viewerWidget->setClusterColor(*_pointsColorCluster, true);
+        _clusterLoaded = true;
         //Initial render.
-        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        runRenderData();
 
     });
     
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this, layout]() {
         
-        _viewerWidget->setPointsColor(*_pointsColorPoints);
-
+        _viewerWidget->setPointsColor(*_pointsColorPoints, true);
+        _pointColorLoaded = true;
         //Initial render.
-        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        runRenderData();
 
     });
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this, layout]() {
         
-        _viewerWidget->setPointsOpacity(*_pointsOpacityPoints);
+        _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, true);
 
         //Initial render.
-        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        runRenderData();
 
     });
     // Respond when the name of the dataset in the dataset reference changes// Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorCluster, &Dataset<Clusters>::dataChanged, this, [this, layout]() {
         
-        _viewerWidget->setClusterColor(*_pointsColorCluster);
+        _viewerWidget->setClusterColor(*_pointsColorCluster, true);
 
         //Initial render.
-        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        runRenderData();
 
     });// Respond when the name of the dataset in the dataset reference changes
     
@@ -734,8 +732,34 @@ void VolumeViewerPlugin::init()
         const auto& selectionSet = _points->getSelection<Points>();
         //auto test = selectionSet->indices;
         _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-        _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+        runRenderData();
         events().notifyDatasetSelectionChanged(_points);
+    });
+
+    connect(&this->getRendererSettingsAction().getColoringAction().getUnloadColorMap(), &TriggerAction::triggered, this, [this]() {
+
+        if (_clusterLoaded) {
+            _viewerWidget->setClusterColor(*_pointsColorCluster, false);
+            
+            _pointsColorCluster = NULL;
+        }
+        else if (_pointColorLoaded) {
+            _viewerWidget->setPointsColor(*_pointsColorPoints, false);
+            
+            _pointsColorPoints = NULL;
+        }
+       
+        
+
+        //Initial render.
+        runRenderData();
+    });
+    connect(&this->getRendererSettingsAction().getColoringAction().getUnloadOpacityData(), &TriggerAction::triggered, this, [this]() {
+        _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, false);
+        _pointsOpacityPoints = NULL;
+
+        //Initial render.
+        runRenderData();
     });
 
     // Colormap selector
@@ -773,7 +797,7 @@ void VolumeViewerPlugin::init()
             }
 
             // Render the data with the current slicing planes and selections
-            _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            runRenderData();
 
 
         }
@@ -805,7 +829,7 @@ void VolumeViewerPlugin::init()
             }
 
             // Render the data with the current slicing planes and selections
-            _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+            runRenderData();
 
 
         }

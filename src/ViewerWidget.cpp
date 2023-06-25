@@ -298,9 +298,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
     }
 
 
-
-
-    // Creates a volumeMapper with its input being the current imageData object in the vector.
+// Creates a volumeMapper with its input being the current imageData object in the vector.
     vtkSmartPointer<vtkGPUVolumeRayCastMapper > volMapper = vtkSmartPointer<vtkGPUVolumeRayCastMapper >::New();
     volMapper->SetBlendModeToComposite();
     volMapper->SetInputData(imData);
@@ -403,6 +401,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
         vtkNew<vtkLookupTable> lut;
         vtkSmartPointer<vtkPolyData> pointsPolyData = vtkSmartPointer<vtkPolyData>::New();
         vtkNew<vtkPolyDataMapper> inputMapper;
+        
         if (_clusterLoaded) {
             vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
             dataArray->SetNumberOfValues(_values->GetNumberOfValues());
@@ -461,21 +460,20 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             inputMapper->Update();
         }
         else if (_pointsLoaded) {
-
             vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
             dataArray->SetNumberOfValues(_pointsColorData->getNumPoints());
-            
+
             float dataMin = _pointsColorData->getValueAt(0);
             float dataMax = _pointsColorData->getValueAt(0);
 
             for (int i = 0; i < _pointsColorData->getNumPoints(); i++)
             {
-                
+
                 for (int dim = 0; dim < _pointsColorData->getNumDimensions(); dim++)
                 {
                     if (dim == 0)
                     {
-                        
+
                         if (_pointsColorData->getValueAt(i * _pointsColorData->getNumDimensions()) < dataMin)
                         {
                             dataMin = _pointsColorData->getValueAt(i * _pointsColorData->getNumDimensions());
@@ -483,14 +481,10 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                         else if (_pointsColorData->getValueAt(i * _pointsColorData->getNumDimensions()) > dataMax) {
                             dataMax = _pointsColorData->getValueAt(i * _pointsColorData->getNumDimensions());
                         }
-                        dataArray->SetValue(i, _pointsColorData->getValueAt(i* _pointsColorData->getNumDimensions()));
+                        dataArray->SetValue(i, _pointsColorData->getValueAt(i * _pointsColorData->getNumDimensions()));
                     }
                 }
             }
-
-
-
-            
 
             // Create color transfer function.
             vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
@@ -530,7 +524,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 
                     const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
 
-                    lut->SetTableValue(pixelX, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF(), pixelX);
+                    lut->SetTableValue(pixelX, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF(), static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width()));
                 }
                 lut->Build();
             }
@@ -608,19 +602,85 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
         }
         else {
 
-            lut->SetValueRange(0, 1);
-            lut->SetNumberOfColors(2);
-            lut->Build();
-            lut->SetTableValue(0, 1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
-            lut->Build();
-            lut->SetTableValue(1, 0, 1, 0, 1);
             
-            pointsPolyData->SetPoints(_pointData);
-            if (_dataSelected) {
-                pointsPolyData->GetPointData()->SetScalars(_valuesSelected);
-            }else{
-                pointsPolyData->GetPointData()->SetScalars(_values);
+            
+            if (_opacityLoaded) {
+                std::cout << "got here" << std::endl;
+                vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
+                dataArray->SetNumberOfValues(_pointsOpacityData->getNumPoints());
+                
+                float dataMin = _pointsOpacityData->getValueAt(0);
+                float dataMax = _pointsOpacityData->getValueAt(0);
+                std::cout << "got here" << std::endl;
+
+                for (int i = 0; i < _pointsOpacityData->getNumPoints(); i++)
+                {
+
+                    for (int dim = 0; dim < _pointsOpacityData->getNumDimensions(); dim++)
+                    {
+                        if (dim == 0)
+                        {
+
+                            if (_pointsOpacityData->getValueAt(i * _pointsOpacityData->getNumDimensions()) < dataMin)
+                            {
+                                dataMin = _pointsOpacityData->getValueAt(i * _pointsOpacityData->getNumDimensions());
+                            }
+                            else if (_pointsOpacityData->getValueAt(i * _pointsOpacityData->getNumDimensions()) > dataMax) {
+                                dataMax = _pointsOpacityData->getValueAt(i * _pointsOpacityData->getNumDimensions());
+                            }
+                            dataArray->SetValue(i, _pointsOpacityData->getValueAt(i * _pointsOpacityData->getNumDimensions()));
+                        }
+                    }
+                }
+
+                std::cout << "got here" << std::endl;
+                lut->SetValueRange(dataMin, dataMax);
+                lut->SetRange(0, colorMapImage.width());
+                lut->SetNumberOfColors(colorMapImage.width());
+                lut->SetNumberOfTableValues(colorMapImage.width());
+                lut->SetNanColor(1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
+                std::cout << "got here" << std::endl;
+                for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
+
+                    const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
+
+                    lut->SetTableValue(pixelX, 0, 1, 0, static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width()));
+                }
+                pointsPolyData->SetPoints(_pointData);
+                std::cout << "got here" << std::endl;
+                if (_dataSelected) {
+
+                    pointsPolyData->GetPointData()->SetScalars(_valuesSelected);
+                }
+                else {
+                    pointsPolyData->GetPointData()->SetScalars(dataArray);
+                }
+
             }
+            else {
+                lut->SetValueRange(0, 1);
+                lut->SetNumberOfColors(2);
+                lut->Build();
+                lut->SetTableValue(0, 1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
+                lut->Build();
+                lut->SetTableValue(1, 0, 1, 0, 1);
+                pointsPolyData->SetPoints(_pointData);
+                if (_dataSelected) {
+
+                    pointsPolyData->GetPointData()->SetScalars(_valuesSelected);
+                }
+                else {
+                    pointsPolyData->GetPointData()->SetScalars(_values);
+                }
+            }
+            
+
+            
+            
+            
+            
+
+            
             
 
             //polyData->SetVerts(_vertices);
@@ -857,27 +917,27 @@ void ViewerWidget::setSelectedCell(int cellID, int* xyz) {
     _VolumeViewerPlugin.getRendererSettingsAction().getSelectedPointsAction().getPositionAction().changeValue(xyz);
 }
 
-void ViewerWidget::setClusterColor(const Dataset<Clusters>& clusterData) {
+void ViewerWidget::setClusterColor(const Dataset<Clusters>& clusterData, bool loadedOrNot) {
     //auto test = clusterData->getRawDataSize();
     //std::cout << test << std::endl;
     _clusterData = clusterData;
-    _clusterLoaded = true;
+    _clusterLoaded = loadedOrNot;
     for (const auto& cluster : clusterData->getClusters()) {
         cluster.getIndices();
         
     }
 }
-void ViewerWidget::setPointsColor(const Dataset<Points>& pointsData) {
+void ViewerWidget::setPointsColor(const Dataset<Points>& pointsData, bool loadedOrNot) {
     //auto test = clusterData->getRawDataSize();
     //std::cout << test << std::endl;
     _pointsColorData = pointsData;
-    _pointsLoaded = true;
+    _pointsLoaded = loadedOrNot;
     
 }
-void ViewerWidget::setPointsOpacity(const Dataset<Points>& pointsData) {
+void ViewerWidget::setPointsOpacity(const Dataset<Points>& pointsData, bool loadedOrNot){
     //auto test = clusterData->getRawDataSize();
     //std::cout << test << std::endl;
     _pointsOpacityData = pointsData;
-    _opacityLoaded = true;
+    _opacityLoaded = loadedOrNot;
     
 }

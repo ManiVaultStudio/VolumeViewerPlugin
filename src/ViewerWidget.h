@@ -44,9 +44,9 @@ public:
     */
     void renderData(vtkSmartPointer<vtkPlaneCollection> planeCollection, vtkSmartPointer<vtkImageData> imData, std::string interpolationOption, std::string colorMap, bool shadingEnabled, std::vector<double> shadingParameters);
 
-    void setClusterColor(const Dataset<Clusters>& clusterData);
-    void setPointsColor(const Dataset<Points>& pointsData);
-    void setPointsOpacity(const Dataset<Points>& pointsData);
+    void setClusterColor(const Dataset<Clusters>& clusterData, bool loadedOrNot);
+    void setPointsColor(const Dataset<Points>& pointsData, bool loadedOrNot);
+    void setPointsOpacity(const Dataset<Points>& pointsData, bool loadedOrNot);
 
     /** This function returns a vtkImageData object containing the selected data points.
     *   Next to the points data, an array containing the selected indices is also needed.

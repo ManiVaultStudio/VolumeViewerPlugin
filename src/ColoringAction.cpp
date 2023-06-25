@@ -23,7 +23,9 @@ ColoringAction::ColoringAction(RendererSettingsAction& rendererSettingsAction) :
     // Shading parameters options.
     _ambientConstantAction(this, "Ambient constant", 0.0f, 1.0f, 0.9f, 0.9f, 4),
     _diffuseConstantAction(this, "Diffuse constant", 0.0f, 1.0f, 0.2f, 0.2f, 4),
-    _specularConstantAction(this, "Specular constant", 0.0f, 1.0f, 0.1f, 0.1f, 4)
+    _specularConstantAction(this, "Specular constant", 0.0f, 1.0f, 0.1f, 0.1f, 4),
+    _unloadColorMap(this, "unload Color Map"),
+    _unloadOpacityData(this, "unload Opacity Data")
 
 {
     setText("Coloring parameters");

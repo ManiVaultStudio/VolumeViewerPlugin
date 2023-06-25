@@ -145,6 +145,8 @@ private:
     bool                                _shadingEnabled;            /** Boolian for inicating if shading should be enabled*/
     bool                                _backgroundEnabled;         /** Boolian for indicating if the non-selected datapoints should be shown*/
     bool                                _pointCloudEnabled;         /** Boolian for indicating the render option*/
+    bool                                _pointColorLoaded;         /** Boolian for indicating if the non-selected datapoints should be shown*/
+    bool                                _clusterLoaded;         /** Boolian for indicating the render option*/
     bool                                _selectionOpaque;           /** Boolian indicating wether the selected datapoints should be opaque or use the transfer function*/
     float                               _backgroundAlpha;           /** Float indcating the alpha value of the background during selection.*/
 };
