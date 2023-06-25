@@ -605,13 +605,13 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             
             
             if (_opacityLoaded) {
-                std::cout << "got here" << std::endl;
+                
                 vtkSmartPointer<vtkFloatArray> dataArray = vtkSmartPointer<vtkFloatArray>::New();
                 dataArray->SetNumberOfValues(_pointsOpacityData->getNumPoints());
                 
                 float dataMin = _pointsOpacityData->getValueAt(0);
                 float dataMax = _pointsOpacityData->getValueAt(0);
-                std::cout << "got here" << std::endl;
+               
 
                 for (int i = 0; i < _pointsOpacityData->getNumPoints(); i++)
                 {
@@ -633,13 +633,13 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                     }
                 }
 
-                std::cout << "got here" << std::endl;
+               
                 lut->SetValueRange(dataMin, dataMax);
                 lut->SetRange(0, colorMapImage.width());
                 lut->SetNumberOfColors(colorMapImage.width());
                 lut->SetNumberOfTableValues(colorMapImage.width());
                 lut->SetNanColor(1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
-                std::cout << "got here" << std::endl;
+                
                 for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
 
                     const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
@@ -647,7 +647,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                     lut->SetTableValue(pixelX, 0, 1, 0, static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width()));
                 }
                 pointsPolyData->SetPoints(_pointData);
-                std::cout << "got here" << std::endl;
+               
                 if (_dataSelected) {
 
                     pointsPolyData->GetPointData()->SetScalars(_valuesSelected);
