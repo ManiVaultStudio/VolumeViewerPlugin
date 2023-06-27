@@ -42,6 +42,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _pointsParent(),
     _pointsColorCluster(),
     _pointsColorPoints(),
+    _selectionDisabled(false),
     _pointsOpacityPoints(),
     _rendererSettingsAction(this, _viewerWidget),
     _dropWidget(nullptr),
@@ -88,10 +89,7 @@ void VolumeViewerPlugin::init()
     settingsLayout->addWidget(_rendererSettingsAction.createWidget(&getWidget()));
     settingsLayout->setContentsMargins(6, 6, 6, 6);
 
-    // Add the actions.
-    GroupsAction::GroupActions groupActions;
-    groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
-    _rendererSettingsAction.setGroupActions(groupActions);
+    
 
     layout->addLayout(settingsLayout, 1);
 
@@ -135,6 +133,12 @@ void VolumeViewerPlugin::init()
                         if (_points->getDataHierarchyItem().hasParent()) {
                             _pointsParent = _points->getParent();
                         }
+                        
+                        _rendererSettingsAction.resetGroupActions();
+                        
+                        GroupsAction::GroupActions groupActionsPointcloudData;
+                        groupActionsPointcloudData << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
+                        _rendererSettingsAction.setGroupActions(groupActionsPointcloudData);
 
                     });
                     
@@ -149,6 +153,11 @@ void VolumeViewerPlugin::init()
                             if (_points->getDataHierarchyItem().hasParent()) {
                                 _pointsParent = _points->getParent();
                             }
+                            // Add the actions.
+                            _rendererSettingsAction.resetGroupActions();
+                            GroupsAction::GroupActions groupActions;
+                            groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
+                            _rendererSettingsAction.setGroupActions(groupActions);
                         });
                         dropRegions << new DropWidget::DropRegion(this, "Colors", "Color points by scalars", "palette", true, [this, candidateDataset]() {
                             //_points = candidateDataset;
@@ -321,6 +330,19 @@ void VolumeViewerPlugin::init()
         }
 
     });
+    
+    connect(&this->getRendererSettingsAction().getColoringAction().getdisableSelectionAction(), &ToggleAction::toggled, this, [this](bool toggled) {
+        _viewerWidget->disableSelection(toggled);
+        _selectionDisabled = toggled;
+        
+        
+        if (_dataLoaded) {
+            runRenderData();
+        }
+
+    });
+
+
     // Shading parameter change.
     // Ambient parameter.
     connect(&this->getRendererSettingsAction().getColoringAction().getAmbientAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
@@ -773,7 +795,7 @@ void VolumeViewerPlugin::init()
     connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this] {
         // if data is loaded
 
-        if (_dataLoaded) {
+        if (_dataLoaded && !_selectionDisabled) {
 
             // Get the selection set that changed
             const auto& selectionSet = _points->getSelection<Points>();
@@ -805,7 +827,7 @@ void VolumeViewerPlugin::init()
     connect(&_pointsParent, &Dataset<Points>::dataSelectionChanged, this, [this] {
         // if data is loaded
 
-        if (_dataLoaded) {
+        if (_dataLoaded && !_selectionDisabled) {
 
             // Get the selection set that changed
             const auto& selectionSet = _pointsParent->getSelection<Points>();

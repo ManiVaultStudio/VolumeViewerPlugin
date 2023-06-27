@@ -941,3 +941,12 @@ void ViewerWidget::setPointsOpacity(const Dataset<Points>& pointsData, bool load
     _opacityLoaded = loadedOrNot;
     
 }
+void ViewerWidget::disableSelection(bool disabled) {
+    if (disabled) {
+        _dataSelected = false;
+    }
+    else {
+        _dataSelected = true;
+    }
+    
+}

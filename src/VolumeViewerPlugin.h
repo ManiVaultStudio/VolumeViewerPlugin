@@ -149,6 +149,7 @@ private:
     bool                                _clusterLoaded;         /** Boolian for indicating the render option*/
     bool                                _selectionOpaque;           /** Boolian indicating wether the selected datapoints should be opaque or use the transfer function*/
     float                               _backgroundAlpha;           /** Float indcating the alpha value of the background during selection.*/
+    bool                                _selectionDisabled;
 };
 
 /**

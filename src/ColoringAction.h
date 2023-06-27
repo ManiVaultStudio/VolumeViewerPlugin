@@ -39,6 +39,7 @@ public: /** Action getters */
     DecimalAction& getSpecularAction() { return _specularConstantAction; }
     TriggerAction& getUnloadColorMap() { return  _unloadColorMap; }
     TriggerAction& getUnloadOpacityData() { return  _unloadOpacityData; }
+    ToggleAction& getdisableSelectionAction() { return _disableSelectionAction; }
 
 
 protected:
@@ -46,8 +47,10 @@ protected:
     OptionAction                _colorInterpolationAction;      /** Option menu for selecting interpolation mode*/
     ColorMapAction              _colorMapAction;                 /** Color map Action */
     ToggleAction                _shadingEnableAction;      /** Option menu for selecting interpolation mode*/
+    ToggleAction                _disableSelectionAction;
     TriggerAction _unloadColorMap;
     TriggerAction _unloadOpacityData;
+    
     DecimalAction                _ambientConstantAction;               /** Input box for ambient color constant.*/
     DecimalAction                _diffuseConstantAction;               /** Input box for diffuse color constant.*/
     DecimalAction                _specularConstantAction;               /** Input box for specular color constant.*/

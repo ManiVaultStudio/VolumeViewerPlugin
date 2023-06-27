@@ -19,7 +19,7 @@ ColoringAction::ColoringAction(RendererSettingsAction& rendererSettingsAction) :
     _colorMapAction(this, "Transfer Function"),
     // Shading enable option.
     _shadingEnableAction(this, "shading enabled"),
-    
+    _disableSelectionAction(this,"disable selection"),
     // Shading parameters options.
     _ambientConstantAction(this, "Ambient constant", 0.0f, 1.0f, 0.9f, 0.9f, 4),
     _diffuseConstantAction(this, "Diffuse constant", 0.0f, 1.0f, 0.2f, 0.2f, 4),

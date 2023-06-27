@@ -53,6 +53,7 @@ public:
     *   The chosenDim input is an integer indicating which dimension is to be visualized, starting from 0.
     */
     void setSelectedData(Points& points, std::vector<unsigned int, std::allocator<unsigned int>> selectionIndices, int chosenDim);
+    void disableSelection(bool disabled);
 
     void setSelectedCell(int cellID, int* xyz);
     int* getSelectedCellCoordinate() {
