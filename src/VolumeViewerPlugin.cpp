@@ -26,6 +26,7 @@
 
 
 
+
 using namespace hdps;
 using namespace hdps::gui;
 using namespace hdps::util;
@@ -256,6 +257,16 @@ void VolumeViewerPlugin::init()
         // notify that data is indeed loaded into the widget
         _dataLoaded = true;
     });
+
+
+    connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this, layout]() {
+        runRenderData();
+    });
+
+    connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this, layout]() {
+        runRenderData();
+    });
+
 
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this, layout]() {

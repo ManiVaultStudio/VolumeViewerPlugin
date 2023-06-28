@@ -16,7 +16,7 @@ class RendererSettingsAction;
  *
  * @author Thomas Kroes and Mitchell M. de Boer
  */
-class ColoringAction : public GroupAction
+class ColoringActionPointCloud : public GroupAction
 {
     Q_OBJECT
 
@@ -26,7 +26,7 @@ public:
      * Constructor
      * @param rendererSettingsAction Reference to renderer settings action
      */
-    ColoringAction(RendererSettingsAction& rendererSettingsAction);
+    ColoringActionPointCloud(RendererSettingsAction& rendererSettingsAction);
    
 public: /** Action getters */
 
@@ -50,7 +50,6 @@ protected:
     ToggleAction                _disableSelectionAction;
     TriggerAction _unloadColorMap;
     TriggerAction _unloadOpacityData;
-    
     
     DecimalAction                _ambientConstantAction;               /** Input box for ambient color constant.*/
     DecimalAction                _diffuseConstantAction;               /** Input box for diffuse color constant.*/

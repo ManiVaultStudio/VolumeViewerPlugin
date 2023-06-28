@@ -6,6 +6,7 @@
 #include "ColoringAction.h"
 #include "DimensionAction.h"
 #include "SelectedPointsAction.h"
+#include "ColoringActionPointcloud.h"
 
 
 using namespace hdps::gui;
