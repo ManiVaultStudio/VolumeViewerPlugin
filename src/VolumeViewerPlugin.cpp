@@ -259,12 +259,12 @@ void VolumeViewerPlugin::init()
     });
 
 
-    connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this, layout]() {
+    connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this, layout]() {
         _viewerWidget->setPointsColor(*_pointsColorPoints, true);
         runRenderData();
     });
 
-    connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this, layout]() {
+    connect(&_pointsOpacityPoints, &Dataset<Points>::dataChanged, this, [this, layout]() {
         _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, true);
         runRenderData();
     });
