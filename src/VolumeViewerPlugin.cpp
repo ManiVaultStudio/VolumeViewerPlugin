@@ -68,6 +68,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     // string variable to keep track of the interpolation option with default being Nearest Neighbour
     _interpolationOption("NN"),
     _pointColorLoaded(false),
+    _pointOpacityLoaded(false),
     _clusterLoaded(false)
 {}
 
@@ -160,6 +161,14 @@ void VolumeViewerPlugin::init()
                             groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
                             _rendererSettingsAction.setGroupActions(groupActions);
                         });
+                        dropRegions << new DropWidget::DropRegion(this, "Colors and Point Opacity", "Color and Opacity points by scalars", "palette", true, [this, candidateDataset]() {
+                            //_points = candidateDataset;
+                            if (_points->getDataHierarchyItem().hasParent()) {
+                                _pointsColorPoints = candidateDataset;
+                                _pointsOpacityPoints = candidateDataset;
+                            }
+                        });
+
                         dropRegions << new DropWidget::DropRegion(this, "Colors", "Color points by scalars", "palette", true, [this, candidateDataset]() {
                             //_points = candidateDataset;
                             if (_points->getDataHierarchyItem().hasParent()) {
@@ -260,13 +269,25 @@ void VolumeViewerPlugin::init()
 
 
     connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this, layout]() {
-        _viewerWidget->setPointsColor(*_pointsColorPoints, true);
-        runRenderData();
+        
+
+        if (!_pointOpacityLoaded && _pointColorLoaded) {
+            _viewerWidget->setPointsColor(*_pointsColorPoints, true);
+            runRenderData();
+        }
+        
     });
 
     connect(&_pointsOpacityPoints, &Dataset<Points>::dataChanged, this, [this, layout]() {
         _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, true);
-        runRenderData();
+
+        if (!_pointOpacityLoaded && _pointColorLoaded) {
+            runRenderData();
+        }
+        else {
+            _viewerWidget->setPointsColor(*_pointsColorPoints, true);
+            runRenderData();
+        }
     });
 
 
@@ -300,7 +321,7 @@ void VolumeViewerPlugin::init()
             _viewerWidget->setClusterColor(*_pointsColorCluster, false);
         }
         _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, true);
-
+        _pointOpacityLoaded = true;
         //Initial render.
         runRenderData();
 

@@ -127,9 +127,12 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
     _selectedCellCoordinate(),
     _thresholded(false),
     _lowerThreshold(),
+    _vertexFilt(vtkSmartPointer<vtkVertexGlyphFilter>::New()),
     _upperThreshold(),
+    _firstRender(true),
     _pointData(vtkSmartPointer<vtkPoints>::New()),
     _values(vtkSmartPointer<vtkFloatArray>::New()),
+    _polyData(vtkSmartPointer<vtkPolyData>::New()),
     _clusterData(),
     _clusterLoaded(false),
     _pointsColorData(),
@@ -469,34 +472,23 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 
             float dataMin = _pointsColorData->getValueAt(0);
             float dataMax = _pointsColorData->getValueAt(0);
+            
             auto numPointColorDataDim = _pointsColorData->getNumDimensions();
 
             for (int i = 0; i < _pointsColorData->getNumPoints(); i++)
             {
-
-                for (int dim = 0; dim < numPointColorDataDim; dim++)
+                if (_pointsColorData->getValueAt(i * numPointColorDataDim) < dataMin)
                 {
-                    if (dim == 0)
-                    {
-
-                        if (_pointsColorData->getValueAt(i * numPointColorDataDim) < dataMin)
-                        {
-                            dataMin = _pointsColorData->getValueAt(i * numPointColorDataDim);
-                        }
-                        else if (_pointsColorData->getValueAt(i * numPointColorDataDim) > dataMax) {
-                            dataMax = _pointsColorData->getValueAt(i * numPointColorDataDim);
-                        }
-                        dataArray->SetValue(i, _pointsColorData->getValueAt(i * numPointColorDataDim));
-                    }
+                    dataMin = _pointsColorData->getValueAt(i * numPointColorDataDim);
                 }
+                else if (_pointsColorData->getValueAt(i * numPointColorDataDim) > dataMax) {
+                    dataMax = _pointsColorData->getValueAt(i * numPointColorDataDim);
+                }
+                dataArray->SetValue(i, _pointsColorData->getValueAt(i * numPointColorDataDim));
             }
 
-            // Create color transfer function.
-            vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
-            color->AddRGBPoint(-1, 1, 1, 1, 1, 1);
-            
-            
-
+            /*vtkSmartPointer<vtkColorTransferFunction> color = vtkSmartPointer<vtkColorTransferFunction>::New();
+            color->AddRGBPoint(-1, 1, 1, 1, 1, 1);*/
             // Get the colormap action.
             auto& colorMapAction = _VolumeViewerPlugin.getRendererSettingsAction().getColoringAction().getColorMapAction();
 
@@ -506,13 +498,12 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             // Get background enabled parameter.
             bool backgroundEndabled = _VolumeViewerPlugin.getBackgroundEndabled();
 
-            // Loop to read in colors from the colormap qimage.
-            for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
-                const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
-                const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
-                color->AddRGBPoint(normalizedPixelX * (dataMax - dataMin) + dataMin, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
-            }
-
+            //// Loop to read in colors from the colormap qimage.
+            //for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
+            //    const auto normalizedPixelX = static_cast<float>(pixelX) / static_cast<float>(colorMapImage.width());
+            //    const auto pixelColor = colorMapImage.pixelColor(pixelX, 0);
+            //    color->AddRGBPoint(normalizedPixelX * (dataMax - dataMin) + dataMin, pixelColor.redF(), pixelColor.greenF(), pixelColor.blueF());
+            //}
 
             lut->SetValueRange(dataMin, dataMax);
             lut->SetRange(0, colorMapImage.width());
@@ -520,10 +511,6 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
             lut->SetNumberOfTableValues(colorMapImage.width());
             lut->SetNanColor(1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
 
-
-
-            //lut->SetTableValue(0, 1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
-            
             if (_opacityLoaded) {
                 for (int pixelX = 0; pixelX < colorMapImage.width(); pixelX++) {
 
@@ -543,37 +530,7 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                 }
                 lut->Build();
             }
-            
 
-           /* int k = 1;
-            int numberOfClusters = _clusterData->getClusters().size();
-
-            lut->SetValueRange(0, numberOfClusters);
-            lut->SetRange(0, numberOfClusters);
-            lut->SetNumberOfColors(numberOfClusters + 1);
-            lut->SetNumberOfTableValues(numberOfClusters + 1);
-
-
-
-            lut->SetTableValue(0, 1, 1, 1, _VolumeViewerPlugin.getBackgroundAlpha());
-            for (const auto& cluster : _clusterData->getClusters()) {
-                auto indices = cluster.getIndices();
-                for (auto index : indices) {
-
-                    dataArray->SetValue(index, k);
-
-                }
-
-                auto currentColor = cluster.getColor();
-
-
-                lut->SetTableValue(k, currentColor.redF(), currentColor.greenF(), currentColor.blueF(), 1);
-
-                k++;
-            }*/
-
-
-            //lut->Build();
             if (_dataSelected) {
                 for (int i = 0; i < _values->GetNumberOfValues(); i++)
                 {
@@ -584,25 +541,23 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                 }
 
             }
-            pointsPolyData->SetPoints(_pointData);
-            pointsPolyData->GetPointData()->SetScalars(dataArray);
-
-
             
-
-            vtkSmartPointer<vtkVertexGlyphFilter> vertexFilt = vtkSmartPointer<vtkVertexGlyphFilter>::New();
-            vertexFilt->SetInputData(pointsPolyData);
-            vertexFilt->Update();
-            vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
-            polyData->ShallowCopy(vertexFilt->GetOutput());
-
-            inputMapper->SetInputData(polyData);
+            if (_firstRender) {
+            
+                pointsPolyData->SetPoints(_pointData);
+                _vertexFilt->SetInputData(pointsPolyData);
+                _vertexFilt->Update();
+                _polyData->ShallowCopy(_vertexFilt->GetOutput());
+                
+                _firstRender = false;
+            }
+            
+            _polyData->GetPointData()->SetScalars(dataArray);
+            inputMapper->SetInputData(_polyData);
             inputMapper->SetLookupTable(lut);
             
             inputMapper->SetColorModeToMapScalars();
             
-            //inputMapper->SetScalarRange(0, numberOfClusters);
-
             inputMapper->Update();
         }
         else {
@@ -620,25 +575,16 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
 
                 for (int i = 0; i < _pointsOpacityData->getNumPoints(); i++)
                 {
-
-                    for (int dim = 0; dim < numPointOpacDataDim; dim++)
+                    if (_pointsOpacityData->getValueAt(i * numPointOpacDataDim) < dataMin)
                     {
-                        if (dim == 0)
-                        {
-
-                            if (_pointsOpacityData->getValueAt(i * numPointOpacDataDim) < dataMin)
-                            {
-                                dataMin = _pointsOpacityData->getValueAt(i * numPointOpacDataDim);
-                            }
-                            else if (_pointsOpacityData->getValueAt(i * numPointOpacDataDim) > dataMax) {
-                                dataMax = _pointsOpacityData->getValueAt(i * numPointOpacDataDim);
-                            }
-                            dataArray->SetValue(i, _pointsOpacityData->getValueAt(i * numPointOpacDataDim));
-                        }
+                        dataMin = _pointsOpacityData->getValueAt(i * numPointOpacDataDim);
                     }
+                    else if (_pointsOpacityData->getValueAt(i * numPointOpacDataDim) > dataMax) {
+                        dataMax = _pointsOpacityData->getValueAt(i * numPointOpacDataDim);
+                    }
+                    dataArray->SetValue(i, _pointsOpacityData->getValueAt(i * numPointOpacDataDim));
                 }
 
-               
                 lut->SetValueRange(dataMin, dataMax);
                 lut->SetRange(0, colorMapImage.width());
                 lut->SetNumberOfColors(colorMapImage.width());
@@ -653,12 +599,18 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                 }
                 pointsPolyData->SetPoints(_pointData);
                
+                if (_firstRender) {
+                    _vertexFilt->SetInputData(pointsPolyData);
+                    _vertexFilt->Update();
+                    _polyData->ShallowCopy(_vertexFilt->GetOutput());
+                    _firstRender = false;
+                }
                 if (_dataSelected) {
 
-                    pointsPolyData->GetPointData()->SetScalars(_valuesSelected);
+                    _polyData->GetPointData()->SetScalars(_valuesSelected);
                 }
                 else {
-                    pointsPolyData->GetPointData()->SetScalars(dataArray);
+                    _polyData->GetPointData()->SetScalars(dataArray);
                 }
 
             }
@@ -670,41 +622,30 @@ void ViewerWidget::renderData(vtkSmartPointer<vtkPlaneCollection> planeCollectio
                 lut->Build();
                 lut->SetTableValue(1, 0, 1, 0, 1);
                 pointsPolyData->SetPoints(_pointData);
+                if (_firstRender) {
+                    _vertexFilt->SetInputData(pointsPolyData);
+                    _vertexFilt->Update();
+                    _polyData->ShallowCopy(_vertexFilt->GetOutput());
+                    _firstRender = false;
+                }
                 if (_dataSelected) {
 
-                    pointsPolyData->GetPointData()->SetScalars(_valuesSelected);
+                    _polyData->GetPointData()->SetScalars(_valuesSelected);
                 }
                 else {
-                    pointsPolyData->GetPointData()->SetScalars(_values);
+                    _polyData->GetPointData()->SetScalars(_values);
                 }
+                
             }
-            
-
-            
-            
-            
-            
-
-            
-            
-
-            //polyData->SetVerts(_vertices);
-
-            vtkSmartPointer<vtkVertexGlyphFilter> vertexFilt = vtkSmartPointer<vtkVertexGlyphFilter>::New();
-            vertexFilt->SetInputData(pointsPolyData);
-            vertexFilt->Update();
-            vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
-            polyData->ShallowCopy(vertexFilt->GetOutput());            
-            inputMapper->SetInputData(polyData);
+                     
+            inputMapper->SetInputData(_polyData);
             inputMapper->SetLookupTable(lut);
             inputMapper->Update();
         }
         vtkNew<vtkActor> inputActor;
         inputActor->SetMapper(inputMapper);
 
-        //inputActor->GetProperty()->SetColor(colors->GetColor3d("Lime").GetData());
         inputActor->GetProperty()->SetPointSize(3);
-
 
         // Add the current volume to the renderer.
         mRenderer->AddViewProp(inputActor);

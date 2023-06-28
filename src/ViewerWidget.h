@@ -16,6 +16,8 @@
 #include <QVTKOpenGLNativeWidget.h>
 #include <vtkSmartVolumeMapper.h>  
 #include <vtkCellArray.h>
+#include <vtkPolyData.h>
+#include <vtkVertexGlyphFilter.h>
 
 
 class VolumeViewerPlugin;
@@ -75,6 +77,7 @@ private:
     int numPoints;                                                  /** Number of points in current dataset*/
     int numDimensions;                                              /** Number of dimensions in current dataset*/
     vtkSmartPointer<vtkImageData> _labelMap;                          /** imagedata indicating the label wether data is part of selection or not*/
+    vtkSmartPointer<vtkPolyData> _polyData;
     vtkSmartPointer<vtkImageData> _imData;
     vtkSmartPointer<vtkPoints> _pointData;
     vtkSmartPointer<vtkFloatArray> _values;
@@ -84,8 +87,9 @@ private:
     Dataset<Points> _pointsColorData;
     bool _pointsLoaded;
     Dataset<Points> _pointsOpacityData;
+    vtkSmartPointer<vtkVertexGlyphFilter> _vertexFilt;
     bool _opacityLoaded;
-   
+    bool _firstRender;
     bool _dataSelected;                                              /** Boolian to indicate wether or not data is selected*/
     int _xSize;
     int _ySize;
