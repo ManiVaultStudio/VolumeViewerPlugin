@@ -283,6 +283,10 @@ void VolumeViewerPlugin::init()
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this, layout]() {
         
+        if (_clusterLoaded) {
+            _clusterLoaded = false;
+            _viewerWidget->setClusterColor(*_pointsColorCluster, false);
+        }
         _viewerWidget->setPointsColor(*_pointsColorPoints, true);
         _pointColorLoaded = true;
         //Initial render.
@@ -291,7 +295,10 @@ void VolumeViewerPlugin::init()
     });
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this, layout]() {
-        
+        if (_clusterLoaded) {
+            _clusterLoaded = false;
+            _viewerWidget->setClusterColor(*_pointsColorCluster, false);
+        }
         _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, true);
 
         //Initial render.
