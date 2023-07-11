@@ -33,7 +33,7 @@ public:
      * Constructor
      * @param generalAction Reference to general action
      */
-    PositionAction(SelectedPointsAction& selectedPointsAction);
+    Q_INVOKABLE PositionAction(SelectedPointsAction& selectedPointsAction, const QString& title);
     void changeValue(int *xyz);
 
 signals:
@@ -53,3 +53,5 @@ protected:
     DecimalAction   _yAction;           /** Y-position action */
     DecimalAction   _zAction;           /** z-position action */
 };
+
+Q_DECLARE_METATYPE(PositionAction)

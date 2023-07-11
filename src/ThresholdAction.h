@@ -35,7 +35,7 @@ public:
      * Constructor
      * @param generalAction Reference to general action
      */
-    ThresholdAction(SelectedPointsAction& selectedPointsAction);
+    Q_INVOKABLE ThresholdAction(SelectedPointsAction& selectedPointsAction, const QString& title);
 
 signals:
 
@@ -54,3 +54,6 @@ protected:
     DecimalAction   _upperAction;           /** Y-position action */
     //DecimalRangeAction _thresholdAction;
 };
+
+Q_DECLARE_METATYPE(ThresholdAction)
+

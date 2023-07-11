@@ -11,6 +11,7 @@
 #include <widgets/DropWidget.h>
 
 #include <actions/PluginTriggerAction.h>
+#include <DatasetsMimeData.h>
 
 /** HDPS headers*/
 #include "PointData/PointData.h"
@@ -45,7 +46,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _pointsColorPoints(),
     _selectionDisabled(false),
     _pointsOpacityPoints(),
-    _rendererSettingsAction(this, _viewerWidget),
+    _settingsAction(),
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
     _planeArray(std::vector<int>(3, 0)),
@@ -78,24 +79,30 @@ void VolumeViewerPlugin::init()
     _viewerWidget = new ViewerWidget(*this);
     // Add the dropwidget to the layout.
     _dropWidget = new DropWidget(_viewerWidget);
+    _settingsAction = new SettingsAction(this, _viewerWidget, "Primary Toolbar");
 
-
+    
     // Create the layout.
     auto layout = new QHBoxLayout();
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
-    layout->addWidget(_viewerWidget, 4);
+    layout->addWidget(_viewerWidget, 1);
 
-    auto settingsLayout = new QVBoxLayout();
-
-    settingsLayout->addWidget(_rendererSettingsAction.createWidget(&getWidget()));
-    settingsLayout->setContentsMargins(6, 6, 6, 6);
+    //auto settingsLayout = new QVBoxLayout();
 
     
+    //_rendererSettingsAction->setShowLabels(true);
+    //_rendererSettingsAction->addAction(&_rendererSettingsAction->getColoringAction());
+    //_rendererSettingsAction->
+    //settingsLayout->setContentsMargins(6, 6, 6, 6);
 
-    layout->addLayout(settingsLayout, 1);
+    //_primaryGroupSettings.addAction(&_rendererSettingsAction->getRenderSettingsAction());
+    //layout->addWidget(_rendererSettingsAction->createWidget(&getWidget()));
+    
 
-    getWidget().setAutoFillBackground(true);
+    //layout->addLayout(settingsLayout, 1);
+
+    //getWidget().setAutoFillBackground(true);
     getWidget().setLayout(layout);
 
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
@@ -104,19 +111,21 @@ void VolumeViewerPlugin::init()
     // Initialize the drop regions
     _dropWidget->initialize([this](const QMimeData* mimeData) -> DropWidget::DropRegions {
 
-        // A drop widget can contain zero or more drop regions
         DropWidget::DropRegions dropRegions;
 
-        const auto mimeText = mimeData->text();
-        const auto tokens = mimeText.split("\n");
+        const auto datasetsMimeData = dynamic_cast<const DatasetsMimeData*>(mimeData);
 
-        if (tokens.count() == 1)
+        if (datasetsMimeData == nullptr)
             return dropRegions;
 
-        // Gather information to generate appropriate drop regions
-        const auto datasetGuid = tokens[1];
-        const auto dataType = DataType(tokens[2]);
-        const auto dataTypes = DataTypes({ PointType });
+        if (datasetsMimeData->getDatasets().count() > 1)
+            return dropRegions;
+
+        const auto dataset = datasetsMimeData->getDatasets().first();
+        const auto datasetGuiName = dataset->text();
+        const auto datasetId = dataset->getId();
+        const auto dataType = dataset->getDataType();
+        const auto dataTypes = DataTypes({ PointType , ColorType, ClusterType });
 
         // Visually indicate if the dataset is of the wrong data type and thus cannot be dropped
         if (!dataTypes.contains(dataType)) {
@@ -125,7 +134,7 @@ void VolumeViewerPlugin::init()
         else {
             // Accept points datasets drag and drop
             if (dataType == PointType) {
-                const auto candidateDataset = getCore()->requestDataset<Points>(datasetGuid);
+                const auto candidateDataset = getCore()->requestDataset<Points>(datasetId);
                 //const auto candidateDatasetName = candidateDataset.getName();
                 const auto description = QString("Visualize %1 as voxels").arg(candidateDataset->getGuiName());
 
@@ -136,11 +145,12 @@ void VolumeViewerPlugin::init()
                             _pointsParent = _points->getParent();
                         }
                         
-                        _rendererSettingsAction.resetGroupActions();
+                        //_rendererSettingsAction.reset();
                         
-                        GroupsAction::GroupActions groupActionsPointcloudData;
-                        groupActionsPointcloudData << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
-                        _rendererSettingsAction.setGroupActions(groupActionsPointcloudData);
+                        //GroupsAction::GroupActions groupActionsPointcloudData;
+                        //groupActionsPointcloudData << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
+                        //_rendererSettingsAction.setActionGroup()
+                        //_rendererSettingsAction.setGroupActions(groupActionsPointcloudData);
 
                     });
                     
@@ -156,10 +166,10 @@ void VolumeViewerPlugin::init()
                                 _pointsParent = _points->getParent();
                             }
                             // Add the actions.
-                            _rendererSettingsAction.resetGroupActions();
-                            GroupsAction::GroupActions groupActions;
-                            groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
-                            _rendererSettingsAction.setGroupActions(groupActions);
+                            //_rendererSettingsAction.resetGroupActions();
+                            //GroupsAction::GroupActions groupActions;
+                            //groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
+                            //_rendererSettingsAction.setGroupActions(groupActions);
                         });
                         dropRegions << new DropWidget::DropRegion(this, "Colors and Point Opacity", "Color and Opacity points by scalars", "palette", true, [this, candidateDataset]() {
                             //_points = candidateDataset;
@@ -200,7 +210,7 @@ void VolumeViewerPlugin::init()
 
 
             // Get clusters dataset from the core
-            auto candidateDataset = _core->requestDataset<Clusters>(datasetGuid);
+            auto candidateDataset = _core->requestDataset<Clusters>(datasetId);
             
 
             // Establish drop region description
@@ -235,13 +245,22 @@ void VolumeViewerPlugin::init()
         return dropRegions;
     });
 
+    connect(_viewerWidget, &ViewerWidget::customContextMenuRequested, this, [this](const QPoint& point) {
+        
+
+        _settingsAction->getContextMenu()->exec(getWidget().mapToGlobal(point));
+    });
+
+
+    addDockingAction(_settingsAction, nullptr, DockAreaFlag::Left, true, AutoHideLocation::Right, QSize(300, 300));
+
     // Respond when the name of the dataset in the dataset reference changes
-    connect(&_points, &Dataset<Points>::changed, this, [this, layout]() {
+    connect(&_points, &Dataset<Points>::changed, this, [this]() {
         // Get current dimension index
-        unsigned int chosenDimension = _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
+        unsigned int chosenDimension = _settingsAction->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex(); // get the currently selected chosen dimension as indicated by the dimensionchooser in the options menu
 
         // Update the dimensionpicker action.
-        _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().setPointsDataset(Dataset<Points>(_points));
+        _settingsAction->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction().setPointsDataset(Dataset<Points>(_points));
         // hide dropwidget
         _dropWidget->setShowDropIndicator(false);
 
@@ -259,16 +278,16 @@ void VolumeViewerPlugin::init()
         runRenderData();
 
         // set the maximum x, y and z values for the slicing options
-        _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]);
-        _rendererSettingsAction.getSlicingAction().getYAxisPositionAction().setMaximum(_imageData->GetDimensions()[1]);
-        _rendererSettingsAction.getSlicingAction().getZAxisPositionAction().setMaximum(_imageData->GetDimensions()[2]);
+        _settingsAction->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]);
+        _settingsAction->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction().setMaximum(_imageData->GetDimensions()[1]);
+        _settingsAction->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction().setMaximum(_imageData->GetDimensions()[2]);
 
         // notify that data is indeed loaded into the widget
         _dataLoaded = true;
     });
 
 
-    connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this, layout]() {
+    connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this]() {
         
 
         if (!_pointOpacityLoaded && _pointColorLoaded) {
@@ -278,7 +297,7 @@ void VolumeViewerPlugin::init()
         
     });
 
-    connect(&_pointsOpacityPoints, &Dataset<Points>::dataChanged, this, [this, layout]() {
+    connect(&_pointsOpacityPoints, &Dataset<Points>::dataChanged, this, [this]() {
         _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, true);
 
         if (!_pointOpacityLoaded && _pointColorLoaded) {
@@ -292,7 +311,7 @@ void VolumeViewerPlugin::init()
 
 
     // Respond when the name of the dataset in the dataset reference changes
-    connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this, layout]() {
+    connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this]() {
         
         _viewerWidget->setClusterColor(*_pointsColorCluster, true);
         _clusterLoaded = true;
@@ -302,7 +321,7 @@ void VolumeViewerPlugin::init()
     });
     
     // Respond when the name of the dataset in the dataset reference changes
-    connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this, layout]() {
+    connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this]() {
         
         if (_clusterLoaded) {
             _clusterLoaded = false;
@@ -315,7 +334,7 @@ void VolumeViewerPlugin::init()
 
     });
     // Respond when the name of the dataset in the dataset reference changes
-    connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this, layout]() {
+    connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this]() {
         if (_clusterLoaded) {
             _clusterLoaded = false;
             _viewerWidget->setClusterColor(*_pointsColorCluster, false);
@@ -327,7 +346,7 @@ void VolumeViewerPlugin::init()
 
     });
     // Respond when the name of the dataset in the dataset reference changes// Respond when the name of the dataset in the dataset reference changes
-    connect(&_pointsColorCluster, &Dataset<Clusters>::dataChanged, this, [this, layout]() {
+    connect(&_pointsColorCluster, &Dataset<Clusters>::dataChanged, this, [this]() {
         
         _viewerWidget->setClusterColor(*_pointsColorCluster, true);
 
@@ -437,7 +456,7 @@ void VolumeViewerPlugin::init()
                 }
 
                 // get the x value for which the slice needs to be performed
-                int value = _rendererSettingsAction.getSlicingAction().getXAxisPositionAction().getValue();
+                int value = _settingsAction->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().getValue();
 
                 // Create a clipping plane for the xvalue
                 vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
@@ -500,7 +519,7 @@ void VolumeViewerPlugin::init()
                 }
 
                 // get the y value for which the slice needs to be performed
-                int value = _rendererSettingsAction.getSlicingAction().getYAxisPositionAction().getValue();
+                int value = _settingsAction->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction().getValue();
 
                 // Create a clipping plane for the yValue
                 vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
@@ -561,7 +580,7 @@ void VolumeViewerPlugin::init()
                 }
 
                 // get the z value for which the slice needs to be performed
-                int value = _rendererSettingsAction.getSlicingAction().getZAxisPositionAction().getValue();
+                int value = _settingsAction->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction().getValue();
 
                 // Create a clipping plane for the zValue
                 vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
@@ -608,7 +627,7 @@ void VolumeViewerPlugin::init()
         //Check if data is loaded to prevent errors.
         if (_dataLoaded) {
             // get the current value of the xSlicing tickbox
-            bool toggled = _rendererSettingsAction.getSlicingAction().getXToggled();
+            bool toggled = _settingsAction->getRendererSettingsAction().getSlicingAction().getXToggled();
 
             // if the tickbox is enabled perform the slicing change
             if (toggled) {
@@ -640,7 +659,7 @@ void VolumeViewerPlugin::init()
         //Check if data is loaded to prevent errors.
         if (_dataLoaded) {
             // get the current value of the ySlicing tickbox
-            bool toggled = _rendererSettingsAction.getSlicingAction().getYToggled();
+            bool toggled = _settingsAction->getRendererSettingsAction().getSlicingAction().getYToggled();
 
             // if the tickbox is enabled perform the slicing change
             if (toggled) {
@@ -672,7 +691,7 @@ void VolumeViewerPlugin::init()
         //Check if data is loaded to prevent errors.
         if (_dataLoaded) {
             // get the current value of the zSlicing tickbox
-            bool toggled = _rendererSettingsAction.getSlicingAction().getZToggled();
+            bool toggled = _settingsAction->getRendererSettingsAction().getSlicingAction().getZToggled();
 
             // if the tickbox is enabled perform the slicing change
             if (toggled) {
@@ -790,13 +809,14 @@ void VolumeViewerPlugin::init()
         float upperThreshold = this->getRendererSettingsAction().getSelectedPointsAction().getThresholdAction().getUpperThresholdAction().getValue();
 
         //_points->setSelectionIndices();
-        int chosenDimension = _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
+        int chosenDimension = _settingsAction->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
         _viewerWidget->connectedSelection(*_points, chosenDimension, _viewerWidget->getSelectedCellCoordinate(), upperThreshold, lowerThreshold);
         const auto& selectionSet = _points->getSelection<Points>();
         //auto test = selectionSet->indices;
         _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
         runRenderData();
-        events().notifyDatasetSelectionChanged(_points);
+        
+        events().notifyDatasetDataSelectionChanged(_points);
     });
 
     connect(&this->getRendererSettingsAction().getColoringAction().getUnloadColorMap(), &TriggerAction::triggered, this, [this]() {
@@ -842,7 +862,7 @@ void VolumeViewerPlugin::init()
             const auto& selectionSet = _points->getSelection<Points>();
 
             // Get ChosenDimension
-            int chosenDimension = _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
+            int chosenDimension = _settingsAction->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
 
             const auto backGroundValue = _imageData->GetScalarRange()[0];
 
@@ -874,7 +894,7 @@ void VolumeViewerPlugin::init()
             const auto& selectionSet = _pointsParent->getSelection<Points>();
 
             // Get ChosenDimension
-            int chosenDimension = _rendererSettingsAction.getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
+            int chosenDimension = _settingsAction->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
 
             const auto backGroundValue = _imageData->GetScalarRange()[0];
 

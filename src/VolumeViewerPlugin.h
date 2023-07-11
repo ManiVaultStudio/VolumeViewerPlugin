@@ -14,7 +14,10 @@
 //#include <Transfer/TransferFunctionControlAction.h>
 #include <PointData/PointData.h>
 #include <ClusterData/ClusterData.h>
+#include "SettingsAction.h"
+#include <actions/VerticalGroupAction.h>
 //#include <ClusterData/Cluster.h>
+
 /** VTK headers*/
 #include <vtkPlane.h>
 #include <vtkPlaneCollection.h>
@@ -80,7 +83,7 @@ public: // Miscellaneous
 
     /** Returns the render settings action*/
     RendererSettingsAction& getRendererSettingsAction() {
-        return _rendererSettingsAction;
+        return _settingsAction->getRendererSettingsAction();
     }
 
 
@@ -123,7 +126,7 @@ signals:
     void pointsDatasetsChanged(QStringList pointsDatasets);
 
 private:
-    RendererSettingsAction              _rendererSettingsAction;    /** The options menu on the side of the viewer*/
+    SettingsAction*              _settingsAction;    /** The options menu on the side of the viewer*/
     ViewerWidget* _viewerWidget;              /** The image viewer widget */
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
@@ -140,6 +143,7 @@ private:
     std::vector<double>                 _position;
     std::string                         _interpolationOption;       /** String for storing the current color interpolation option*/
     std::string                         _colorMap;                  /** String for storing the current color map*/
+    
     bool                                _dataLoaded;                /** Booling indicating if data has been loaded in*/
     bool                                _dataSelected;              /** Boolian indicating if data has been selected in a scatterplot*/
     bool                                _shadingEnabled;            /** Boolian for inicating if shading should be enabled*/
@@ -151,6 +155,7 @@ private:
     float                               _backgroundAlpha;           /** Float indcating the alpha value of the background during selection.*/
     bool                                _selectionDisabled;
     bool                                _pointOpacityLoaded;
+
 };
 
 /**
