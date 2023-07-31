@@ -35,6 +35,7 @@ using namespace hdps::util;
 VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
     _viewerWidget(nullptr),
+    _volumeRenderer(new VolumeRendererWidget()),
     //_transferWidget(nullptr),
     //_selectionData(vtkSmartPointer<vtkImageData>::New()),
     _imageData(vtkSmartPointer<vtkImageData>::New()),
@@ -78,7 +79,7 @@ void VolumeViewerPlugin::init()
     // Add the viewerwidget and dropwidget to the layout.
     _viewerWidget = new ViewerWidget(*this);
     // Add the dropwidget to the layout.
-    _dropWidget = new DropWidget(_viewerWidget);
+    _dropWidget = new DropWidget(_volumeRenderer);
     _settingsAction = new SettingsAction(this, _viewerWidget, "Primary Toolbar");
 
     
@@ -86,7 +87,8 @@ void VolumeViewerPlugin::init()
     auto layout = new QHBoxLayout();
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
-    layout->addWidget(_viewerWidget, 1);
+    //layout->addWidget(_viewerWidget, 1);
+    layout->addWidget(_volumeRenderer, 1);
 
     //auto settingsLayout = new QVBoxLayout();
 
@@ -274,8 +276,77 @@ void VolumeViewerPlugin::init()
             _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
         }
 
+        int numDimensions = _points->getNumDimensions();
+        if (numDimensions != 3) qDebug() << "WARNING: DIMENSIONS ARE NOT 3";
+        std::vector<float> values(_points->getNumPoints() * _points->getNumDimensions());
+
+        QVector3D minCoord(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+        QVector3D maxCoord(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+        QVector3D meanCoord(0, 0, 0);
+        for (int i = 0; i < _points->getNumPoints(); i++)
+        {
+            float x = _points->getValueAt(i * numDimensions + 0);
+            float y = _points->getValueAt(i * numDimensions + 1);
+            float z = _points->getValueAt(i * numDimensions + 2);
+
+            if (x < minCoord.x()) minCoord.setX(x);
+            if (x > maxCoord.x()) maxCoord.setX(x);
+            if (y < minCoord.y()) minCoord.setY(y);
+            if (y > maxCoord.y()) maxCoord.setY(y);
+            if (z < minCoord.z()) minCoord.setZ(z);
+            if (z > maxCoord.z()) maxCoord.setZ(z);
+            meanCoord += QVector3D(x, y, z);
+        }
+        meanCoord /= _points->getNumPoints();
+        QVector3D range = maxCoord - minCoord;
+        float maxRange = std::max(range.x(), std::max(range.y(), range.z()));
+        for (int i = 0; i < _points->getNumPoints(); i++)
+        {
+            float x = _points->getValueAt(i * numDimensions + 0);
+            float y = _points->getValueAt(i * numDimensions + 1);
+            float z = _points->getValueAt(i * numDimensions + 2);
+
+            values[i * 3 + 0] = (x - meanCoord.x()) / maxRange;
+            values[i * 3 + 1] = -((y - meanCoord.y()) / maxRange);
+            values[i * 3 + 2] = (z - meanCoord.z()) / maxRange;
+        }
+
+        //QVariant xQSize = _points->getProperty("xDim");
+        //int xSize = xQSize.toInt();
+        //QVariant yQSize = _points->getProperty("yDim");
+        //int ySize = yQSize.toInt();
+        //QVariant zQSize = _points->getProperty("zDim");
+        //int zSize = zQSize.toInt();
+        qDebug() << minCoord << maxCoord;
+        int xSize = (maxCoord.x() - minCoord.x()) * 10 + 1;
+        int ySize = (maxCoord.y() - minCoord.y()) * 10 + 1;
+        int zSize = (maxCoord.z() - minCoord.z()) * 10 + 1;
+        qDebug() << xSize << ySize << zSize;
+        std::vector<float> texels(xSize * ySize * zSize, 0);
+        //for (int z = 0; z < zSize; z++)
+        //{
+        //    for (int x = 0; x < xSize; x++)
+        //    {
+        //        for (int y = 0; y < ySize; y++)
+        //        {
+
+        //        }
+        //    }
+        //}
+        for (int i = 0; i < _points->getNumPoints(); i++)
+        {
+            int x = _points->getValueAt(i * numDimensions + 0) * 10;
+            int y = _points->getValueAt(i * numDimensions + 1) * 10;
+            int z = _points->getValueAt(i * numDimensions + 2) * 10;
+            //qDebug() << x << y << z;
+            texels[x * ySize * zSize + y * zSize + z] = 1;
+        }
+
+        _volumeRenderer->setData(values);
+
         //Initial render.
         runRenderData();
+        _volumeRenderer->update();
 
         // set the maximum x, y and z values for the slicing options
         _settingsAction->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]);
@@ -288,12 +359,25 @@ void VolumeViewerPlugin::init()
 
 
     connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this]() {
-        
+        qDebug() << "Color data changed";
 
-        if (!_pointOpacityLoaded && _pointColorLoaded) {
-            _viewerWidget->setPointsColor(*_pointsColorPoints, true);
-            runRenderData();
+        std::vector<float> colors(_pointsColorPoints->getNumPoints(), 0);
+        qDebug() << "Color data: " << _pointsColorPoints->getNumPoints();
+        for (int i = 0; i < _pointsColorPoints->getNumPoints(); i++)
+        {
+            float v = _pointsColorPoints->getValueAt(i);
+
+            colors[i] = v;
         }
+        qDebug() << "Color data: " << _pointsColorPoints->getNumPoints();
+        _volumeRenderer->setColors(colors);
+        _volumeRenderer->update();
+        qDebug() << "Color changed";
+
+        //if (!_pointOpacityLoaded && _pointColorLoaded) {
+        //    _viewerWidget->setPointsColor(*_pointsColorPoints, true);
+        //    runRenderData();
+        //}
         
     });
 
@@ -323,14 +407,26 @@ void VolumeViewerPlugin::init()
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this]() {
         
-        if (_clusterLoaded) {
-            _clusterLoaded = false;
-            _viewerWidget->setClusterColor(*_pointsColorCluster, false);
+        std::vector<float> colors(_pointsColorPoints->getNumPoints(), 0);
+        qDebug() << "1" << _pointsColorPoints->getNumPoints();
+        for (int i = 0; i < _pointsColorPoints->getNumPoints(); i++)
+        {
+            float v = _pointsColorPoints->getValueAt(i);
+
+            colors[i] = v;
         }
-        _viewerWidget->setPointsColor(*_pointsColorPoints, true);
+        _volumeRenderer->setColors(colors);
+
+        qDebug() << "Color added";
+
+        //if (_clusterLoaded) {
+        //    _clusterLoaded = false;
+        //    _viewerWidget->setClusterColor(*_pointsColorCluster, false);
+        //}
+        //_viewerWidget->setPointsColor(*_pointsColorPoints, true);
         _pointColorLoaded = true;
         //Initial render.
-        runRenderData();
+        //runRenderData();
 
     });
     // Respond when the name of the dataset in the dataset reference changes

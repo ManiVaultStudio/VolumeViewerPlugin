@@ -24,6 +24,8 @@
 
 #include <common.h>
 
+#include "VolumeRendererWidget.h"
+
 using hdps::plugin::ViewPluginFactory;
 using hdps::plugin::ViewPlugin;
 using namespace hdps::plugin;
@@ -143,6 +145,7 @@ private:
     std::vector<double>                 _position;
     std::string                         _interpolationOption;       /** String for storing the current color interpolation option*/
     std::string                         _colorMap;                  /** String for storing the current color map*/
+    VolumeRendererWidget*               _volumeRenderer;
     
     bool                                _dataLoaded;                /** Booling indicating if data has been loaded in*/
     bool                                _dataSelected;              /** Boolian indicating if data has been selected in a scatterplot*/

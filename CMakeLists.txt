@@ -21,16 +21,26 @@ endif(MSVC)
 find_package(VTK CONFIG REQUIRED)
 
 find_package(OpenGL REQUIRED)
-find_package(Qt6 6.3.1 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
+find_package(Qt6 6.3.2 COMPONENTS Core Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
 find_package(OpenMP)
 # Normalize the incoming install path
 file(TO_CMAKE_PATH $ENV{HDPS_INSTALL_DIR} INSTALL_DIR)
 
 set(PLUGIN
-	src/Common.h
-	src/VolumeViewerPlugin.h
-	src/VolumeViewerPlugin.cpp
+    src/Common.h
+    src/VolumeViewerPlugin.h
+    src/VolumeViewerPlugin.cpp
+    src/VolumeRenderer.h
+    src/VolumeRenderer.cpp
+    src/VolumeRendererWidget.h
+    src/VolumeRendererWidget.cpp
 )
+
+set(QRESOURCES
+    res/ViewerResources.qrc
+)
+
+QT6_ADD_RESOURCES(RESOURCE_FILES ${QRESOURCES})
 
 file(GLOB ACTIONS src/*Action.*)
 file(GLOB WIDGETS src/*Widget.*)
@@ -42,8 +52,9 @@ set(AUX ${JSON})
 source_group(Plugin FILES ${PLUGIN})
 source_group(Widgets FILES ${WIDGETS})
 source_group(Actions FILES ${ACTIONS})
+source_group(Resources FILES ${QRESOURCES})
 
-add_library(${PROJECT} SHARED ${SOURCES} ${AUX})
+add_library(${PROJECT} SHARED ${SOURCES} ${AUX} ${QRESOURCES} ${RESOURCE_FILES})
 
 target_include_directories(${PROJECT} PRIVATE "${INSTALL_DIR}/$<CONFIGURATION>/include/")
 target_include_directories(${PROJECT} PRIVATE src)
