@@ -34,7 +34,7 @@ private:
     VolumeRenderer _volumeRenderer;
 
     hdps::Vector3f _camPos;
-    float _camDist = 1.3f;
+    float _camDist = 0.8f;
     hdps::Vector2f _camAngle = hdps::Vector2f(3.14159f / 2, 0);
 
     QPointF _previousMousePos;

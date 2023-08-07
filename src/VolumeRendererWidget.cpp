@@ -104,7 +104,7 @@ bool VolumeRendererWidget::eventFilter(QObject* target, QEvent* event)
         QPointF mousePos = QPointF(mouseEvent->position().x(), mouseEvent->position().y());
 
         QPointF diff = mousePos - _previousMousePos;
-        qDebug() << diff.x();
+
         _camAngle.y += diff.x() * 0.01f;
         _camAngle.x -= diff.y() * 0.01f;
         if (_camAngle.x > 3.14150) _camAngle.x = 3.14150;
@@ -113,7 +113,7 @@ bool VolumeRendererWidget::eventFilter(QObject* target, QEvent* event)
         _camPos.x = _camDist * sin(_camAngle.x) * cos(_camAngle.y);
         _camPos.y = _camDist * cos(_camAngle.x);
         _camPos.z = _camDist * sin(_camAngle.x) * sin(_camAngle.y);
-        qDebug() << _camPos.x << _camPos.y << _camPos.z << _camAngle.x << _camAngle.y;
+
         update();
 
         _previousMousePos = mousePos;
