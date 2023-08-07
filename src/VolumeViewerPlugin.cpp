@@ -307,7 +307,7 @@ void VolumeViewerPlugin::init()
             float z = _points->getValueAt(i * numDimensions + 2);
 
             values[i * 3 + 0] = (x - meanCoord.x()) / maxRange;
-            values[i * 3 + 1] = -((y - meanCoord.y()) / maxRange);
+            values[i * 3 + 1] = (y - meanCoord.y()) / maxRange;
             values[i * 3 + 2] = (z - meanCoord.z()) / maxRange;
         }
 
