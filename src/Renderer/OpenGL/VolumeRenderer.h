@@ -9,6 +9,12 @@
 
 #include <vector>
 
+/**
+ * OpenGL Volume Renderer
+ * This class provides a pure OpenGL renderer for volume data
+ *
+ * @author Julian Thijssen
+ */
 class VolumeRenderer : public QOpenGLFunctions_4_2_Core
 {
 public:

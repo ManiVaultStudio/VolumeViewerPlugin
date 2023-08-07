@@ -10,6 +10,12 @@
 
 #include <vector>
 
+/**
+ * OpenGL Volume Renderer Widget
+ * This class provides a widget interface to the OpenGL Volume Renderer
+ * 
+ * @author Julian Thijssen
+ */
 class VolumeRendererWidget : public QOpenGLWidget, QOpenGLFunctions_4_2_Core
 {
     Q_OBJECT

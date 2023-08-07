@@ -1,4 +1,4 @@
-#include "Renderer/OpenGL/VolumeRendererWidget.h"
+#include "VolumeRendererWidget.h"
 
 #include <QEvent>
 #include <QMouseEvent>
