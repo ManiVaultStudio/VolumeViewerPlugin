@@ -26,7 +26,8 @@
 
 #include <common.h>
 
-#include "Renderer/OpenGL/VolumeRendererWidget.h"
+#include "Widgets/VolumeViewerWidget.h"
+#include "Renderer/OpenGL/OpenGLRendererWidget.h"
 
 using hdps::plugin::ViewPluginFactory;
 using hdps::plugin::ViewPlugin;
@@ -84,7 +85,6 @@ public: // Inherited from ViewPlugin
     /** Returns a pointer to the core interface */
     hdps::CoreInterface* core() { return _core; }
 
-
 public: // Miscellaneous
     void setRendererBackend(RendererBackend backend)
     {
@@ -93,7 +93,7 @@ public: // Miscellaneous
 
     /** Returns the image viewer widget */
     ViewerWidget& getViewerWidget() {
-        return *_viewerWidget;
+        return *_volumeViewerWidget->getVTKWidget();
     }
 
     /** Returns the render settings action*/
@@ -144,7 +144,8 @@ private:
     RendererBackend                     _rendererBackend;
 
     SettingsAction*                     _settingsAction;            /** The options menu on the side of the viewer*/
-    ViewerWidget*                       _viewerWidget;              /** The image viewer widget */
+    VolumeViewerWidget*                 _volumeViewerWidget;        /** Widget for the volume viewer */
+
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
     Dataset<Points>                     _points;                    /** Declare a points dataset reference */
@@ -160,8 +161,7 @@ private:
     std::vector<double>                 _position;
     std::string                         _interpolationOption;       /** String for storing the current color interpolation option*/
     std::string                         _colorMap;                  /** String for storing the current color map*/
-    VolumeRendererWidget*               _volumeRenderer;
-    
+
     bool                                _dataLoaded;                /** Booling indicating if data has been loaded in*/
     bool                                _dataSelected;              /** Boolian indicating if data has been selected in a scatterplot*/
     bool                                _shadingEnabled;            /** Boolian for inicating if shading should be enabled*/

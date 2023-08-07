@@ -8,7 +8,6 @@ using namespace hdps::gui;
 
 class RendererSettingsAction;
 class VolumeViewerPlugin;
-class ViewerWidget;
 
 /**
  * Slicing action class
@@ -27,7 +26,7 @@ public:
      * Constructor
      * @param rendererSettingsAction Reference to renderer settings action
      */
-    Q_INVOKABLE SlicingAction(RendererSettingsAction& rendererSettingsAction, ViewerWidget* viewerWidet, const QString& title);
+    Q_INVOKABLE SlicingAction(RendererSettingsAction& rendererSettingsAction, const QString& title);
 
 public: /** Action getters */
 
@@ -53,6 +52,5 @@ protected:
     bool                        _yToggled;
     bool                        _zToggled;
 };
-
 
 Q_DECLARE_METATYPE(SlicingAction)

@@ -29,7 +29,7 @@ public:
      * Constructor
      * @param parent Pointer to parent object
      */
-    Q_INVOKABLE RendererSettingsAction(QObject* parent, ViewerWidget* viewerWidget, const QString& title);
+    Q_INVOKABLE RendererSettingsAction(QObject* parent, const QString& title);
 
 public: /** Action getters */
     DimensionAction& getDimensionAction() { return _dimensionAction; }

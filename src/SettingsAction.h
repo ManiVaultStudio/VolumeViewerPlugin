@@ -5,8 +5,6 @@
 
 #include <actions/GroupAction.h>
 
-class VolumeViewer;
-
 using namespace hdps::gui;
 
 /**
@@ -25,7 +23,7 @@ public:
      * @param parent Pointer to parent object
      * @param title Title
      */
-    Q_INVOKABLE SettingsAction(QObject* parent, ViewerWidget* viewerWidget, const QString& title);
+    Q_INVOKABLE SettingsAction(QObject* parent, const QString& title);
 
     
     /**

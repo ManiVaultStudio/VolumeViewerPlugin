@@ -16,12 +16,12 @@
  * 
  * @author Julian Thijssen
  */
-class VolumeRendererWidget : public QOpenGLWidget, QOpenGLFunctions_4_2_Core
+class OpenGLRendererWidget : public QOpenGLWidget, QOpenGLFunctions_4_2_Core
 {
     Q_OBJECT
 
 public:
-    VolumeRendererWidget();
+    OpenGLRendererWidget();
 
     void setTexels(int width, int height, int depth, std::vector<float>& texels);
     void setData(std::vector<float>& data);

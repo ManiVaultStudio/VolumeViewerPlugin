@@ -37,8 +37,9 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _primaryToolbarAction(this, "PrimaryToolbar"),
     _secondaryToolbarAction(this, "SecondaryToolbar"),
     _settingsAction(),
-    _viewerWidget(nullptr),
-    _volumeRenderer(new VolumeRendererWidget()),
+    _volumeViewerWidget(nullptr),
+    //_viewerWidget(nullptr),
+    //_volumeRenderer(new OpenGLRendererWidget()),
     //_transferWidget(nullptr),
     //_selectionData(vtkSmartPointer<vtkImageData>::New()),
     _imageData(vtkSmartPointer<vtkImageData>::New()),
@@ -76,10 +77,11 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _clusterLoaded(false)
 {
     // Add the viewerwidget and dropwidget to the layout.
-    _viewerWidget = new ViewerWidget(*this);
+    _volumeViewerWidget = new VolumeViewerWidget(this, "Volume Viewer Widget");
+    //_viewerWidget = new ViewerWidget(*this);
     // Add the dropwidget to the layout.
-    _dropWidget = new DropWidget(_volumeRenderer);
-    _settingsAction = new SettingsAction(this, _viewerWidget, "Primary Toolbar");
+    _dropWidget = new DropWidget(_volumeViewerWidget);
+    _settingsAction = new SettingsAction(this, "Primary Toolbar");
 
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
 }
@@ -92,7 +94,7 @@ void VolumeViewerPlugin::init()
     layout->setSpacing(0);
     //layout->addWidget(_viewerWidget, 1);
     layout->addWidget(_primaryToolbarAction.createWidget(&getWidget()));
-    layout->addWidget(_volumeRenderer, 1);
+    layout->addWidget(_volumeViewerWidget, 1);
 
     //auto settingsLayout = new QVBoxLayout();
 
@@ -251,7 +253,7 @@ void VolumeViewerPlugin::init()
         return dropRegions;
     });
 
-    connect(_viewerWidget, &ViewerWidget::customContextMenuRequested, this, [this](const QPoint& point) {
+    connect(_volumeViewerWidget->getVTKWidget(), &ViewerWidget::customContextMenuRequested, this, [this](const QPoint& point) {
         
 
         _settingsAction->getContextMenu()->exec(getWidget().mapToGlobal(point));
@@ -273,11 +275,11 @@ void VolumeViewerPlugin::init()
         // Check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0.
         if (chosenDimension > _points->getNumDimensions() - 1) {
             // Pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations.
-            _imageData = _viewerWidget->setData(*_points, 0, _interpolationOption, _colorMap);
+            _imageData = _volumeViewerWidget->getVTKWidget()->setData(*_points, 0, _interpolationOption, _colorMap);
         }
         else {
             // Pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations.
-            _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
+            _imageData = _volumeViewerWidget->getVTKWidget()->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
         }
 
         int numDimensions = _points->getNumDimensions();
@@ -346,11 +348,11 @@ void VolumeViewerPlugin::init()
             texels[x * ySize * zSize + y * zSize + z] = 1;
         }
 
-        _volumeRenderer->setData(values);
+        _volumeViewerWidget->getOpenGLWidget()->setData(values);
 
         //Initial render.
         runRenderData();
-        _volumeRenderer->update();
+        _volumeViewerWidget->getOpenGLWidget()->update();
 
         // set the maximum x, y and z values for the slicing options
         _settingsAction->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]);
@@ -363,36 +365,31 @@ void VolumeViewerPlugin::init()
 
 
     connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this]() {
-        qDebug() << "Color data changed";
-
-        std::vector<float> colors(_pointsColorPoints->getNumPoints(), 0);
-        qDebug() << "Color data: " << _pointsColorPoints->getNumPoints();
-        for (int i = 0; i < _pointsColorPoints->getNumPoints(); i++)
+        if (_rendererBackend == RendererBackend::VTK)
         {
-            float v = _pointsColorPoints->getValueAt(i);
-
-            colors[i] = v;
+            if (!_pointOpacityLoaded && _pointColorLoaded) {
+                _volumeViewerWidget->getVTKWidget()->setPointsColor(*_pointsColorPoints, true);
+                runRenderData();
+            }
         }
-        qDebug() << "Color data: " << _pointsColorPoints->getNumPoints();
-        _volumeRenderer->setColors(colors);
-        _volumeRenderer->update();
-        qDebug() << "Color changed";
+        else if (_rendererBackend == RendererBackend::OpenGL)
+        {
+            std::vector<float> colors;
+            _pointsColorPoints->extractDataForDimension(colors, 0);
 
-        //if (!_pointOpacityLoaded && _pointColorLoaded) {
-        //    _viewerWidget->setPointsColor(*_pointsColorPoints, true);
-        //    runRenderData();
-        //}
-        
+            _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
+            _volumeViewerWidget->getOpenGLWidget()->update();
+        }
     });
 
     connect(&_pointsOpacityPoints, &Dataset<Points>::dataChanged, this, [this]() {
-        _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, true);
+        _volumeViewerWidget->getVTKWidget()->setPointsOpacity(*_pointsOpacityPoints, true);
 
         if (!_pointOpacityLoaded && _pointColorLoaded) {
             runRenderData();
         }
         else {
-            _viewerWidget->setPointsColor(*_pointsColorPoints, true);
+            _volumeViewerWidget->getVTKWidget()->setPointsColor(*_pointsColorPoints, true);
             runRenderData();
         }
     });
@@ -401,7 +398,7 @@ void VolumeViewerPlugin::init()
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this]() {
         
-        _viewerWidget->setClusterColor(*_pointsColorCluster, true);
+        _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, true);
         _clusterLoaded = true;
         //Initial render.
         runRenderData();
@@ -410,36 +407,33 @@ void VolumeViewerPlugin::init()
     
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this]() {
-        
-        std::vector<float> colors(_pointsColorPoints->getNumPoints(), 0);
-        qDebug() << "1" << _pointsColorPoints->getNumPoints();
-        for (int i = 0; i < _pointsColorPoints->getNumPoints(); i++)
+        if (_rendererBackend == RendererBackend::VTK)
         {
-            float v = _pointsColorPoints->getValueAt(i);
-
-            colors[i] = v;
+            if (_clusterLoaded) {
+                _clusterLoaded = false;
+                _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, false);
+            }
+            _volumeViewerWidget->getVTKWidget()->setPointsColor(*_pointsColorPoints, true);
+            _pointColorLoaded = true;
+            //Initial render.
+            runRenderData();
         }
-        _volumeRenderer->setColors(colors);
+        else if (_rendererBackend == RendererBackend::OpenGL)
+        {
+            std::vector<float> colors;
+            _pointsColorPoints->extractDataForDimension(colors, 0);
 
-        qDebug() << "Color added";
-
-        //if (_clusterLoaded) {
-        //    _clusterLoaded = false;
-        //    _viewerWidget->setClusterColor(*_pointsColorCluster, false);
-        //}
-        //_viewerWidget->setPointsColor(*_pointsColorPoints, true);
-        _pointColorLoaded = true;
-        //Initial render.
-        //runRenderData();
-
+            _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
+        }
     });
+
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this]() {
         if (_clusterLoaded) {
             _clusterLoaded = false;
-            _viewerWidget->setClusterColor(*_pointsColorCluster, false);
+            _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, false);
         }
-        _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, true);
+        _volumeViewerWidget->getVTKWidget()->setPointsOpacity(*_pointsOpacityPoints, true);
         _pointOpacityLoaded = true;
         //Initial render.
         runRenderData();
@@ -448,7 +442,7 @@ void VolumeViewerPlugin::init()
     // Respond when the name of the dataset in the dataset reference changes// Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorCluster, &Dataset<Clusters>::dataChanged, this, [this]() {
         
-        _viewerWidget->setClusterColor(*_pointsColorCluster, true);
+        _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, true);
 
         //Initial render.
         runRenderData();
@@ -464,13 +458,13 @@ void VolumeViewerPlugin::init()
             int chosenDimension = value;
 
             // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
-            _imageData = _viewerWidget->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
+            _imageData = _volumeViewerWidget->getVTKWidget()->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
 
             // Get the selection set that changed
             const auto& selectionSet = _points->getSelection<Points>();
 
             // get selectionData
-            _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
+            _volumeViewerWidget->getVTKWidget()->setSelectedData(*_points, selectionSet->indices, chosenDimension);
             runRenderData();
 
         }
@@ -492,7 +486,7 @@ void VolumeViewerPlugin::init()
     });
     
     connect(&this->getRendererSettingsAction().getColoringAction().getdisableSelectionAction(), &ToggleAction::toggled, this, [this](bool toggled) {
-        _viewerWidget->disableSelection(toggled);
+        _volumeViewerWidget->getVTKWidget()->disableSelection(toggled);
         _selectionDisabled = toggled;
         
         
@@ -910,10 +904,10 @@ void VolumeViewerPlugin::init()
 
         //_points->setSelectionIndices();
         int chosenDimension = _settingsAction->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
-        _viewerWidget->connectedSelection(*_points, chosenDimension, _viewerWidget->getSelectedCellCoordinate(), upperThreshold, lowerThreshold);
+        _volumeViewerWidget->getVTKWidget()->connectedSelection(*_points, chosenDimension, _volumeViewerWidget->getVTKWidget()->getSelectedCellCoordinate(), upperThreshold, lowerThreshold);
         const auto& selectionSet = _points->getSelection<Points>();
         //auto test = selectionSet->indices;
-        _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
+        _volumeViewerWidget->getVTKWidget()->setSelectedData(*_points, selectionSet->indices, chosenDimension);
         runRenderData();
         
         events().notifyDatasetDataSelectionChanged(_points);
@@ -922,12 +916,12 @@ void VolumeViewerPlugin::init()
     connect(&this->getRendererSettingsAction().getColoringAction().getUnloadColorMap(), &TriggerAction::triggered, this, [this]() {
 
         if (_clusterLoaded) {
-            _viewerWidget->setClusterColor(*_pointsColorCluster, false);
+            _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, false);
             
             _pointsColorCluster = NULL;
         }
         else if (_pointColorLoaded) {
-            _viewerWidget->setPointsColor(*_pointsColorPoints, false);
+            _volumeViewerWidget->getVTKWidget()->setPointsColor(*_pointsColorPoints, false);
             
             _pointsColorPoints = NULL;
         }
@@ -938,7 +932,7 @@ void VolumeViewerPlugin::init()
         runRenderData();
     });
     connect(&this->getRendererSettingsAction().getColoringAction().getUnloadOpacityData(), &TriggerAction::triggered, this, [this]() {
-        _viewerWidget->setPointsOpacity(*_pointsOpacityPoints, false);
+        _volumeViewerWidget->getVTKWidget()->setPointsOpacity(*_pointsOpacityPoints, false);
         _pointsOpacityPoints = NULL;
 
         //Initial render.
@@ -967,7 +961,7 @@ void VolumeViewerPlugin::init()
             const auto backGroundValue = _imageData->GetScalarRange()[0];
 
             // create a selectiondata imagedata object with 0 values for all non selected items
-            _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
+            _volumeViewerWidget->getVTKWidget()->setSelectedData(*_points, selectionSet->indices, chosenDimension);
 
 
             // if the selection is not empty add the selection to the vector 
@@ -999,7 +993,7 @@ void VolumeViewerPlugin::init()
             const auto backGroundValue = _imageData->GetScalarRange()[0];
 
             // create a selectiondata imagedata object with 0 values for all non selected items
-            _viewerWidget->setSelectedData(*_points, selectionSet->indices, chosenDimension);
+            _volumeViewerWidget->getVTKWidget()->setSelectedData(*_points, selectionSet->indices, chosenDimension);
 
 
             // if the selection is not empty add the selection to the vector 
@@ -1078,7 +1072,7 @@ hdps::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActio
 *   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
 */
 void VolumeViewerPlugin::runRenderData() {
-    _viewerWidget->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
+    _volumeViewerWidget->getVTKWidget()->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
 }
 
 void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {

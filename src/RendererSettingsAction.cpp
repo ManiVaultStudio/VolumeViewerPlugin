@@ -4,10 +4,10 @@
 using namespace hdps;
 using namespace hdps::gui;
 
-RendererSettingsAction::RendererSettingsAction(QObject* parent, ViewerWidget* viewerWidget, const QString& title) :
+RendererSettingsAction::RendererSettingsAction(QObject* parent, const QString& title) :
     GroupsAction(parent, title),
-    _dimensionAction(*this, viewerWidget, title),
-    _slicingAction(*this, viewerWidget, title),
+    _dimensionAction(*this, title),
+    _slicingAction(*this, title),
     _coloringAction(*this, title),
     _selectedPointsAction(*this, title)
     

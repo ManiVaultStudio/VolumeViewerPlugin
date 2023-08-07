@@ -1,38 +1,38 @@
-#include "VolumeRendererWidget.h"
+#include "OpenGLRendererWidget.h"
 
 #include <QEvent>
 #include <QMouseEvent>
 
-VolumeRendererWidget::VolumeRendererWidget()
+OpenGLRendererWidget::OpenGLRendererWidget()
 {
     setAcceptDrops(true);
 
     installEventFilter(this);
 }
 
-void VolumeRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
+void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
 {
     makeCurrent();
     _volumeRenderer.setTexels(width, height, depth, texels);
 }
 
-void VolumeRendererWidget::setData(std::vector<float>& data)
+void OpenGLRendererWidget::setData(std::vector<float>& data)
 {
     makeCurrent();
     _volumeRenderer.setData(data);
 }
 
-void VolumeRendererWidget::setColors(std::vector<float>& colors)
+void OpenGLRendererWidget::setColors(std::vector<float>& colors)
 {
     makeCurrent();
     _volumeRenderer.setColors(colors);
 }
 
-void VolumeRendererWidget::initializeGL()
+void OpenGLRendererWidget::initializeGL()
 {
     initializeOpenGLFunctions();
 
-    connect(context(), &QOpenGLContext::aboutToBeDestroyed, this, &VolumeRendererWidget::cleanup);
+    connect(context(), &QOpenGLContext::aboutToBeDestroyed, this, &OpenGLRendererWidget::cleanup);
     qDebug() << "VolumeRendererWidget: InitializeGL";
     // Initialize renderers
     _volumeRenderer.init();
@@ -41,7 +41,7 @@ void VolumeRendererWidget::initializeGL()
     _isInitialized = true;
 }
 
-void VolumeRendererWidget::resizeGL(int w, int h)
+void OpenGLRendererWidget::resizeGL(int w, int h)
 {
     //_windowSize.setWidth(w);
     //_windowSize.setHeight(h);
@@ -63,7 +63,7 @@ void VolumeRendererWidget::resizeGL(int w, int h)
     //toIsotropicCoordinates = Matrix3f(wAspect, 0, 0, hAspect, -wDiff, -hDiff);
 }
 
-void VolumeRendererWidget::paintGL()
+void OpenGLRendererWidget::paintGL()
 {
     int w = width();
     int h = height();
@@ -73,14 +73,14 @@ void VolumeRendererWidget::paintGL()
     _volumeRenderer.render(_camPos, _camAngle, aspect);
 }
 
-void VolumeRendererWidget::cleanup()
+void OpenGLRendererWidget::cleanup()
 {
     _isInitialized = false;
 
     makeCurrent();
 }
 
-bool VolumeRendererWidget::eventFilter(QObject* target, QEvent* event)
+bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 {
     switch (event->type())
     {

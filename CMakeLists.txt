@@ -35,8 +35,8 @@ set(PLUGIN
 set(RENDERERS
     src/Renderer/OpenGL/VolumeRenderer.h
     src/Renderer/OpenGL/VolumeRenderer.cpp
-    src/Renderer/OpenGL/VolumeRendererWidget.h
-    src/Renderer/OpenGL/VolumeRendererWidget.cpp
+    src/Renderer/OpenGL/OpenGLRendererWidget.h
+    src/Renderer/OpenGL/OpenGLRendererWidget.cpp
 )
 
 set(ACTIONS
@@ -63,6 +63,8 @@ set(ACTIONS
 set(WIDGETS
     src/ViewerWidget.h
     src/ViewerWidget.cpp
+    src/Widgets/VolumeViewerWidget.h
+    src/Widgets/VolumeViewerWidget.cpp
 )
 
 set(QRESOURCES
