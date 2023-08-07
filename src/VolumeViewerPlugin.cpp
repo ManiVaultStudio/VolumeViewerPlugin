@@ -34,6 +34,9 @@ using namespace hdps::util;
 
 VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
+    _primaryToolbarAction(this, "PrimaryToolbar"),
+    _secondaryToolbarAction(this, "SecondaryToolbar"),
+    _settingsAction(),
     _viewerWidget(nullptr),
     _volumeRenderer(new VolumeRendererWidget()),
     //_transferWidget(nullptr),
@@ -47,7 +50,6 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _pointsColorPoints(),
     _selectionDisabled(false),
     _pointsOpacityPoints(),
-    _settingsAction(),
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
     _planeArray(std::vector<int>(3, 0)),
@@ -72,9 +74,6 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _pointColorLoaded(false),
     _pointOpacityLoaded(false),
     _clusterLoaded(false)
-{}
-
-void VolumeViewerPlugin::init()
 {
     // Add the viewerwidget and dropwidget to the layout.
     _viewerWidget = new ViewerWidget(*this);
@@ -82,12 +81,17 @@ void VolumeViewerPlugin::init()
     _dropWidget = new DropWidget(_volumeRenderer);
     _settingsAction = new SettingsAction(this, _viewerWidget, "Primary Toolbar");
 
-    
+    _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
+}
+
+void VolumeViewerPlugin::init()
+{    
     // Create the layout.
-    auto layout = new QHBoxLayout();
+    auto layout = new QVBoxLayout();
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
     //layout->addWidget(_viewerWidget, 1);
+    layout->addWidget(_primaryToolbarAction.createWidget(&getWidget()));
     layout->addWidget(_volumeRenderer, 1);
 
     //auto settingsLayout = new QVBoxLayout();

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "RendererSettingsAction.h"
+#include "Actions/PickRendererAction.h"
 
 #include <actions/GroupAction.h>
-#include "RendererSettingsAction.h"
-
 
 class VolumeViewer;
 
@@ -40,9 +40,10 @@ public:
 public: // Action getters
 
     RendererSettingsAction& getRendererSettingsAction() { return _renderSettingsAction; }
+    PickRendererAction& getPickRendererAction() { return _pickRendererAction; }
 
 protected:
-    
-    RendererSettingsAction    _renderSettingsAction;
-    
+    VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
+    RendererSettingsAction  _renderSettingsAction;
+    PickRendererAction      _pickRendererAction;
 };

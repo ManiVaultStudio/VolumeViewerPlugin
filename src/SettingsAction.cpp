@@ -8,8 +8,9 @@ using namespace hdps::gui;
 
 SettingsAction::SettingsAction(QObject* parent, ViewerWidget* viewerWidget, const QString& title) :
     GroupAction(parent, title),
-    _renderSettingsAction(this, viewerWidget,title)
-
+    _plugin(dynamic_cast<VolumeViewerPlugin*>(parent)),
+    _renderSettingsAction(this, viewerWidget,title),
+    _pickRendererAction(this, "Pick Renderer Action")
 {
     
     GroupsAction::GroupActions groupActions;
@@ -18,6 +19,7 @@ SettingsAction::SettingsAction(QObject* parent, ViewerWidget* viewerWidget, cons
     //addAction(*groupActions);
     _renderSettingsAction.setGroupActions(groupActions);
 
+    _pickRendererAction.initialize(_plugin);
 }
 
 QMenu* SettingsAction::getContextMenu(QWidget* parent /*= nullptr*/)

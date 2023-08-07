@@ -1,4 +1,5 @@
 #pragma once
+
 /** QT headers*/
 #include <QItemSelectionModel>
 #include <QWidget>
@@ -15,6 +16,7 @@
 #include <PointData/PointData.h>
 #include <ClusterData/ClusterData.h>
 #include "SettingsAction.h"
+#include <actions/HorizontalToolbarAction.h>
 #include <actions/VerticalGroupAction.h>
 //#include <ClusterData/Cluster.h>
 
@@ -24,7 +26,7 @@
 
 #include <common.h>
 
-#include "VolumeRendererWidget.h"
+#include "Renderer/OpenGL/VolumeRendererWidget.h"
 
 using hdps::plugin::ViewPluginFactory;
 using hdps::plugin::ViewPlugin;
@@ -56,6 +58,12 @@ class VolumeViewerPlugin : public ViewPlugin
     Q_OBJECT
 
 public:
+    enum class RendererBackend {
+        VTK,
+        OpenGL
+    };
+
+public:
     /** Constructor */
     VolumeViewerPlugin(const hdps::plugin::PluginFactory* factory);
 
@@ -78,6 +86,11 @@ public: // Inherited from ViewPlugin
 
 
 public: // Miscellaneous
+    void setRendererBackend(RendererBackend backend)
+    {
+        _rendererBackend = backend;
+    }
+
     /** Returns the image viewer widget */
     ViewerWidget& getViewerWidget() {
         return *_viewerWidget;
@@ -128,20 +141,22 @@ signals:
     void pointsDatasetsChanged(QStringList pointsDatasets);
 
 private:
-    SettingsAction*              _settingsAction;    /** The options menu on the side of the viewer*/
-    ViewerWidget* _viewerWidget;              /** The image viewer widget */
+    RendererBackend                     _rendererBackend;
+
+    SettingsAction*                     _settingsAction;            /** The options menu on the side of the viewer*/
+    ViewerWidget*                       _viewerWidget;              /** The image viewer widget */
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
     Dataset<Points>                     _points;                    /** Declare a points dataset reference */
-    Dataset<Points>                     _pointsParent;                    /** Declare a points dataset reference */
-    Dataset<Clusters>                     _pointsColorCluster;                    /** Declare a points dataset reference */
-    Dataset<Points>                     _pointsColorPoints;                    /** Declare a points dataset reference */
-    Dataset<Points>                     _pointsOpacityPoints;                    /** Declare a points dataset reference */
+    Dataset<Points>                     _pointsParent;              /** Declare a points dataset reference */
+    Dataset<Clusters>                   _pointsColorCluster;        /** Declare a points dataset reference */
+    Dataset<Points>                     _pointsColorPoints;         /** Declare a points dataset reference */
+    Dataset<Points>                     _pointsOpacityPoints;       /** Declare a points dataset reference */
     QStringList                         _pointsDatasets;            /** Point datasets loaded in HDPS */
-    hdps::gui::DropWidget* _dropWidget;                /** Widget for dropping data */
+    hdps::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */
     std::vector<int>                    _planeArray;                /** Array indicating the index+1 of the x,y and z clipping planes in the plane collection*/
-    std::vector<double>                  _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/
+    std::vector<double>                 _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/
     std::vector<double>                 _position;
     std::string                         _interpolationOption;       /** String for storing the current color interpolation option*/
     std::string                         _colorMap;                  /** String for storing the current color map*/
@@ -152,13 +167,15 @@ private:
     bool                                _shadingEnabled;            /** Boolian for inicating if shading should be enabled*/
     bool                                _backgroundEnabled;         /** Boolian for indicating if the non-selected datapoints should be shown*/
     bool                                _pointCloudEnabled;         /** Boolian for indicating the render option*/
-    bool                                _pointColorLoaded;         /** Boolian for indicating if the non-selected datapoints should be shown*/
-    bool                                _clusterLoaded;         /** Boolian for indicating the render option*/
+    bool                                _pointColorLoaded;          /** Boolian for indicating if the non-selected datapoints should be shown*/
+    bool                                _clusterLoaded;             /** Boolian for indicating the render option*/
     bool                                _selectionOpaque;           /** Boolian indicating wether the selected datapoints should be opaque or use the transfer function*/
     float                               _backgroundAlpha;           /** Float indcating the alpha value of the background during selection.*/
     bool                                _selectionDisabled;
     bool                                _pointOpacityLoaded;
 
+    HorizontalToolbarAction             _primaryToolbarAction;      /** Horizontal toolbar for primary content */
+    HorizontalToolbarAction             _secondaryToolbarAction;    /** Secondary toolbar for secondary content */
 };
 
 /**

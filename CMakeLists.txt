@@ -30,10 +30,39 @@ set(PLUGIN
     src/Common.h
     src/VolumeViewerPlugin.h
     src/VolumeViewerPlugin.cpp
-    src/VolumeRenderer.h
-    src/VolumeRenderer.cpp
-    src/VolumeRendererWidget.h
-    src/VolumeRendererWidget.cpp
+)
+
+set(RENDERERS
+    src/Renderer/OpenGL/VolumeRenderer.h
+    src/Renderer/OpenGL/VolumeRenderer.cpp
+    src/Renderer/OpenGL/VolumeRendererWidget.h
+    src/Renderer/OpenGL/VolumeRendererWidget.cpp
+)
+
+set(ACTIONS
+    src/ColoringAction.h
+    src/ColoringAction.cpp
+    src/DimensionAction.h
+    src/DimensionAction.cpp
+    src/PositionAction.h
+    src/PositionAction.cpp
+    src/RendererSettingsAction.h
+    src/RendererSettingsAction.cpp
+    src/SelectedPointsAction.h
+    src/SelectedPointsAction.cpp
+    src/SettingsAction.h
+    src/SettingsAction.cpp
+    src/SlicingAction.h
+    src/SlicingAction.cpp
+    src/ThresholdAction.h
+    src/ThresholdAction.cpp
+    src/Actions/PickRendererAction.h
+    src/Actions/PickRendererAction.cpp
+)
+
+set(WIDGETS
+    src/ViewerWidget.h
+    src/ViewerWidget.cpp
 )
 
 set(QRESOURCES
@@ -42,14 +71,13 @@ set(QRESOURCES
 
 QT6_ADD_RESOURCES(RESOURCE_FILES ${QRESOURCES})
 
-file(GLOB ACTIONS src/*Action.*)
-file(GLOB WIDGETS src/*Widget.*)
 file(GLOB JSON src/*.json)
 
-set(SOURCES ${PLUGIN} ${WIDGETS} ${ACTIONS})
+set(SOURCES ${PLUGIN} ${RENDERERS} ${WIDGETS} ${ACTIONS})
 set(AUX ${JSON})
 
 source_group(Plugin FILES ${PLUGIN})
+source_group(Renderers FILES ${RENDERERS})
 source_group(Widgets FILES ${WIDGETS})
 source_group(Actions FILES ${ACTIONS})
 source_group(Resources FILES ${QRESOURCES})
