@@ -21,7 +21,7 @@ endif(MSVC)
 find_package(VTK CONFIG REQUIRED)
 
 find_package(OpenGL REQUIRED)
-find_package(Qt6 6.3.2 COMPONENTS Core Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
+find_package(Qt6 6.3 COMPONENTS Core Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
 find_package(OpenMP)
 # Normalize the incoming install path
 file(TO_CMAKE_PATH $ENV{HDPS_INSTALL_DIR} INSTALL_DIR)
