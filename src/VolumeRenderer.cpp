@@ -135,7 +135,7 @@ void VolumeRenderer::render(hdps::Vector3f camPos, hdps::Vector2f camAngle, floa
     _pointsShaderProgram.bind();
 
     _projMatrix.setToIdentity();
-    float fovyr = 1.04719755;
+    float fovyr = 1.57079633;
     float zNear = 0.1f;
     float zFar = 100;
     _projMatrix.data()[0] = (float)(1 / tan(fovyr / 2)) / aspect;
@@ -143,7 +143,7 @@ void VolumeRenderer::render(hdps::Vector3f camPos, hdps::Vector2f camAngle, floa
     _projMatrix.data()[10] = (zNear + zFar) / (zNear - zFar);
     _projMatrix.data()[11] = -1;
     _projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
-    _projMatrix.data()[15] = -0;
+    _projMatrix.data()[15] = 0;
 
     _viewMatrix.setToIdentity();
     //_viewMatrix.rotate(camAngle.y * (180 / 3.14159), 0, 1, 0);
