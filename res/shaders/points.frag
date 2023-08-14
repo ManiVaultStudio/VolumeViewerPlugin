@@ -2,6 +2,8 @@
 
 uniform bool hasColors;
 
+uniform sampler2D colormap;
+
 in float v_Color;
 
 out vec4 fragColor;
@@ -9,7 +11,10 @@ out vec4 fragColor;
 void main()
 {
     if (hasColors)
-        fragColor = vec4(1, 0, 0, v_Color);// + vec4(1, 1, 1, 0.01);
+    {
+        vec3 color = texture(colormap, vec2(v_Color, 1 - v_Color)).rgb;
+        fragColor = vec4(color, v_Color*2);// + vec4(1, 1, 1, 0.01);
+    }
     else
-        fragColor = vec4(1, 1, 1, 0.01);
+        fragColor = vec4(1, 1, 1, 0.2/255);
 }

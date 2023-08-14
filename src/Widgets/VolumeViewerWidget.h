@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Dataset.h"
+#include "PointData/PointData.h"
+
 #include <QWidget>
 
 #include <vector>
@@ -7,6 +10,8 @@
 class VolumeViewerPlugin;
 class ViewerWidget;
 class OpenGLRendererWidget;
+
+using namespace hdps;
 
 /**
  * Volume Renderer Widget
@@ -20,6 +25,8 @@ class VolumeViewerWidget : public QWidget
 
 public:
     VolumeViewerWidget(QObject* parent, const QString& title);
+
+    void setData(Dataset<Points> points);
 
 public:
     ViewerWidget* getVTKWidget()

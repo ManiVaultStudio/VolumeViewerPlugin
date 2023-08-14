@@ -90,6 +90,11 @@ public: // Miscellaneous
     {
         _rendererBackend = backend;
     }
+    
+    RendererBackend getRendererBackend()
+    {
+        return _rendererBackend;
+    }
 
     /** Returns the image viewer widget */
     ViewerWidget& getViewerWidget() {

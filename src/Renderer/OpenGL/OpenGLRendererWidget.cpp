@@ -6,7 +6,7 @@
 OpenGLRendererWidget::OpenGLRendererWidget()
 {
     setAcceptDrops(true);
-
+    setFocusPolicy(Qt::FocusPolicy::ClickFocus);
     installEventFilter(this);
 }
 
@@ -28,6 +28,11 @@ void OpenGLRendererWidget::setColors(std::vector<float>& colors)
     _volumeRenderer.setColors(colors);
 }
 
+void OpenGLRendererWidget::setColormap(const QImage& colormap)
+{
+    _volumeRenderer.setColormap(colormap);
+}
+
 void OpenGLRendererWidget::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -43,6 +48,7 @@ void OpenGLRendererWidget::initializeGL()
 
 void OpenGLRendererWidget::resizeGL(int w, int h)
 {
+    _volumeRenderer.resize(w, h);
     //_windowSize.setWidth(w);
     //_windowSize.setHeight(h);
 
@@ -70,7 +76,7 @@ void OpenGLRendererWidget::paintGL()
 
     float aspect = (float)w / h;
 
-    _volumeRenderer.render(_camPos, _camAngle, aspect);
+    _volumeRenderer.render(defaultFramebufferObject(), _camPos, _camAngle, aspect);
 }
 
 void OpenGLRendererWidget::cleanup()
@@ -84,8 +90,16 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 {
     switch (event->type())
     {
+    case QEvent::KeyRelease:
+    {
+        qDebug() << "Beep";
+        makeCurrent();
+        _volumeRenderer.reloadShader();
+        break;
+    }
     case QEvent::MouseButtonPress:
     {
+        qDebug() << "Mouse press";
         auto mouseEvent = static_cast<QMouseEvent*>(event);
 
         QPointF mousePos = QPointF(mouseEvent->position().x(), mouseEvent->position().y());

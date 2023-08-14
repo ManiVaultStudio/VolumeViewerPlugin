@@ -282,77 +282,9 @@ void VolumeViewerPlugin::init()
             _imageData = _volumeViewerWidget->getVTKWidget()->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
         }
 
-        int numDimensions = _points->getNumDimensions();
-        if (numDimensions != 3) qDebug() << "WARNING: DIMENSIONS ARE NOT 3";
-        std::vector<float> values(_points->getNumPoints() * _points->getNumDimensions());
+        _volumeViewerWidget->setData(_points);
 
-        QVector3D minCoord(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-        QVector3D maxCoord(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
-        QVector3D meanCoord(0, 0, 0);
-        for (int i = 0; i < _points->getNumPoints(); i++)
-        {
-            float x = _points->getValueAt(i * numDimensions + 0);
-            float y = _points->getValueAt(i * numDimensions + 1);
-            float z = _points->getValueAt(i * numDimensions + 2);
-
-            if (x < minCoord.x()) minCoord.setX(x);
-            if (x > maxCoord.x()) maxCoord.setX(x);
-            if (y < minCoord.y()) minCoord.setY(y);
-            if (y > maxCoord.y()) maxCoord.setY(y);
-            if (z < minCoord.z()) minCoord.setZ(z);
-            if (z > maxCoord.z()) maxCoord.setZ(z);
-            meanCoord += QVector3D(x, y, z);
-        }
-        meanCoord /= _points->getNumPoints();
-        QVector3D range = maxCoord - minCoord;
-        float maxRange = std::max(range.x(), std::max(range.y(), range.z()));
-        for (int i = 0; i < _points->getNumPoints(); i++)
-        {
-            float x = _points->getValueAt(i * numDimensions + 0);
-            float y = _points->getValueAt(i * numDimensions + 1);
-            float z = _points->getValueAt(i * numDimensions + 2);
-
-            values[i * 3 + 0] = (x - meanCoord.x()) / maxRange;
-            values[i * 3 + 1] = (y - meanCoord.y()) / maxRange;
-            values[i * 3 + 2] = (z - meanCoord.z()) / maxRange;
-        }
-
-        //QVariant xQSize = _points->getProperty("xDim");
-        //int xSize = xQSize.toInt();
-        //QVariant yQSize = _points->getProperty("yDim");
-        //int ySize = yQSize.toInt();
-        //QVariant zQSize = _points->getProperty("zDim");
-        //int zSize = zQSize.toInt();
-        qDebug() << minCoord << maxCoord;
-        int xSize = (maxCoord.x() - minCoord.x()) * 10 + 1;
-        int ySize = (maxCoord.y() - minCoord.y()) * 10 + 1;
-        int zSize = (maxCoord.z() - minCoord.z()) * 10 + 1;
-        qDebug() << xSize << ySize << zSize;
-        std::vector<float> texels(xSize * ySize * zSize, 0);
-        //for (int z = 0; z < zSize; z++)
-        //{
-        //    for (int x = 0; x < xSize; x++)
-        //    {
-        //        for (int y = 0; y < ySize; y++)
-        //        {
-
-        //        }
-        //    }
-        //}
-        for (int i = 0; i < _points->getNumPoints(); i++)
-        {
-            int x = _points->getValueAt(i * numDimensions + 0) * 10;
-            int y = _points->getValueAt(i * numDimensions + 1) * 10;
-            int z = _points->getValueAt(i * numDimensions + 2) * 10;
-            //qDebug() << x << y << z;
-            texels[x * ySize * zSize + y * zSize + z] = 1;
-        }
-
-        _volumeViewerWidget->getOpenGLWidget()->setData(values);
-
-        //Initial render.
         runRenderData();
-        _volumeViewerWidget->getOpenGLWidget()->update();
 
         // set the maximum x, y and z values for the slicing options
         _settingsAction->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]);
@@ -420,6 +352,10 @@ void VolumeViewerPlugin::init()
         }
         else if (_rendererBackend == RendererBackend::OpenGL)
         {
+            auto& colorMapAction = getRendererSettingsAction().getColoringAction().getColorMapAction();
+            auto colorMapImage = colorMapAction.getColorMapImage();
+            _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
+
             std::vector<float> colors;
             _pointsColorPoints->extractDataForDimension(colors, 0);
 
@@ -944,6 +880,8 @@ void VolumeViewerPlugin::init()
         if (_dataLoaded) {
             runRenderData();
         }
+
+        _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
     });
 
     // Selection changed connection.

@@ -1,5 +1,7 @@
 #include "VolumeRenderer.h"
 
+#include <QImage>
+
 #include <random>
 
 void VolumeRenderer::setTexels(int width, int height, int depth, std::vector<float>& texels)
@@ -22,13 +24,13 @@ void VolumeRenderer::setTexels(int width, int height, int depth, std::vector<flo
     //    if (texels[i] == 1)
     //        qDebug() << texels[i];
     //}
-    glBindTexture(GL_TEXTURE_2D_ARRAY, _texture);
-    glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_R32F, width, height, depth);
-    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, depth, GL_RED, GL_FLOAT, texels.data());
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    //glBindTexture(GL_TEXTURE_2D_ARRAY, _texture);
+    //glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_R32F, width, height, depth);
+    //glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, depth, GL_RED, GL_FLOAT, texels.data());
+    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
 void VolumeRenderer::setData(std::vector<float>& data)
@@ -60,21 +62,48 @@ void VolumeRenderer::setColors(std::vector<float>& colors)
     _hasColors = true;
 }
 
+void VolumeRenderer::setColormap(const QImage& colormap)
+{
+    _colormap.loadFromImage(colormap);
+    qDebug() << "Colormap is set!";
+}
+
+void VolumeRenderer::reloadShader()
+{
+    _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/points.frag");
+    qDebug() << "Shaders reloaded";
+}
+
 void VolumeRenderer::init()
 {
     initializeOpenGLFunctions();
     
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+    // Make float buffer to support low alpha blending
+    _colorAttachment.create();
+    _colorAttachment.bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1, 1, 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    _framebuffer.create();
+    _framebuffer.bind();
+    _framebuffer.addColorTexture(0, &_colorAttachment);
+    _framebuffer.validate();
+
     bool loaded = true;
     //loaded &= _volumeShaderProgram.loadShaderFromFile("volume.vert", "volume.frag");
     loaded &= _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/points.frag");
+    loaded &= _framebufferShaderProgram.loadShaderFromFile(":shaders/Quad.vert", ":shaders/Texture.frag");
 
     if (!loaded) {
         qCritical() << "Failed to load one of the Volume Renderer shaders";
     }
 
-    glGenTextures(1, &_texture);
+    //glGenTextures(1, &_texture);
 
     glGenVertexArrays(1, &vao);
 
@@ -83,7 +112,7 @@ void VolumeRenderer::init()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    glPointSize(2);
+    glPointSize(3);
 
     /////////////
     //int width = 200;
@@ -118,8 +147,20 @@ void VolumeRenderer::init()
     //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-void VolumeRenderer::render(hdps::Vector3f camPos, hdps::Vector2f camAngle, float aspect)
+void VolumeRenderer::resize(int w, int h)
 {
+    qDebug() << "Resize called";
+    _colorAttachment.bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
+
+    glViewport(0, 0, w, h);
+}
+
+void VolumeRenderer::render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vector2f camAngle, float aspect)
+{
+    _framebuffer.bind();
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
     glClear(GL_COLOR_BUFFER_BIT);
 
 #ifdef VOLUME
@@ -158,15 +199,38 @@ void VolumeRenderer::render(hdps::Vector3f camPos, hdps::Vector2f camAngle, floa
     _pointsShaderProgram.uniformMatrix4f("projMatrix", _projMatrix.data());
     _pointsShaderProgram.uniformMatrix4f("viewMatrix", _viewMatrix.data());
     _pointsShaderProgram.uniformMatrix4f("modelMatrix", _modelMatrix.data());
-
-    _pointsShaderProgram.uniform1i("hasColors", _hasColors);
-
+    
     glBindVertexArray(vao);
 
-    glDrawArrays(GL_POINTS, 0, _numPoints);
+    if (_hasColors)
+    {
+        _pointsShaderProgram.uniform1i("hasColors", _hasColors);
+
+        if (_colormap.isCreated())
+        {
+            _colormap.bind(0);
+            _pointsShaderProgram.uniform1i("colormap", 0);
+        }
+
+        glDrawArrays(GL_POINTS, 0, _numPoints);
+    }
 
     _pointsShaderProgram.uniform1i("hasColors", false);
 
     glDrawArrays(GL_POINTS, 0, _numPoints);
+
+    ///////////////////////////////////////////////////////////////////////
+    // Draw the color framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glDrawBuffer(GL_BACK);
+
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    _framebufferShaderProgram.bind();
+
+    _colorAttachment.bind(0);
+    _framebufferShaderProgram.uniform1i("tex", 0);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 #endif
 }
