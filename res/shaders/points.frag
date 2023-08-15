@@ -16,5 +16,5 @@ void main()
         fragColor = vec4(color, v_Color*2);// + vec4(1, 1, 1, 0.01);
     }
     else
-        fragColor = vec4(1, 1, 1, 0.5/255);
+        fragColor = vec4(1, 1, 1, 0.3/255);
 }
