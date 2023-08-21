@@ -6,7 +6,7 @@
 #include "ColoringAction.h"
 #include "DimensionAction.h"
 #include "SelectedPointsAction.h"
-#include "ColoringActionPointcloud.h"
+#include "ColoringActionPointCloud.h"
 
 class VolumeViewer;
 
