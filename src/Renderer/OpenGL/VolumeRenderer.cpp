@@ -83,7 +83,7 @@ void VolumeRenderer::init()
     // Make float buffer to support low alpha blending
     _colorAttachment.create();
     _colorAttachment.bind();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1, 1, 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1, 1, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -110,7 +110,8 @@ void VolumeRenderer::init()
     qDebug() << "Initialized volume renderer";
 
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
     glPointSize(3);
 
@@ -151,7 +152,7 @@ void VolumeRenderer::resize(int w, int h)
 {
     qDebug() << "Resize called";
     _colorAttachment.bind();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, nullptr);
 
     glViewport(0, 0, w, h);
 }
@@ -160,6 +161,10 @@ void VolumeRenderer::render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vec
 {
     _framebuffer.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+    glEnable(GL_BLEND);
+    glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -179,12 +184,12 @@ void VolumeRenderer::render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vec
     float fovyr = 1.57079633;
     float zNear = 0.1f;
     float zFar = 100;
-    //_projMatrix.data()[0] = (float)(1 / tan(fovyr / 2)) / aspect;
-    //_projMatrix.data()[5] = (float)(1 / tan(fovyr / 2));
-    //_projMatrix.data()[10] = (zNear + zFar) / (zNear - zFar);
-    //_projMatrix.data()[11] = -1;
-    //_projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
-    //_projMatrix.data()[15] = 0;
+    _projMatrix.data()[0] = (float)(1 / tan(fovyr / 2)) / aspect;
+    _projMatrix.data()[5] = (float)(1 / tan(fovyr / 2));
+    _projMatrix.data()[10] = (zNear + zFar) / (zNear - zFar);
+    _projMatrix.data()[11] = -1;
+    _projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
+    _projMatrix.data()[15] = 0;
 
     //_projMatrix.data()[12] = 1;
 
@@ -204,6 +209,10 @@ void VolumeRenderer::render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vec
     
     glBindVertexArray(vao);
 
+    _pointsShaderProgram.uniform1i("hasColors", false);
+
+    glDrawArrays(GL_POINTS, 0, _numPoints);
+
     if (_hasColors)
     {
         _pointsShaderProgram.uniform1i("hasColors", _hasColors);
@@ -217,14 +226,12 @@ void VolumeRenderer::render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vec
         glDrawArrays(GL_POINTS, 0, _numPoints);
     }
 
-    _pointsShaderProgram.uniform1i("hasColors", false);
-
-    glDrawArrays(GL_POINTS, 0, _numPoints);
-
     ///////////////////////////////////////////////////////////////////////
     // Draw the color framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glDrawBuffer(GL_BACK);
+
+    glDisable(GL_BLEND);
 
     glClear(GL_COLOR_BUFFER_BIT);
 
