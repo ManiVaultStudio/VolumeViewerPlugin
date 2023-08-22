@@ -27,6 +27,7 @@ public:
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
+    void setCursorPoint(hdps::Vector3f cursorPoint);
 
 public:
     bool eventFilter(QObject* target, QEvent* event);

@@ -41,7 +41,7 @@ void VolumeViewerWidget::setData(Dataset<Points> points)
 
         QVector3D minCoord(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
         QVector3D maxCoord(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
-        QVector3D meanCoord(0, 0, 0);
+        _meanCoord = QVector3D(0, 0, 0);
         for (int i = 0; i < points->getNumPoints(); i++)
         {
             float x = points->getValueAt(i * numDimensions + 0);
@@ -54,37 +54,37 @@ void VolumeViewerWidget::setData(Dataset<Points> points)
             if (y > maxCoord.y()) maxCoord.setY(y);
             if (z < minCoord.z()) minCoord.setZ(z);
             if (z > maxCoord.z()) maxCoord.setZ(z);
-            meanCoord += QVector3D(x, y, z);
+            _meanCoord += QVector3D(x, y, z);
         }
-        meanCoord /= points->getNumPoints();
+        _meanCoord /= points->getNumPoints();
         QVector3D range = maxCoord - minCoord;
-        float maxRange = std::max(range.x(), std::max(range.y(), range.z()));
+        _maxRange = std::max(range.x(), std::max(range.y(), range.z()));
         for (int i = 0; i < points->getNumPoints(); i++)
         {
             float x = points->getValueAt(i * numDimensions + 0);
             float y = points->getValueAt(i * numDimensions + 1);
             float z = points->getValueAt(i * numDimensions + 2);
 
-            values[i * 3 + 0] = (x - meanCoord.x()) / maxRange;
-            values[i * 3 + 1] = (y - meanCoord.y()) / maxRange;
-            values[i * 3 + 2] = (z - meanCoord.z()) / maxRange;
+            values[i * 3 + 0] = (x - _meanCoord.x()) / _maxRange;
+            values[i * 3 + 1] = (y - _meanCoord.y()) / _maxRange;
+            values[i * 3 + 2] = (z - _meanCoord.z()) / _maxRange;
         }
 
-        qDebug() << minCoord << maxCoord;
-        int xSize = (maxCoord.x() - minCoord.x()) * 10 + 1;
-        int ySize = (maxCoord.y() - minCoord.y()) * 10 + 1;
-        int zSize = (maxCoord.z() - minCoord.z()) * 10 + 1;
-        qDebug() << xSize << ySize << zSize;
-        std::vector<float> texels(xSize * ySize * zSize, 0);
+        //qDebug() << minCoord << maxCoord;
+        //int xSize = (maxCoord.x() - minCoord.x()) * 10 + 1;
+        //int ySize = (maxCoord.y() - minCoord.y()) * 10 + 1;
+        //int zSize = (maxCoord.z() - minCoord.z()) * 10 + 1;
+        //qDebug() << xSize << ySize << zSize;
+        //std::vector<float> texels(xSize * ySize * zSize, 0);
 
-        for (int i = 0; i < points->getNumPoints(); i++)
-        {
-            int x = points->getValueAt(i * numDimensions + 0) * 10;
-            int y = points->getValueAt(i * numDimensions + 1) * 10;
-            int z = points->getValueAt(i * numDimensions + 2) * 10;
-            //qDebug() << x << y << z;
-            texels[x * ySize * zSize + y * zSize + z] = 1;
-        }
+        //for (int i = 0; i < points->getNumPoints(); i++)
+        //{
+        //    int x = points->getValueAt(i * numDimensions + 0) * 10;
+        //    int y = points->getValueAt(i * numDimensions + 1) * 10;
+        //    int z = points->getValueAt(i * numDimensions + 2) * 10;
+        //    //qDebug() << x << y << z;
+        //    texels[x * ySize * zSize + y * zSize + z] = 1;
+        //}
 
         getOpenGLWidget()->setData(values);
 
@@ -94,4 +94,10 @@ void VolumeViewerWidget::setData(Dataset<Points> points)
         break;
     }
     }
+}
+
+void VolumeViewerWidget::setCursorPoint(hdps::Vector3f cursorPoint)
+{
+    QVector3D normCursorPoint = (QVector3D(cursorPoint.x, cursorPoint.y, cursorPoint.z) - _meanCoord) / _maxRange;
+    _openGLWidget->setCursorPoint(Vector3f(normCursorPoint.x(), normCursorPoint.y(), normCursorPoint.z()));
 }

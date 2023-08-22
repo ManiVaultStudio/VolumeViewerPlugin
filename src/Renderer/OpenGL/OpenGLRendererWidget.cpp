@@ -33,6 +33,12 @@ void OpenGLRendererWidget::setColormap(const QImage& colormap)
     _volumeRenderer.setColormap(colormap);
 }
 
+void OpenGLRendererWidget::setCursorPoint(hdps::Vector3f cursorPoint)
+{
+    _volumeRenderer.setCursorPoint(cursorPoint);
+    update();
+}
+
 void OpenGLRendererWidget::initializeGL()
 {
     initializeOpenGLFunctions();

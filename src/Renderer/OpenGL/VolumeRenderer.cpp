@@ -68,6 +68,12 @@ void VolumeRenderer::setColormap(const QImage& colormap)
     qDebug() << "Colormap is set!";
 }
 
+void VolumeRenderer::setCursorPoint(hdps::Vector3f cursorPoint)
+{
+    _cursorPoint = cursorPoint;
+    qDebug() << _cursorPoint.x << _cursorPoint.y << _cursorPoint.z;
+}
+
 void VolumeRenderer::reloadShader()
 {
     _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/points.frag");
@@ -114,6 +120,15 @@ void VolumeRenderer::init()
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
     glPointSize(3);
+
+    glGenVertexArrays(1, &_cursorVao);
+    glBindVertexArray(_cursorVao);
+
+    glGenBuffers(1, &_cursorVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, _cursorVbo);
+    glBufferData(GL_ARRAY_BUFFER, 0 * sizeof(float), nullptr, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(0);
 
     /////////////
     //int width = 200;
@@ -207,6 +222,7 @@ void VolumeRenderer::render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vec
     _pointsShaderProgram.uniformMatrix4f("viewMatrix", _viewMatrix.data());
     _pointsShaderProgram.uniformMatrix4f("modelMatrix", _modelMatrix.data());
     
+    glPointSize(3);
     glBindVertexArray(vao);
 
     _pointsShaderProgram.uniform1i("hasColors", false);
@@ -225,6 +241,18 @@ void VolumeRenderer::render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vec
 
         glDrawArrays(GL_POINTS, 0, _numPoints);
     }
+
+    // Draw the cursor
+    _pointsShaderProgram.uniform1i("isCursor", 1);
+    glBindVertexArray(_cursorVao);
+    glBindBuffer(GL_ARRAY_BUFFER, _cursorVbo);
+    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &_cursorPoint, GL_STATIC_DRAW);
+
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(20);
+    glDrawArrays(GL_POINTS, 0, 1);
+    _pointsShaderProgram.uniform1i("isCursor", 0);
+    glDisable(GL_POINT_SMOOTH);
 
     ///////////////////////////////////////////////////////////////////////
     // Draw the color framebuffer

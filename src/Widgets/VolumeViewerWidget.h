@@ -4,6 +4,9 @@
 #include "PointData/PointData.h"
 
 #include <QWidget>
+#include <QVector3D>
+
+#include "graphics/Vector3f.h"
 
 #include <vector>
 
@@ -27,6 +30,7 @@ public:
     VolumeViewerWidget(QObject* parent, const QString& title);
 
     void setData(Dataset<Points> points);
+    void setCursorPoint(hdps::Vector3f cursorPoint);
 
 public:
     ViewerWidget* getVTKWidget()
@@ -44,4 +48,7 @@ private:
 
     ViewerWidget*           _vtkWidget;
     OpenGLRendererWidget*   _openGLWidget;
+
+    QVector3D _meanCoord;
+    float _maxRange;
 };

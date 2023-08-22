@@ -295,7 +295,6 @@ void VolumeViewerPlugin::init()
         _dataLoaded = true;
     });
 
-
     connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this]() {
         if (_rendererBackend == RendererBackend::VTK)
         {
@@ -887,9 +886,7 @@ void VolumeViewerPlugin::init()
     // Selection changed connection.
     connect(&_points, &Dataset<Points>::dataSelectionChanged, this, [this] {
         // if data is loaded
-
         if (_dataLoaded && !_selectionDisabled) {
-
             // Get the selection set that changed
             const auto& selectionSet = _points->getSelection<Points>();
 
@@ -914,9 +911,18 @@ void VolumeViewerPlugin::init()
             // Render the data with the current slicing planes and selections
             runRenderData();
 
+            if (selectionSet->indices.size() == 1)
+            {
+                int selectedPoint = selectionSet->indices[0];
 
+                float x = _points->getValueAt(_points->getNumDimensions() * selectedPoint + 0);
+                float y = _points->getValueAt(_points->getNumDimensions() * selectedPoint + 1);
+                float z = _points->getValueAt(_points->getNumDimensions() * selectedPoint + 2);
+                _volumeViewerWidget->setCursorPoint(Vector3f(x, y, z));
+            }
         }
     });// Selection changed connection.
+
     connect(&_pointsParent, &Dataset<Points>::dataSelectionChanged, this, [this] {
         // if data is loaded
 

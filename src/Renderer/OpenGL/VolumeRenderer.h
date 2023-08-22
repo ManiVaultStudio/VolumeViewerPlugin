@@ -24,6 +24,7 @@ public:
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
+    void setCursorPoint(hdps::Vector3f cursorPoint);
     void reloadShader();
 
     void init();
@@ -44,6 +45,10 @@ private:
     GLuint vbo;
     GLuint cbo;
     int _numPoints = 0;
+
+    GLuint _cursorVao;
+    GLuint _cursorVbo;
+    hdps::Vector3f _cursorPoint;
 
     bool _hasColors = false;
 
