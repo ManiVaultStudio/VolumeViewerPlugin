@@ -81,7 +81,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     //_viewerWidget = new ViewerWidget(*this);
     // Add the dropwidget to the layout.
     _dropWidget = new DropWidget(_volumeViewerWidget);
-    _settingsAction = new SettingsAction(this, "Primary Toolbar");
+    _settingsAction = new SettingsAction(this, "SettingsAction");
 
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
 }
@@ -1024,4 +1024,30 @@ void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {
     _position[1] = y;
     _position[2] = z;
 
+}
+
+/******************************************************************************
+ * Serialization
+ ******************************************************************************/
+
+void VolumeViewerPlugin::fromVariantMap(const QVariantMap& variantMap)
+{
+    //_loadingFromProject = true;
+
+    ViewPlugin::fromVariantMap(variantMap);
+
+    variantMapMustContain(variantMap, "SettingsAction");
+
+    _settingsAction->fromVariantMap(variantMap["SettingsAction"].toMap());
+
+    //_loadingFromProject = false;
+}
+
+QVariantMap VolumeViewerPlugin::toVariantMap() const
+{
+    QVariantMap variantMap = ViewPlugin::toVariantMap();
+
+    _settingsAction->insertIntoVariantMap(variantMap);
+
+    return variantMap;
 }

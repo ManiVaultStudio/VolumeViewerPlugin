@@ -141,6 +141,19 @@ public: // Miscellaneous
         return _points;
     }
 
+public: // Serialization
+    /**
+    * Load plugin from variant map
+    * @param Variant map representation of the plugin
+    */
+    void fromVariantMap(const QVariantMap& variantMap) override;
+
+    /**
+    * Save plugin to variant map
+    * @return Variant map representation of the plugin
+    */
+    QVariantMap toVariantMap() const override;
+
 signals:
     /** Signals that list of point datasets in HDPS has changed */
     void pointsDatasetsChanged(QStringList pointsDatasets);

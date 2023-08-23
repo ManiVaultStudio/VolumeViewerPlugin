@@ -1,7 +1,8 @@
 #pragma once
 
 #include "RendererSettingsAction.h"
-#include "Actions/PickRendererAction.h"
+#include "actions/PickRendererAction.h"
+#include "actions/DatasetPickerAction.h"
 
 #include <actions/GroupAction.h>
 
@@ -34,6 +35,19 @@ public:
     QMenu* getContextMenu(QWidget* parent = nullptr) override;
     /** Get reference to the image viewer plugin */
     
+public: // Serialization
+
+    /**
+     * Load plugin from variant map
+     * @param Variant map representation of the plugin
+     */
+    void fromVariantMap(const QVariantMap& variantMap) override;
+
+    /**
+     * Save plugin to variant map
+     * @return Variant map representation of the plugin
+     */
+    QVariantMap toVariantMap() const override;
 
 public: // Action getters
 
@@ -44,4 +58,5 @@ protected:
     VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
     RendererSettingsAction  _renderSettingsAction;
     PickRendererAction      _pickRendererAction;
+    DatasetPickerAction     _positionDatasetPickerAction;
 };
