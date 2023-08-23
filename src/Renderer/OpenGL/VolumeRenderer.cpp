@@ -249,7 +249,7 @@ void VolumeRenderer::render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vec
     glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &_cursorPoint, GL_STATIC_DRAW);
 
     glEnable(GL_POINT_SMOOTH);
-    glPointSize(10);
+    glPointSize(15);
     glDrawArrays(GL_POINTS, 0, 1);
     _pointsShaderProgram.uniform1i("isCursor", 0);
     glDisable(GL_POINT_SMOOTH);
