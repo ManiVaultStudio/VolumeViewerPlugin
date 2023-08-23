@@ -11,7 +11,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _plugin(dynamic_cast<VolumeViewerPlugin*>(parent)),
     _renderSettingsAction(this, title),
     _pickRendererAction(this, "Pick Renderer Action"),
-    _positionDatasetPickerAction(this, "Position")
+    _positionDatasetPickerAction(this, "Position"),
+    _colorDatasetPickerAction(this, "ColorPoints")
 {
     GroupsAction::GroupActions groupActions;
 
@@ -21,13 +22,20 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     _pickRendererAction.initialize(_plugin);
 
-    connect(&_positionDatasetPickerAction, &DatasetPickerAction::datasetPicked, [this](Dataset<DatasetImpl> pickedDataset) -> void {
-        _plugin->getDataset() = pickedDataset;
-        //_scatterplotPlugin->positionDatasetChanged();
-    });
+    //connect(&_positionDatasetPickerAction, &DatasetPickerAction::datasetPicked, [this](Dataset<DatasetImpl> pickedDataset) -> void {
+    //    _plugin->getDataset() = pickedDataset;
+    //});
 
     connect(&_plugin->getDataset(), &Dataset<Points>::changed, this, [this](DatasetImpl* dataset) -> void {
         _positionDatasetPickerAction.setCurrentDataset(dataset);
+    });
+
+    //connect(&_colorDatasetPickerAction, &DatasetPickerAction::datasetPicked, [this](Dataset<DatasetImpl> pickedDataset) -> void {
+    //    _plugin->getColorDataset() = pickedDataset;
+    //});
+
+    connect(&_plugin->getColorDataset(), &Dataset<Points>::changed, this, [this](DatasetImpl* dataset) -> void {
+        _colorDatasetPickerAction.setCurrentDataset(dataset);
     });
 }
 
@@ -45,12 +53,20 @@ void SettingsAction::fromVariantMap(const QVariantMap& variantMap)
     _pickRendererAction.fromParentVariantMap(variantMap);
 
     _positionDatasetPickerAction.fromParentVariantMap(variantMap);
+    _colorDatasetPickerAction.fromParentVariantMap(variantMap);
 
     auto positionDataset = _positionDatasetPickerAction.getCurrentDataset();
     if (positionDataset.isValid())
     {
         Dataset pickedDataset = core()->getDataManager().getSet(positionDataset.getDatasetId());
         _plugin->getDataset() = pickedDataset;
+    }
+
+    auto colorDataset = _colorDatasetPickerAction.getCurrentDataset();
+    if (colorDataset.isValid())
+    {
+        Dataset pickedDataset = core()->getDataManager().getSet(colorDataset.getDatasetId());
+        _plugin->getColorDataset() = pickedDataset;
     }
 }
 
@@ -61,6 +77,7 @@ QVariantMap SettingsAction::toVariantMap() const
     _pickRendererAction.insertIntoVariantMap(variantMap);
 
     _positionDatasetPickerAction.insertIntoVariantMap(variantMap);
+    _colorDatasetPickerAction.insertIntoVariantMap(variantMap);
 
     return variantMap;
 }

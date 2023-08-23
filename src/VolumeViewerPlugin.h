@@ -141,6 +141,10 @@ public: // Miscellaneous
         return _points;
     }
 
+    Dataset<Points>& getColorDataset() {
+        return _pointsColorPoints;
+    }
+
 public: // Serialization
     /**
     * Load plugin from variant map

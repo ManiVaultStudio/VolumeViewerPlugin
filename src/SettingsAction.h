@@ -59,4 +59,5 @@ protected:
     RendererSettingsAction  _renderSettingsAction;
     PickRendererAction      _pickRendererAction;
     DatasetPickerAction     _positionDatasetPickerAction;
+    DatasetPickerAction     _colorDatasetPickerAction;
 };
