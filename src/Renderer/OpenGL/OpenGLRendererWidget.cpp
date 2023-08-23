@@ -20,6 +20,7 @@ void OpenGLRendererWidget::setData(std::vector<float>& data)
 {
     makeCurrent();
     _volumeRenderer.setData(data);
+    update();
 }
 
 void OpenGLRendererWidget::setColors(std::vector<float>& colors)
@@ -50,6 +51,8 @@ void OpenGLRendererWidget::initializeGL()
     qDebug() << "VolumeRendererWidget: InitializeGL Done";
     // OpenGL is initialized
     _isInitialized = true;
+
+    _camPos.set(0, 0, _camDist);
 }
 
 void OpenGLRendererWidget::resizeGL(int w, int h)
