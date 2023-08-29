@@ -6,7 +6,7 @@
 #include "ColoringAction.h"
 #include "DimensionAction.h"
 #include "SelectedPointsAction.h"
-#include "ColoringActionPointcloud.h"
+#include "ColoringActionPointCloud.h"
 
 class VolumeViewer;
 
@@ -29,7 +29,7 @@ public:
      * Constructor
      * @param parent Pointer to parent object
      */
-    Q_INVOKABLE RendererSettingsAction(QObject* parent, ViewerWidget* viewerWidget, const QString& title);
+    Q_INVOKABLE RendererSettingsAction(QObject* parent, const QString& title);
 
 public: /** Action getters */
     DimensionAction& getDimensionAction() { return _dimensionAction; }

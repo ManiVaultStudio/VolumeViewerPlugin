@@ -1,11 +1,10 @@
 #pragma once
 
+#include "RendererSettingsAction.h"
+#include "actions/PickRendererAction.h"
+#include "actions/DatasetPickerAction.h"
 
 #include <actions/GroupAction.h>
-#include "RendererSettingsAction.h"
-
-
-class VolumeViewer;
 
 using namespace hdps::gui;
 
@@ -25,7 +24,7 @@ public:
      * @param parent Pointer to parent object
      * @param title Title
      */
-    Q_INVOKABLE SettingsAction(QObject* parent, ViewerWidget* viewerWidget, const QString& title);
+    Q_INVOKABLE SettingsAction(QObject* parent, const QString& title);
 
     
     /**
@@ -36,13 +35,29 @@ public:
     QMenu* getContextMenu(QWidget* parent = nullptr) override;
     /** Get reference to the image viewer plugin */
     
+public: // Serialization
+
+    /**
+     * Load plugin from variant map
+     * @param Variant map representation of the plugin
+     */
+    void fromVariantMap(const QVariantMap& variantMap) override;
+
+    /**
+     * Save plugin to variant map
+     * @return Variant map representation of the plugin
+     */
+    QVariantMap toVariantMap() const override;
 
 public: // Action getters
 
     RendererSettingsAction& getRendererSettingsAction() { return _renderSettingsAction; }
+    PickRendererAction& getPickRendererAction() { return _pickRendererAction; }
 
 protected:
-    
-    RendererSettingsAction    _renderSettingsAction;
-    
+    VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
+    RendererSettingsAction  _renderSettingsAction;
+    PickRendererAction      _pickRendererAction;
+    DatasetPickerAction     _positionDatasetPickerAction;
+    DatasetPickerAction     _colorDatasetPickerAction;
 };

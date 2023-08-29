@@ -28,18 +28,14 @@ public:
      * Constructor
      * @param rendererSettingsAction Reference to renderer settings action
      */
-    Q_INVOKABLE DimensionAction(RendererSettingsAction& rendererSettingsAction, ViewerWidget* viewerWidet, const QString& title);
+    Q_INVOKABLE DimensionAction(RendererSettingsAction& rendererSettingsAction, const QString& title);
 
 public: /** Action getters */
-
     DimensionPickerAction& getDimensionPickerAction() { return _dimensionAction; }
 
 protected:
     RendererSettingsAction& _rendererSettingsAction;        /** Reference to renderer settings action */
-    ViewerWidget* _viewerWidget;                            /** Pointer to the viewerWidget*/
-    
     DimensionPickerAction       _dimensionAction;           /** Action to pick the current dimension*/
-    
 };
 
 Q_DECLARE_METATYPE(DimensionAction)

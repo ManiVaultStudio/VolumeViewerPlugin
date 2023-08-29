@@ -1,6 +1,5 @@
 #include "SlicingAction.h"
 #include "RendererSettingsAction.h"
-#include "ViewerWidget.h"
 #include "VolumeViewerPlugin.h"
 #include <QtCore>
 #include <QtDebug>
@@ -9,7 +8,7 @@
 
 using namespace hdps;
 
-SlicingAction::SlicingAction(RendererSettingsAction& rendererSettingsAction,ViewerWidget* viewerWidget, const QString& title) :
+SlicingAction::SlicingAction(RendererSettingsAction& rendererSettingsAction, const QString& title) :
     GroupAction(reinterpret_cast<QObject*>(&rendererSettingsAction), title),
     _rendererSettingsAction(rendererSettingsAction),
     _xAxisEnabledAction(this, "x-axis enabled"),
