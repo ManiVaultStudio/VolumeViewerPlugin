@@ -6,7 +6,6 @@
 #include <QLayout>
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
-#include "ViewerWidget.h"
 //#include "Transfer/CustomColorMapEditor.h"
 #include <widgets/DropWidget.h>
 
@@ -18,15 +17,7 @@
 #include <ClusterData/Cluster.h>
 #include <ClusterData/ClusterData.h>
 
-
 #include "ColorData/ColorData.h"
-
-/** VTK headers*/
-#include <vtkPlaneCollection.h>
-#include <vtkPlane.h>
-
-
-
 
 using namespace hdps;
 using namespace hdps::gui;
@@ -42,9 +33,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     //_volumeRenderer(new OpenGLRendererWidget()),
     //_transferWidget(nullptr),
     //_selectionData(vtkSmartPointer<vtkImageData>::New()),
-    _imageData(vtkSmartPointer<vtkImageData>::New()),
     // initiate a planeCollection for the SlicingAction
-    _planeCollection(vtkSmartPointer<vtkPlaneCollection>::New()),
     _points(),
     _pointsParent(),
     _pointsColorCluster(),
@@ -253,13 +242,6 @@ void VolumeViewerPlugin::init()
         return dropRegions;
     });
 
-    connect(_volumeViewerWidget->getVTKWidget(), &ViewerWidget::customContextMenuRequested, this, [this](const QPoint& point) {
-        
-
-        _settingsAction->getContextMenu()->exec(getWidget().mapToGlobal(point));
-    });
-
-
     addDockingAction(_settingsAction, nullptr, DockAreaFlag::Left, true, AutoHideLocation::Right, QSize(300, 300));
 
     // Respond when the name of the dataset in the dataset reference changes
@@ -272,38 +254,14 @@ void VolumeViewerPlugin::init()
         // hide dropwidget
         _dropWidget->setShowDropIndicator(false);
 
-        // Check if chosen dimension does not exeed the amount of dimensions, otherwise use chosenDimension=0.
-        if (chosenDimension > _points->getNumDimensions() - 1) {
-            // Pass the dataset and dimension 0 to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations.
-            _imageData = _volumeViewerWidget->getVTKWidget()->setData(*_points, 0, _interpolationOption, _colorMap);
-        }
-        else {
-            // Pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations.
-            _imageData = _volumeViewerWidget->getVTKWidget()->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
-        }
-
         _volumeViewerWidget->setData(_points);
-
-        runRenderData();
-
-        // set the maximum x, y and z values for the slicing options
-        _settingsAction->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().setMaximum(_imageData->GetDimensions()[0]);
-        _settingsAction->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction().setMaximum(_imageData->GetDimensions()[1]);
-        _settingsAction->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction().setMaximum(_imageData->GetDimensions()[2]);
 
         // notify that data is indeed loaded into the widget
         _dataLoaded = true;
     });
 
     connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this]() {
-        if (_rendererBackend == RendererBackend::VTK)
-        {
-            if (!_pointOpacityLoaded && _pointColorLoaded) {
-                _volumeViewerWidget->getVTKWidget()->setPointsColor(*_pointsColorPoints, true);
-                runRenderData();
-            }
-        }
-        else if (_rendererBackend == RendererBackend::OpenGL)
+        if (_rendererBackend == RendererBackend::OpenGL)
         {
             std::vector<float> colors;
             _pointsColorPoints->extractDataForDimension(colors, 0);
@@ -313,43 +271,19 @@ void VolumeViewerPlugin::init()
         }
     });
 
-    connect(&_pointsOpacityPoints, &Dataset<Points>::dataChanged, this, [this]() {
-        _volumeViewerWidget->getVTKWidget()->setPointsOpacity(*_pointsOpacityPoints, true);
-
-        if (!_pointOpacityLoaded && _pointColorLoaded) {
-            runRenderData();
-        }
-        else {
-            _volumeViewerWidget->getVTKWidget()->setPointsColor(*_pointsColorPoints, true);
-            runRenderData();
-        }
-    });
-
-
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this]() {
-        
-        _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, true);
         _clusterLoaded = true;
-        //Initial render.
-        runRenderData();
-
     });
     
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this]() {
-        if (_rendererBackend == RendererBackend::VTK)
-        {
-            if (_clusterLoaded) {
-                _clusterLoaded = false;
-                _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, false);
-            }
-            _volumeViewerWidget->getVTKWidget()->setPointsColor(*_pointsColorPoints, true);
-            _pointColorLoaded = true;
-            //Initial render.
-            runRenderData();
+        if (_clusterLoaded) {
+            _clusterLoaded = false;
         }
-        else if (_rendererBackend == RendererBackend::OpenGL)
+        _pointColorLoaded = true;
+
+        if (_rendererBackend == RendererBackend::OpenGL)
         {
             auto& colorMapAction = getRendererSettingsAction().getColoringAction().getColorMapAction();
             auto colorMapImage = colorMapAction.getColorMapImage();
@@ -366,24 +300,10 @@ void VolumeViewerPlugin::init()
     connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this]() {
         if (_clusterLoaded) {
             _clusterLoaded = false;
-            _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, false);
         }
-        _volumeViewerWidget->getVTKWidget()->setPointsOpacity(*_pointsOpacityPoints, true);
         _pointOpacityLoaded = true;
-        //Initial render.
-        runRenderData();
 
     });
-    // Respond when the name of the dataset in the dataset reference changes// Respond when the name of the dataset in the dataset reference changes
-    connect(&_pointsColorCluster, &Dataset<Clusters>::dataChanged, this, [this]() {
-        
-        _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, true);
-
-        //Initial render.
-        runRenderData();
-
-    });// Respond when the name of the dataset in the dataset reference changes
-    
 
     // Dropdown menu for chosen dimension.
     connect(&this->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction(), &DimensionPickerAction::currentDimensionIndexChanged, this, [this](const int& value) {
@@ -392,16 +312,8 @@ void VolumeViewerPlugin::init()
             // get the value of the chosenDimension
             int chosenDimension = value;
 
-            // pass the dataset and chosen dimension to the viewerwidget which initiates the data and renders it. returns the imagedata object for future operations
-            _imageData = _volumeViewerWidget->getVTKWidget()->setData(*_points, chosenDimension, _interpolationOption, _colorMap);
-
             // Get the selection set that changed
             const auto& selectionSet = _points->getSelection<Points>();
-
-            // get selectionData
-            _volumeViewerWidget->getVTKWidget()->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-            runRenderData();
-
         }
     });
 
@@ -413,22 +325,10 @@ void VolumeViewerPlugin::init()
         this->getRendererSettingsAction().getColoringAction().getAmbientAction().setDisabled(!toggled);
         this->getRendererSettingsAction().getColoringAction().getDiffuseAction().setDisabled(!toggled);
         this->getRendererSettingsAction().getColoringAction().getSpecularAction().setDisabled(!toggled);
-
-        if (_dataLoaded) {
-            runRenderData();
-        }
-
     });
     
     connect(&this->getRendererSettingsAction().getColoringAction().getdisableSelectionAction(), &ToggleAction::toggled, this, [this](bool toggled) {
-        _volumeViewerWidget->getVTKWidget()->disableSelection(toggled);
         _selectionDisabled = toggled;
-        
-        
-        if (_dataLoaded) {
-            runRenderData();
-        }
-
     });
 
 
@@ -440,15 +340,13 @@ void VolumeViewerPlugin::init()
 
         // Check if shading is enbabled.
         if (_shadingEnabled) {
-            runRenderData();
+
         }
     });
     // Ambient parameter.
     connect(&this->getRendererSettingsAction().getColoringAction().getDiffuseAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
         // get the current value of the xSlicing tickbox
         _shadingParameters[1] = value;
-
-        runRenderData();
     });
     // Specular parameter.
     connect(&this->getRendererSettingsAction().getColoringAction().getSpecularAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
@@ -457,430 +355,8 @@ void VolumeViewerPlugin::init()
 
         // Check if shading is enbabled.
         if (_shadingEnabled) {
-            runRenderData();
-        }
-    });
-
-    // When the enable x, y and z Slicing are changed add or remove that slicing 
-
-    // xSlicing tickbox
-    connect(&this->getRendererSettingsAction().getSlicingAction().getXAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
-        if (toggled) {
-            // Enable the x-Position slider when the slice is enabled.
-            this->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().setDisabled(false);
-        }
-        else {
-            // Disable the x-Position slider when the slice is disabled.
-            this->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().setDisabled(true);
 
         }
-
-        // Check if data is loaded to prevent errors.
-        if (_dataLoaded) {
-            // Check if te slicing is turned on or off
-            if (toggled) {
-                // check if ther is already a x slicing plane active, if so remove it
-                if (_planeArray[0] != 0) {
-                    _planeCollection->RemoveItem(_planeArray[0] - 1);
-                }
-
-                // get the x value for which the slice needs to be performed
-                int value = _settingsAction->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction().getValue();
-
-                // Create a clipping plane for the xvalue
-                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-                clipPlane->SetOrigin(value, 0.0, 0.0);
-                clipPlane->SetNormal(1, 0.0, 0.0);
-
-                // add the plane to the to the collection
-                _planeCollection->AddItem(clipPlane);
-
-                // store the index+1 of the x slicing plane
-                _planeArray[0] = _planeCollection->GetNumberOfItems();
-
-                runRenderData();
-            }
-            else {
-                // if the toggle is unclicked remove the xclipping plane from the collection
-                _planeCollection->RemoveItem(_planeArray[0] - 1);
-
-                // due to the removal of the xPlane, if the was not the last item in the plane collection the others will slide back,
-                // to compensate this in the index tracker the following 2 if functions are created.
-                // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
-
-                // if the xPlane index was smaller than the yplane index and the yplaneindex is present, slide the yindex back 1 spot
-                if (_planeArray[0] < _planeArray[1] && _planeArray[1] != 0) {
-                    _planeArray[1] = _planeArray[1] - 1;
-                }
-                // if the xPlane index was smaller than the yPlane index and the yplaneindex is present, slide the yindex back 1 spot
-                if (_planeArray[0] < _planeArray[2] && _planeArray[2] != 0) {
-                    _planeArray[2] = _planeArray[2] - 1;
-                }
-
-                // Set the xPlane index to 0  (not active)
-                _planeArray[0] = 0;
-
-
-                runRenderData();
-            }
-        }
-    });
-    // ySlicing tickbox
-    connect(&this->getRendererSettingsAction().getSlicingAction().getYAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
-        if (toggled) {
-            // Enable the y-Position slider when the slice is enabled.
-            this->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction().setDisabled(false);
-        }
-        else {
-            // Disable the y-Position slider when the slice is disabled.
-            this->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction().setDisabled(true);
-
-        }
-
-        // Dataloaded check to prevent errors
-        if (_dataLoaded) {
-            // Check if te slicing is turned on or off
-            if (toggled) {
-                // check if ther is already a y slicing plane active, if so remove it
-
-                if (_planeArray[1] != 0) {
-                    _planeCollection->RemoveItem(_planeArray[1] - 1);
-                }
-
-                // get the y value for which the slice needs to be performed
-                int value = _settingsAction->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction().getValue();
-
-                // Create a clipping plane for the yValue
-                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-                clipPlane->SetOrigin(0.0, value, 0.0);
-                clipPlane->SetNormal(0, 1, 0.0);
-
-                // add the plane to the to the collection
-                _planeCollection->AddItem(clipPlane);
-
-                // store the index+1 of the y slicing plane
-                _planeArray[1] = _planeCollection->GetNumberOfItems();
-
-                runRenderData();
-            }
-            else {
-                // if the toggle is unclicked remove the yClipping plane from the collection
-                _planeCollection->RemoveItem(_planeArray[1] - 1);
-
-                // due to the removal of the yPlane, if the was not the last item in the plane collection the others will slide back,
-                // to compensate this in the index tracker the following 2 if functions are created.
-                // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
-
-                // if the yPlane index was smaller than the xPlane index and the yplaneindex is present, slide the xIndex back 1 spot
-                if (_planeArray[1] < _planeArray[0] && _planeArray[0] != 0) {
-                    _planeArray[0] = _planeArray[0] - 1;
-                }
-                // if the yPlane index was smaller than the zPlane index and the zplaneindex is present, slide the zIndex back 1 spot
-                if (_planeArray[1] < _planeArray[2] && _planeArray[2] != 0) {
-                    _planeArray[2] = _planeArray[2] - 1;
-                }
-
-                // Set the yPlane index to 0  (not active)
-                _planeArray[1] = 0;
-
-                runRenderData();
-            }
-        }
-    });
-    // zSlicing tickbox
-    connect(&this->getRendererSettingsAction().getSlicingAction().getZAxisEnabledAction(), &ToggleAction::toggled, this, [this](bool toggled) {
-        if (toggled) {
-            // Enable the z-Position slider when the slice is enabled.
-            this->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction().setDisabled(false);
-        }
-        else {
-            // Disable the z-Position slider when the slice is disabled.
-            this->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction().setDisabled(true);
-
-        }
-
-        // Dataloaded check to prevent errors
-        if (_dataLoaded) {
-            // Check if te slicing is turned on or off
-            if (toggled) {
-                // check if ther is already a z slicing plane active, if so remove it
-                if (_planeArray[2] != 0) {
-                    _planeCollection->RemoveItem(_planeArray[2] - 1);
-                }
-
-                // get the z value for which the slice needs to be performed
-                int value = _settingsAction->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction().getValue();
-
-                // Create a clipping plane for the zValue
-                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-                clipPlane->SetOrigin(0.0, 0.0, value);
-                clipPlane->SetNormal(0, 0.0, 1);
-
-                // add the plane to the to the collection
-                _planeCollection->AddItem(clipPlane);
-
-                // store the index+1 of the z slicing plane
-                _planeArray[2] = _planeCollection->GetNumberOfItems();
-
-                runRenderData();
-            }
-            else {
-                // if the toggle is unclicked remove the yClipping plane from the collection
-                _planeCollection->RemoveItem(_planeArray[2] - 1);
-
-                // due to the removal of the yPlane, if the was not the last item in the plane collection the others will slide back,
-               // to compensate this in the index tracker the following 2 if functions are created.
-               // This is probably not the most elegant way to solve the issue however it is the only one i could come up with
-
-                // if the zPlane index was smaller than the xPlane index and the yplaneindex is present, slide the xIndex back 1 spot
-                if (_planeArray[2] < _planeArray[0] && _planeArray[0] != 0) {
-                    _planeArray[0] = _planeArray[0] - 1;
-                }
-                // if the zPlane index was smaller than the yPlane index and the zplaneindex is present, slide the yIndex back 1 spot
-                if (_planeArray[2] < _planeArray[1] && _planeArray[1] != 0) {
-                    _planeArray[1] = _planeArray[1] - 1;
-                }
-
-                // Set the zPlane index to 0  (not active)
-                _planeArray[2] = 0;
-
-                runRenderData();
-            }
-        }
-    });
-
-    // When the value of the x,y and z slicing sliders are changed change the slicing index if the tickbox is ticked
-
-    // xSlicing slider
-    connect(&this->getRendererSettingsAction().getSlicingAction().getXAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
-        //Check if data is loaded to prevent errors.
-        if (_dataLoaded) {
-            // get the current value of the xSlicing tickbox
-            bool toggled = _settingsAction->getRendererSettingsAction().getSlicingAction().getXToggled();
-
-            // if the tickbox is enabled perform the slicing change
-            if (toggled) {
-                // check if ther is already a x slicing plane active, if so remove it
-                if (_planeArray[0] != 0) {
-                    _planeCollection->RemoveItem(_planeArray[0] - 1);
-                }
-
-                // convert float value to integer
-                int intValue = value;
-
-                // Create a clipping plane for the xValue
-                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-                clipPlane->SetOrigin(intValue, 0.0, 0.0);
-                clipPlane->SetNormal(1, 0.0, 0.0);
-
-                // add the plane to the to the collection
-                _planeCollection->AddItem(clipPlane);
-
-                // store the index+1 of the x slicing plane
-                _planeArray[0] = _planeCollection->GetNumberOfItems();
-
-                runRenderData();
-            }
-        }
-    });
-    // xSlicing slider
-    connect(&this->getRendererSettingsAction().getSlicingAction().getYAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
-        //Check if data is loaded to prevent errors.
-        if (_dataLoaded) {
-            // get the current value of the ySlicing tickbox
-            bool toggled = _settingsAction->getRendererSettingsAction().getSlicingAction().getYToggled();
-
-            // if the tickbox is enabled perform the slicing change
-            if (toggled) {
-                // check if ther is already a y slicing plane active, if so remove it
-                if (_planeArray[1] != 0) {
-                    _planeCollection->RemoveItem(_planeArray[1] - 1);
-                }
-
-                // convert float value to integer
-                int intValue = value;
-
-                // Create a clipping plane for the yValue
-                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-                clipPlane->SetOrigin(0.0, intValue, 0.0);
-                clipPlane->SetNormal(0.0, 1, 0.0);
-
-                // add the plane to the to the collection
-                _planeCollection->AddItem(clipPlane);
-
-                // store the index+1 of the y slicing plane
-                _planeArray[1] = _planeCollection->GetNumberOfItems();
-
-                runRenderData();
-            }
-        }
-    });
-    // xSlicing slider
-    connect(&this->getRendererSettingsAction().getSlicingAction().getZAxisPositionAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
-        //Check if data is loaded to prevent errors.
-        if (_dataLoaded) {
-            // get the current value of the zSlicing tickbox
-            bool toggled = _settingsAction->getRendererSettingsAction().getSlicingAction().getZToggled();
-
-            // if the tickbox is enabled perform the slicing change
-            if (toggled) {
-                // check if ther is already a z slicing plane active, if so remove it
-                if (_planeArray[2] != 0) {
-                    _planeCollection->RemoveItem(_planeArray[2] - 1);
-                }
-
-                // convert float value to integer
-                int intValue = value;
-
-                // Create a clipping plane for the zValue
-                vtkSmartPointer<vtkPlane> clipPlane = vtkSmartPointer<vtkPlane>::New();
-                clipPlane->SetOrigin(0.0, 0.0, intValue);
-                clipPlane->SetNormal(0.0, 0.0, 1);
-
-                // add the plane to the to the collection
-                _planeCollection->AddItem(clipPlane);
-
-                // store the index+1 of the y slicing plane
-                _planeArray[2] = _planeCollection->GetNumberOfItems();
-
-                runRenderData();
-            }
-        }
-    });
-
-    // Interpolation Selector
-    connect(&this->getRendererSettingsAction().getColoringAction().getInterpolationAction(), &OptionAction::currentTextChanged, this, [this](const QString& interpolType) {
-        // change the interpolation type for the colormap, nearest neighbor is best for inspecting transition from object to nonobject due to the transition artifact that appears in linear and cubic
-        // however linear and cubic give a better looking representation of a sliced object
-        std::string type = interpolType.toStdString();
-        if (type == "Nearest Neighbor") {
-            qDebug() << "Changed interpolation type to: NEAREST NEIGHBOR";
-            _interpolationOption = "NN";
-        }
-        else if (type == "Linear") {
-
-            qDebug() << "Changed interpolation type to: LINEAR";
-            _interpolationOption = "LIN";
-        }
-        else if (type == "Cubic") {
-            qDebug() << "Changed interpolation type to: CUBIC";
-            _interpolationOption = "CUBE";
-        }
-        else {
-            qDebug() << "Invalid interpolationtype, using default Nearest Neighbor";
-            _interpolationOption = "NN";
-        }
-        if (_dataLoaded) {
-
-            runRenderData();
-        }
-    });
-
-    // Surrounding data enabled selector
-    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getBackgroundShowAction(), &OptionAction::currentTextChanged, this, [this](const QString& show) {
-        // Selector option handeling
-        if (show == "Show background") {
-            _backgroundEnabled = true;
-            // Enable the alpha slider for the background
-            this->getRendererSettingsAction().getSelectedPointsAction().getBackgroundAlphaAction().setDisabled(false);
-        }
-        else {
-            _backgroundEnabled = false;
-            // Disable the alpha slider for the background
-            this->getRendererSettingsAction().getSelectedPointsAction().getBackgroundAlphaAction().setDisabled(true);
-        }
-
-        if (_dataSelected) {
-            runRenderData();
-        }
-    });
-
-    // full render or point cloud
-    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getPointCloudAction(), &OptionAction::currentTextChanged, this, [this](const QString& option) {
-        // Selector option handeling
-        if (option == "Point Cloud") {
-            _pointCloudEnabled = true;
-
-        }
-        else {
-            _pointCloudEnabled = false;
-
-        }
-
-        //if (_dataSelected) {
-        //    runRenderData();
-        //}
-    });
-    // Background alpha slider
-    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getBackgroundAlphaAction(), &DecimalAction::valueChanged, this, [this](const float& value) {
-        if (_backgroundEnabled) {
-            _backgroundAlpha = value;
-            if (_dataSelected) {
-                runRenderData();
-            }
-        }
-    });
-    // Selection alpha setting selector
-    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getSelectionAlphaAction(), &OptionAction::currentTextChanged, this, [this](const QString& opaqueOrTf) {
-        if (opaqueOrTf == "Opaque") {
-            _selectionOpaque = true;
-        }
-        else {
-            _selectionOpaque = false;
-        }
-        if (_dataSelected) {
-            runRenderData();
-        }
-    });
-
-    connect(&this->getRendererSettingsAction().getSelectedPointsAction().getSelectPointAction(), &TriggerAction::triggered, this, [this]() {
-        float lowerThreshold = this->getRendererSettingsAction().getSelectedPointsAction().getThresholdAction().getLowerThresholdAction().getValue();
-        float upperThreshold = this->getRendererSettingsAction().getSelectedPointsAction().getThresholdAction().getUpperThresholdAction().getValue();
-
-        //_points->setSelectionIndices();
-        int chosenDimension = _settingsAction->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
-        _volumeViewerWidget->getVTKWidget()->connectedSelection(*_points, chosenDimension, _volumeViewerWidget->getVTKWidget()->getSelectedCellCoordinate(), upperThreshold, lowerThreshold);
-        const auto& selectionSet = _points->getSelection<Points>();
-        //auto test = selectionSet->indices;
-        _volumeViewerWidget->getVTKWidget()->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-        runRenderData();
-        
-        events().notifyDatasetDataSelectionChanged(_points);
-    });
-
-    connect(&this->getRendererSettingsAction().getColoringAction().getUnloadColorMap(), &TriggerAction::triggered, this, [this]() {
-
-        if (_clusterLoaded) {
-            _volumeViewerWidget->getVTKWidget()->setClusterColor(*_pointsColorCluster, false);
-            
-            _pointsColorCluster = NULL;
-        }
-        else if (_pointColorLoaded) {
-            _volumeViewerWidget->getVTKWidget()->setPointsColor(*_pointsColorPoints, false);
-            
-            _pointsColorPoints = NULL;
-        }
-       
-        
-
-        //Initial render.
-        runRenderData();
-    });
-    connect(&this->getRendererSettingsAction().getColoringAction().getUnloadOpacityData(), &TriggerAction::triggered, this, [this]() {
-        _volumeViewerWidget->getVTKWidget()->setPointsOpacity(*_pointsOpacityPoints, false);
-        _pointsOpacityPoints = NULL;
-
-        //Initial render.
-        runRenderData();
-    });
-
-    // Colormap selector
-    connect(&getRendererSettingsAction().getColoringAction().getColorMapAction(), &ColorMapAction::imageChanged, this, [this](const QImage& colorMapImage) {
-        if (_dataLoaded) {
-            runRenderData();
-        }
-
-        _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
     });
 
     // Selection changed connection.
@@ -893,12 +369,6 @@ void VolumeViewerPlugin::init()
             // Get ChosenDimension
             int chosenDimension = _settingsAction->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
 
-            const auto backGroundValue = _imageData->GetScalarRange()[0];
-
-            // create a selectiondata imagedata object with 0 values for all non selected items
-            _volumeViewerWidget->getVTKWidget()->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-
-
             // if the selection is not empty add the selection to the vector 
             if (selectionSet->indices.size() != 0) {
 
@@ -907,9 +377,6 @@ void VolumeViewerPlugin::init()
             else {
                 _dataSelected = false;
             }
-
-            // Render the data with the current slicing planes and selections
-            runRenderData();
 
             if (selectionSet->indices.size() == 1)
             {
@@ -922,41 +389,6 @@ void VolumeViewerPlugin::init()
             }
         }
     });// Selection changed connection.
-
-    connect(&_pointsParent, &Dataset<Points>::dataSelectionChanged, this, [this] {
-        // if data is loaded
-
-        if (_dataLoaded && !_selectionDisabled) {
-
-            // Get the selection set that changed
-            const auto& selectionSet = _pointsParent->getSelection<Points>();
-
-            // Get ChosenDimension
-            int chosenDimension = _settingsAction->getRendererSettingsAction().getDimensionAction().getDimensionPickerAction().getCurrentDimensionIndex();
-
-            const auto backGroundValue = _imageData->GetScalarRange()[0];
-
-            // create a selectiondata imagedata object with 0 values for all non selected items
-            _volumeViewerWidget->getVTKWidget()->setSelectedData(*_points, selectionSet->indices, chosenDimension);
-
-
-            // if the selection is not empty add the selection to the vector 
-            if (selectionSet->indices.size() != 0) {
-
-                _dataSelected = true;
-            }
-            else {
-                _dataSelected = false;
-            }
-
-            // Render the data with the current slicing planes and selections
-            runRenderData();
-
-
-        }
-    });
-
-
 }
 
 void VolumeViewerPlugin::reInitializeLayout(QHBoxLayout layout) {
@@ -1009,14 +441,6 @@ hdps::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActio
     }
 
     return pluginTriggerActions;
-}
-
-/** Create a vtkimagedatavector to store the current imagedataand selected data(if present).
-*   Vector is needed due to the possibility of having data selected in a scatterplot wich
-*   changes the colormapping of renderdata and creates an aditional actor to visualize the selected data.
-*/
-void VolumeViewerPlugin::runRenderData() {
-    _volumeViewerWidget->getVTKWidget()->renderData(_planeCollection, _imageData, _interpolationOption, _colorMap, _shadingEnabled, _shadingParameters);
 }
 
 void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {

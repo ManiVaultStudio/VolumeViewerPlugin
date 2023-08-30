@@ -16,10 +16,6 @@ if(MSVC)
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
 endif(MSVC)
 
-# vtk Dir build needs to be in the same mode as hdps is to be run. (for release hdps release vtk is needed)
-#set(VTK_DIR $ENV{VTK_DIR})
-find_package(VTK CONFIG REQUIRED)
-
 find_package(OpenGL REQUIRED)
 find_package(Qt6 6.3 COMPONENTS Core Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
 find_package(OpenMP)
@@ -61,8 +57,6 @@ set(ACTIONS
 )
 
 set(WIDGETS
-    src/ViewerWidget.h
-    src/ViewerWidget.cpp
     src/Widgets/VolumeViewerWidget.h
     src/Widgets/VolumeViewerWidget.cpp
 )
@@ -96,8 +90,6 @@ target_link_libraries(${PROJECT} PRIVATE Qt6::WebEngineWidgets)
 target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGL)
 target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGLWidgets)
 target_link_libraries(${PROJECT} PRIVATE ${OPENGL_LIBRARIES})
-target_link_libraries(${PROJECT} PRIVATE ${VTK_LIBRARIES})
-vtk_module_autoinit(TARGETS ${PROJECT} MODULES ${VTK_LIBRARIES})
 
 set(HDPS_LINK_PATH "${INSTALL_DIR}/$<CONFIGURATION>/lib")
 set(PLUGIN_LINK_PATH "${INSTALL_DIR}/$<CONFIGURATION>/$<IF:$<CXX_COMPILER_ID:MSVC>,lib,Plugins>")

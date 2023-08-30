@@ -6,7 +6,6 @@
 #include <QLayout>
 /** Plugin headers*/
 #include <ViewPlugin.h>
-#include <ViewerWidget.h>
 //#include <Transfer/CustomColorMapEditor.h>
 /** HDPS headers*/
 #include <Dataset.h>
@@ -20,10 +19,6 @@
 #include <actions/VerticalGroupAction.h>
 //#include <ClusterData/Cluster.h>
 
-/** VTK headers*/
-#include <vtkPlane.h>
-#include <vtkPlaneCollection.h>
-
 #include <common.h>
 
 #include "Widgets/VolumeViewerWidget.h"
@@ -36,7 +31,6 @@ using namespace hdps::util;
 using namespace hdps;
 
 class Images;
-class ViewerWidget;
 class SettingsWidget;
 class ViewerWidget;
 class Points;
@@ -60,7 +54,6 @@ class VolumeViewerPlugin : public ViewPlugin
 
 public:
     enum class RendererBackend {
-        VTK,
         OpenGL
     };
 
@@ -78,8 +71,6 @@ public: // Inherited from ViewPlugin
 
     void reInitializeLayout(QHBoxLayout layout);
 
-    void runRenderData();
-
     void setSelectionPosition(double x, double y, double z);
 
     /** Returns a pointer to the core interface */
@@ -96,11 +87,6 @@ public: // Miscellaneous
         return _rendererBackend;
     }
 
-    /** Returns the image viewer widget */
-    ViewerWidget& getViewerWidget() {
-        return *_volumeViewerWidget->getVTKWidget();
-    }
-
     /** Returns the render settings action*/
     RendererSettingsAction& getRendererSettingsAction() {
         return _settingsAction->getRendererSettingsAction();
@@ -110,11 +96,6 @@ public: // Miscellaneous
     /** Returns the names of the points datasets in HDPS */
     QStringList getPointsDatasets() const {
         return _pointsDatasets;
-    }
-
-    /** Returns the imageData */
-    vtkSmartPointer<vtkImageData> getImageData() {
-        return _imageData;
     }
 
     //Dataset<Cluster> getColorCluster() {
@@ -168,8 +149,6 @@ private:
     SettingsAction*                     _settingsAction;            /** The options menu on the side of the viewer*/
     VolumeViewerWidget*                 _volumeViewerWidget;        /** Widget for the volume viewer */
 
-    vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
-    vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/
     Dataset<Points>                     _points;                    /** Declare a points dataset reference */
     Dataset<Points>                     _pointsParent;              /** Declare a points dataset reference */
     Dataset<Clusters>                   _pointsColorCluster;        /** Declare a points dataset reference */

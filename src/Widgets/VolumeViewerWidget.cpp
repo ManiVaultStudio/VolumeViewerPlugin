@@ -2,7 +2,6 @@
 
 #include "VolumeViewerPlugin.h"
 
-#include "ViewerWidget.h"
 #include "Renderer/OpenGL/OpenGLRendererWidget.h"
 
 #include <QEvent>
@@ -10,12 +9,10 @@
 
 VolumeViewerWidget::VolumeViewerWidget(QObject* parent, const QString& title) :
     _plugin(dynamic_cast<VolumeViewerPlugin*>(parent)),
-    _vtkWidget(nullptr),
     _openGLWidget(nullptr)
 {
     setAcceptDrops(true);
 
-    _vtkWidget = new ViewerWidget(*_plugin);
     _openGLWidget = new OpenGLRendererWidget();
 
     auto* layout = new QVBoxLayout();
@@ -28,11 +25,6 @@ void VolumeViewerWidget::setData(Dataset<Points> points)
 {
     switch (_plugin->getRendererBackend())
     {
-    case VolumeViewerPlugin::RendererBackend::VTK:
-    {
-
-        break;
-    }
     case VolumeViewerPlugin::RendererBackend::OpenGL:
     {
         int numDimensions = points->getNumDimensions();

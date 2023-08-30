@@ -11,7 +11,6 @@
 #include <vector>
 
 class VolumeViewerPlugin;
-class ViewerWidget;
 class OpenGLRendererWidget;
 
 using namespace hdps;
@@ -33,11 +32,6 @@ public:
     void setCursorPoint(hdps::Vector3f cursorPoint);
 
 public:
-    ViewerWidget* getVTKWidget()
-    {
-        return _vtkWidget;
-    }
-
     OpenGLRendererWidget* getOpenGLWidget()
     {
         return _openGLWidget;
@@ -46,7 +40,6 @@ public:
 private:
     VolumeViewerPlugin*     _plugin;
 
-    ViewerWidget*           _vtkWidget;
     OpenGLRendererWidget*   _openGLWidget;
 
     QVector3D _meanCoord;

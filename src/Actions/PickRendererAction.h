@@ -12,7 +12,6 @@ class PickRendererAction : public OptionAction
     Q_OBJECT
 
     enum class RendererBackend {
-        VTK,
         OpenGL
     };
 
@@ -54,12 +53,10 @@ public: // Serialization
 
 public: // Action getters
 
-    ToggleAction& getVTKAction() { return _vtkAction; }
     ToggleAction& getOpenGLAction() { return _openGLAction; }
 
 private:
     VolumeViewerPlugin* _plugin;                /** Pointer to plugin */
-    ToggleAction        _vtkAction;             /** Trigger action for activating the VTK renderer */
     ToggleAction        _openGLAction;          /** Trigger action for activating the OpenGL renderer */
 
     friend class hdps::AbstractActionsManager;

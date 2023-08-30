@@ -1,5 +1,4 @@
 #include "RendererSettingsAction.h"
-#include <ViewerWidget.h>
 
 using namespace hdps;
 using namespace hdps::gui;
