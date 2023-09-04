@@ -14,7 +14,6 @@
 //#include <Transfer/TransferFunctionControlAction.h>
 #include <PointData/PointData.h>
 #include <ClusterData/ClusterData.h>
-#include "SettingsAction.h"
 #include <actions/VerticalGroupAction.h>
 //#include <ClusterData/Cluster.h>
 
@@ -83,7 +82,7 @@ public: // Miscellaneous
 
     /** Returns the render settings action*/
     RendererSettingsAction& getRendererSettingsAction() {
-        return _settingsAction->getRendererSettingsAction();
+        return *_rendererSettingsAction;
     }
 
 
@@ -126,7 +125,7 @@ signals:
     void pointsDatasetsChanged(QStringList pointsDatasets);
 
 private:
-    SettingsAction*              _settingsAction;    /** The options menu on the side of the viewer*/
+    RendererSettingsAction*              _rendererSettingsAction;    /** The options menu on the side of the viewer*/
     ViewerWidget* _viewerWidget;              /** The image viewer widget */
     vtkSmartPointer<vtkImageData>       _imageData;                 /** The full data loaded into the viewer */
     vtkSmartPointer<vtkPlaneCollection> _planeCollection;           /** The collection of clipping planes used for the slicing action*/

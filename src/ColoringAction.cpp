@@ -31,7 +31,7 @@ ColoringAction::ColoringAction(RendererSettingsAction& rendererSettingsAction, c
 
 {
     
-    setConfigurationFlag(WidgetAction::ConfigurationFlag::ForceCollapsedInGroup);
+    //setConfigurationFlag(WidgetAction::ConfigurationFlag::ForceCollapsedInGroup);
     setText("Coloring parameters");
     addAction(&_colorInterpolationAction);
     addAction(&_colorMapAction);

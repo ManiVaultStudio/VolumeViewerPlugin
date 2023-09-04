@@ -18,6 +18,7 @@
 #include <qwidget.h>
 #include <qdialog.h>
 #include <qvector.h>
+#include <QMenu>
 /** VTK headers */
 #include <QVTKOpenGLNativeWidget.h>
 #include <vtkPlane.h>
@@ -141,7 +142,8 @@ ViewerWidget::ViewerWidget(VolumeViewerPlugin& VolumeViewerPlugin, QWidget* pare
     _valuesSelected()
 
 {
-    
+    setContextMenuPolicy(Qt::CustomContextMenu);
+    //this->setContextMenuPolicy(Qt::CustomContextMenu);
     setAcceptDrops(true);
     // Initiate the QVTKOpenGLWidget.
     _openGLWidget = new QVTKOpenGLNativeWidget(this);

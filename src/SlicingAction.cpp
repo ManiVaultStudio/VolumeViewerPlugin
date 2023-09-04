@@ -25,7 +25,7 @@ SlicingAction::SlicingAction(RendererSettingsAction& rendererSettingsAction,View
     _xAxisPositionAction.setDisabled(true);
     _yAxisPositionAction.setDisabled(true);
     _zAxisPositionAction.setDisabled(true);
-
+    
     
     _xToggled = false; 
     _yToggled = false;

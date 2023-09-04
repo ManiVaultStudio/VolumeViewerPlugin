@@ -33,6 +33,7 @@ public:
 public: /** Action getters */
 
     DimensionPickerAction& getDimensionPickerAction() { return _dimensionAction; }
+    
 
 protected:
     RendererSettingsAction& _rendererSettingsAction;        /** Reference to renderer settings action */

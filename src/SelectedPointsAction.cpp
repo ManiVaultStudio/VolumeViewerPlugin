@@ -27,4 +27,11 @@ SelectedPointsAction::SelectedPointsAction(RendererSettingsAction& rendererSetti
 {
     
     setText("Selected data options");
+    addAction(&_backgroundShowAction);
+    addAction(&_pointCloudShowAction);
+    addAction(&_backgroundAlphaAction);
+    addAction(&_selectionAlphaAction);
+    addAction(&_selectPointAction);
+    addAction(&_positionAction);
+    addAction(&_thresholdAction);
 }

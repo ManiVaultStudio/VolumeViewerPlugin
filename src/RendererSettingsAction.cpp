@@ -1,5 +1,6 @@
 #include "RendererSettingsAction.h"
 #include <ViewerWidget.h>
+#include <QMenu>
 
 using namespace hdps;
 using namespace hdps::gui;
@@ -10,16 +11,19 @@ RendererSettingsAction::RendererSettingsAction(QObject* parent, ViewerWidget* vi
     _slicingAction(*this, viewerWidget, title),
     _coloringAction(*this, title),
     _selectedPointsAction(*this, title)
-    
-{
-    GroupsAction::GroupActions groupActions;
 
-    groupActions << &_coloringAction;
+{
+    //GroupsAction::GroupActions groupActions;
+
+    //groupActions << &_coloringAction;
     //addAction(*groupActions);
-    setGroupActions(groupActions);
+    //setGroupActions(groupActions);
+    addGroupAction(&_dimensionAction);
+    addGroupAction(&_slicingAction);
+    addGroupAction(&_coloringAction);
     
-    /*addAction(&_coloringAction);
-    addAction(&_slicingAction);
-    addAction(&_dimensionAction);
-    addAction(&_selectedPointsAction);*/
+    addGroupAction(&_selectedPointsAction);
+
+    //auto groupAction = new GroupAction(this, "testGroup");
+    //addGroupAction(groupAction);
 }
