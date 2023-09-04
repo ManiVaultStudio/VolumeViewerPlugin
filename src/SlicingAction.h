@@ -27,7 +27,7 @@ public:
      * Constructor
      * @param rendererSettingsAction Reference to renderer settings action
      */
-    SlicingAction(RendererSettingsAction& rendererSettingsAction, ViewerWidget* viewerWidet);
+    Q_INVOKABLE SlicingAction(RendererSettingsAction& rendererSettingsAction, ViewerWidget* viewerWidet, const QString& title);
 
 public: /** Action getters */
 
@@ -53,3 +53,6 @@ protected:
     bool                        _yToggled;
     bool                        _zToggled;
 };
+
+
+Q_DECLARE_METATYPE(SlicingAction)

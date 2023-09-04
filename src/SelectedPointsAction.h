@@ -29,7 +29,7 @@ public:
      * Constructor
      * @param rendererSettingsAction Reference to renderer settings action
      */
-    SelectedPointsAction(RendererSettingsAction& rendererSettingsAction);
+    Q_INVOKABLE SelectedPointsAction(RendererSettingsAction& rendererSettingsAction, const QString& title);
    
 public: /** Action getters */
 
@@ -66,3 +66,4 @@ protected:
     ThresholdAction                 _thresholdAction;
 
 };
+Q_DECLARE_METATYPE(SelectedPointsAction)

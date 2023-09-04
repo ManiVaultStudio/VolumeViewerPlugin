@@ -8,6 +8,7 @@
 #include "SelectedPointsAction.h"
 #include "ColoringActionPointCloud.h"
 
+class VolumeViewer;
 
 using namespace hdps::gui;
 
@@ -20,7 +21,7 @@ using namespace hdps::gui;
  */
 class RendererSettingsAction : public GroupsAction
 {
-    Q_OBJECT
+    //Q_OBJECT
 
 public:
 
@@ -28,7 +29,7 @@ public:
      * Constructor
      * @param parent Pointer to parent object
      */
-    RendererSettingsAction(QObject* parent, ViewerWidget* viewerWidget);
+    Q_INVOKABLE RendererSettingsAction(QObject* parent, ViewerWidget* viewerWidget, const QString& title);
 
 public: /** Action getters */
     DimensionAction& getDimensionAction() { return _dimensionAction; }
@@ -38,6 +39,7 @@ public: /** Action getters */
     ColoringAction& getColoringAction() { return _coloringAction; }
 
     SelectedPointsAction& getSelectedPointsAction() { return _selectedPointsAction; }
+    RendererSettingsAction& getRenderSettingsAction() { return *this; }
     
 
 protected:

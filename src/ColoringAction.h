@@ -1,7 +1,7 @@
 #pragma once
 
 #include "actions/GroupAction.h"
-#include "actions/ColorMapAction.h"
+#include "actions/ColorMap1DAction.h"
 #include "actions/OptionAction.h"
 
 
@@ -26,12 +26,12 @@ public:
      * Constructor
      * @param rendererSettingsAction Reference to renderer settings action
      */
-    ColoringAction(RendererSettingsAction& rendererSettingsAction);
+    Q_INVOKABLE ColoringAction(RendererSettingsAction& rendererSettingsAction, const QString& title);
    
 public: /** Action getters */
 
     OptionAction& getInterpolationAction() { return  _colorInterpolationAction; }
-    ColorMapAction& getColorMapAction() { return  _colorMapAction; }
+    ColorMap1DAction& getColorMapAction() { return  _colorMapAction; }
     ToggleAction& getShadingAction() { return  _shadingEnableAction; }
     
     DecimalAction& getAmbientAction() { return _ambientConstantAction; }
@@ -45,7 +45,7 @@ public: /** Action getters */
 protected:
     RendererSettingsAction&     _rendererSettingsAction;        /** Reference to renderer settings action */
     OptionAction                _colorInterpolationAction;      /** Option menu for selecting interpolation mode*/
-    ColorMapAction              _colorMapAction;                 /** Color map Action */
+    ColorMap1DAction              _colorMapAction;                 /** Color map Action */
     ToggleAction                _shadingEnableAction;      /** Option menu for selecting interpolation mode*/
     ToggleAction                _disableSelectionAction;
     TriggerAction _unloadColorMap;
@@ -55,4 +55,9 @@ protected:
     DecimalAction                _ambientConstantAction;               /** Input box for ambient color constant.*/
     DecimalAction                _diffuseConstantAction;               /** Input box for diffuse color constant.*/
     DecimalAction                _specularConstantAction;               /** Input box for specular color constant.*/
+
+    friend class ScatterplotPlugin;
+    friend class hdps::AbstractActionsManager;
 };
+
+Q_DECLARE_METATYPE(ColoringAction)

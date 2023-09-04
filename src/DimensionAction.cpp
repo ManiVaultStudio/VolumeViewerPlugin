@@ -7,10 +7,10 @@
 #include <QFileDialog>
 #include <qmessagebox.h>
 
-using namespace hdps;
+using namespace hdps::gui;
 
-DimensionAction::DimensionAction(RendererSettingsAction& rendererSettingsAction, ViewerWidget* viewerWidget) :
-    GroupAction(reinterpret_cast<QObject*>(&rendererSettingsAction)),
+DimensionAction::DimensionAction(RendererSettingsAction& rendererSettingsAction, ViewerWidget* viewerWidget, const QString& title) :
+    GroupAction(reinterpret_cast<QObject*>(&rendererSettingsAction), title),
     _rendererSettingsAction(rendererSettingsAction),
 
     _viewerWidget(nullptr),
@@ -19,7 +19,10 @@ DimensionAction::DimensionAction(RendererSettingsAction& rendererSettingsAction,
 {
     setText("Dimension parameters");
     
+    
+    addAction(&_dimensionAction);
     _viewerWidget = viewerWidget;
 
     
 }
+
