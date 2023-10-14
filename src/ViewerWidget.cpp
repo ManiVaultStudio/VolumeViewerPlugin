@@ -62,8 +62,8 @@
 //#include <vtkUnstructuredGrid.h>
 
 
-using namespace hdps;
-using namespace hdps::gui;
+using namespace mv;
+using namespace mv::gui;
 
 namespace {
     // Catch mouse events

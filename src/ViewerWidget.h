@@ -21,7 +21,7 @@
 
 
 class VolumeViewerPlugin;
-using namespace hdps;
+using namespace mv;
 
 
 

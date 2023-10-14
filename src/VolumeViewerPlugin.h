@@ -23,11 +23,11 @@
 
 #include <common.h>
 
-using hdps::plugin::ViewPluginFactory;
-using hdps::plugin::ViewPlugin;
-using namespace hdps::plugin;
-using namespace hdps::util;
-using namespace hdps;
+using mv::plugin::ViewPluginFactory;
+using mv::plugin::ViewPlugin;
+using namespace mv::plugin;
+using namespace mv::util;
+using namespace mv;
 
 class Images;
 class ViewerWidget;
@@ -35,7 +35,7 @@ class SettingsWidget;
 class ViewerWidget;
 class Points;
 
-namespace hdps {
+namespace mv {
     class CoreInterface;
     namespace gui {
         class DropWidget;
@@ -54,7 +54,7 @@ class VolumeViewerPlugin : public ViewPlugin
 
 public:
     /** Constructor */
-    VolumeViewerPlugin(const hdps::plugin::PluginFactory* factory);
+    VolumeViewerPlugin(const mv::plugin::PluginFactory* factory);
 
 public: // Inherited from ViewPlugin
 
@@ -62,7 +62,7 @@ public: // Inherited from ViewPlugin
 
     /** Initializes the plugin */
     void init() override;
-    hdps::CoreInterface* getCore();
+    mv::CoreInterface* getCore();
 
     void reInitializeLayout(QHBoxLayout layout);
 
@@ -71,7 +71,7 @@ public: // Inherited from ViewPlugin
     void setSelectionPosition(double x, double y, double z);
 
     /** Returns a pointer to the core interface */
-    hdps::CoreInterface* core() { return _core; }
+    mv::CoreInterface* core() { return _core; }
 
 
 public: // Miscellaneous
@@ -135,7 +135,7 @@ private:
     Dataset<Points>                     _pointsColorPoints;                    /** Declare a points dataset reference */
     Dataset<Points>                     _pointsOpacityPoints;                    /** Declare a points dataset reference */
     QStringList                         _pointsDatasets;            /** Point datasets loaded in HDPS */
-    hdps::gui::DropWidget* _dropWidget;                /** Widget for dropping data */
+    mv::gui::DropWidget* _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */
     std::vector<int>                    _planeArray;                /** Array indicating the index+1 of the x,y and z clipping planes in the plane collection*/
     std::vector<double>                  _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/
@@ -163,7 +163,7 @@ private:
  */
 class VolumeViewerPluginFactory : public ViewPluginFactory
 {
-    Q_INTERFACES(hdps::plugin::ViewPluginFactory hdps::plugin::PluginFactory)
+    Q_INTERFACES(mv::plugin::ViewPluginFactory mv::plugin::PluginFactory)
         Q_OBJECT
         Q_PLUGIN_METADATA(IID "nl.tudelft.VolumeViewerPlugin" FILE "VolumeViewerPlugin.json")
 
@@ -184,12 +184,12 @@ public:
     /** Creates an image viewer plugin instance */
     VolumeViewerPlugin* produce() override;
 
-    hdps::DataTypes supportedDataTypes() const override;
+    mv::DataTypes supportedDataTypes() const override;
 
     /**
      * Get plugin trigger actions given \p datasets
      * @param datasets Vector of input datasets
      * @return Vector of plugin trigger actions
      */
-    PluginTriggerActions getPluginTriggerActions(const hdps::Datasets& datasets) const override;
+    PluginTriggerActions getPluginTriggerActions(const mv::Datasets& datasets) const override;
 };

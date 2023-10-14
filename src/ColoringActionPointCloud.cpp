@@ -6,7 +6,7 @@
 #include "RendererSettingsAction.h"
 #include <QGraphicsScene>
 
-using namespace hdps;
+using namespace mv;
 
 ColoringActionPointCloud::ColoringActionPointCloud(RendererSettingsAction& rendererSettingsAction) :
     GroupAction(reinterpret_cast<QObject*>(&rendererSettingsAction)),

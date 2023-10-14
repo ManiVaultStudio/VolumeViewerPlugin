@@ -7,7 +7,7 @@
 #include <QFileDialog>
 #include <qmessagebox.h>
 
-using namespace hdps::gui;
+using namespace mv::gui;
 
 DimensionAction::DimensionAction(RendererSettingsAction& rendererSettingsAction, ViewerWidget* viewerWidget, const QString& title) :
     GroupAction(reinterpret_cast<QObject*>(&rendererSettingsAction), title),

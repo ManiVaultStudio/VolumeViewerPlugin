@@ -28,9 +28,9 @@
 
 
 
-using namespace hdps;
-using namespace hdps::gui;
-using namespace hdps::util;
+using namespace mv;
+using namespace mv::gui;
+using namespace mv::util;
 
 VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
@@ -930,14 +930,14 @@ void VolumeViewerPlugin::reInitializeLayout(QHBoxLayout layout) {
 
 }
 
-hdps::CoreInterface* VolumeViewerPlugin::getCore()
+mv::CoreInterface* VolumeViewerPlugin::getCore()
 {
     return _core;
 }
 
 QIcon VolumeViewerPluginFactory::getIcon(const QColor& color /*= Qt::black*/) const
 {
-    return hdps::Application::getIconFont("FontAwesome").getIcon("cube", color);
+    return mv::Application::getIconFont("FontAwesome").getIcon("cube", color);
 }
 
 VolumeViewerPlugin* VolumeViewerPluginFactory::produce()
@@ -945,14 +945,14 @@ VolumeViewerPlugin* VolumeViewerPluginFactory::produce()
     return new VolumeViewerPlugin(this);
 }
 
-hdps::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
+mv::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
 {
     DataTypes supportedTypes;
     supportedTypes.append(PointType);
     return supportedTypes;
 }
 
-hdps::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActions(const hdps::Datasets& datasets) const
+mv::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActions(const mv::Datasets& datasets) const
 {
     PluginTriggerActions pluginTriggerActions;
 

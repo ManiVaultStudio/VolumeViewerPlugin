@@ -10,7 +10,7 @@
 
 class VolumeViewer;
 
-using namespace hdps::gui;
+using namespace mv::gui;
 
 /**
  * Renderer settings action class

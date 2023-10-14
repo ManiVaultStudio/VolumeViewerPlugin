@@ -5,7 +5,7 @@
 #include "actions/OptionAction.h"
 
 
-using namespace hdps::gui;
+using namespace mv::gui;
 
 class RendererSettingsAction;
 
@@ -57,7 +57,7 @@ protected:
     DecimalAction                _specularConstantAction;               /** Input box for specular color constant.*/
 
     friend class ScatterplotPlugin;
-    friend class hdps::AbstractActionsManager;
+    friend class mv::AbstractActionsManager;
 };
 
 Q_DECLARE_METATYPE(ColoringAction)

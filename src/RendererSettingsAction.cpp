@@ -2,8 +2,8 @@
 #include <ViewerWidget.h>
 #include <QMenu>
 
-using namespace hdps;
-using namespace hdps::gui;
+using namespace mv;
+using namespace mv::gui;
 
 RendererSettingsAction::RendererSettingsAction(QObject* parent, ViewerWidget* viewerWidget, const QString& title) :
     GroupsAction(parent, title),
