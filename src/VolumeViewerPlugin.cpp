@@ -139,7 +139,7 @@ void VolumeViewerPlugin::init()
         else {
             // Accept points datasets drag and drop
             if (dataType == PointType) {
-                const auto candidateDataset = getCore()->requestDataset<Points>(datasetId);
+                const auto candidateDataset = mv::data().getDataset<Points>(datasetId);
                 //const auto candidateDatasetName = candidateDataset.getName();
                 const auto description = QString("Visualize %1 as voxels").arg(candidateDataset->getGuiName());
 
@@ -215,7 +215,7 @@ void VolumeViewerPlugin::init()
 
 
             // Get clusters dataset from the core
-            auto candidateDataset = _core->requestDataset<Clusters>(datasetId);
+            auto candidateDataset = mv::data().getDataset<Clusters>(datasetId);
             
 
             // Establish drop region description
