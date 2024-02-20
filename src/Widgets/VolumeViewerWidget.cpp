@@ -88,7 +88,7 @@ void VolumeViewerWidget::setData(Dataset<Points> points)
     }
 }
 
-void VolumeViewerWidget::setCursorPoint(hdps::Vector3f cursorPoint)
+void VolumeViewerWidget::setCursorPoint(mv::Vector3f cursorPoint)
 {
     QVector3D normCursorPoint = (QVector3D(cursorPoint.x, cursorPoint.y, cursorPoint.z) - _meanCoord) / _maxRange;
     _openGLWidget->setCursorPoint(Vector3f(normCursorPoint.x(), normCursorPoint.y(), normCursorPoint.z()));

@@ -3,7 +3,7 @@
 #include <actions/OptionAction.h>
 #include <actions/ToggleAction.h>
 
-using namespace hdps::gui;
+using namespace mv::gui;
 
 class VolumeViewerPlugin;
 
@@ -59,7 +59,7 @@ private:
     VolumeViewerPlugin* _plugin;                /** Pointer to plugin */
     ToggleAction        _openGLAction;          /** Trigger action for activating the OpenGL renderer */
 
-    friend class hdps::AbstractActionsManager;
+    friend class mv::AbstractActionsManager;
 };
 
 Q_DECLARE_METATYPE(PickRendererAction)

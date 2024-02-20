@@ -13,7 +13,7 @@
 class VolumeViewerPlugin;
 class OpenGLRendererWidget;
 
-using namespace hdps;
+using namespace mv;
 
 /**
  * Volume Renderer Widget
@@ -29,7 +29,7 @@ public:
     VolumeViewerWidget(QObject* parent, const QString& title);
 
     void setData(Dataset<Points> points);
-    void setCursorPoint(hdps::Vector3f cursorPoint);
+    void setCursorPoint(mv::Vector3f cursorPoint);
 
 public:
     OpenGLRendererWidget* getOpenGLWidget()

@@ -68,7 +68,7 @@ void VolumeRenderer::setColormap(const QImage& colormap)
     qDebug() << "Colormap is set!";
 }
 
-void VolumeRenderer::setCursorPoint(hdps::Vector3f cursorPoint)
+void VolumeRenderer::setCursorPoint(mv::Vector3f cursorPoint)
 {
     _cursorPoint = cursorPoint;
     qDebug() << _cursorPoint.x << _cursorPoint.y << _cursorPoint.z;
@@ -172,7 +172,7 @@ void VolumeRenderer::resize(int w, int h)
     glViewport(0, 0, w, h);
 }
 
-void VolumeRenderer::render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vector2f camAngle, float aspect)
+void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2f camAngle, float aspect)
 {
     _framebuffer.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);

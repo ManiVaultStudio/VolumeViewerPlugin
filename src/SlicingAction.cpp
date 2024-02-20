@@ -6,7 +6,7 @@
 #include <QFileDialog>
 #include <qmessagebox.h>
 
-using namespace hdps;
+using namespace mv;
 
 SlicingAction::SlicingAction(RendererSettingsAction& rendererSettingsAction, const QString& title) :
     GroupAction(reinterpret_cast<QObject*>(&rendererSettingsAction), title),

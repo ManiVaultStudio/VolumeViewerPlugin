@@ -6,7 +6,7 @@
 
 #include <actions/GroupAction.h>
 
-using namespace hdps::gui;
+using namespace mv::gui;
 
 /**
  * Settings action class

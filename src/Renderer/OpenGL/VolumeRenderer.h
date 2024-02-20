@@ -24,22 +24,22 @@ public:
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
-    void setCursorPoint(hdps::Vector3f cursorPoint);
+    void setCursorPoint(mv::Vector3f cursorPoint);
     void reloadShader();
 
     void init();
     void resize(int w, int h);
 
-    void render(GLuint framebuffer, hdps::Vector3f camPos, hdps::Vector2f camAngle, float aspect);
+    void render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2f camAngle, float aspect);
 
 private:
-    hdps::Framebuffer _framebuffer;
-    hdps::Texture2D _colorAttachment;
+    mv::Framebuffer _framebuffer;
+    mv::Texture2D _colorAttachment;
     //GLuint _texture;
 
-    hdps::ShaderProgram _volumeShaderProgram;
-    hdps::ShaderProgram _pointsShaderProgram;
-    hdps::ShaderProgram _framebufferShaderProgram;
+    mv::ShaderProgram _volumeShaderProgram;
+    mv::ShaderProgram _pointsShaderProgram;
+    mv::ShaderProgram _framebufferShaderProgram;
 
     GLuint vao;
     GLuint vbo;
@@ -48,11 +48,11 @@ private:
 
     GLuint _cursorVao;
     GLuint _cursorVbo;
-    hdps::Vector3f _cursorPoint;
+    mv::Vector3f _cursorPoint;
 
     bool _hasColors = false;
 
-    hdps::Texture2D _colormap;
+    mv::Texture2D _colormap;
 
     QMatrix4x4 _projMatrix;
     QMatrix4x4 _viewMatrix;

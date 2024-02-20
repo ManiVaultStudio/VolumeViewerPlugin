@@ -4,7 +4,7 @@
 
 #include <QMenu>
 
-using namespace hdps::gui;
+using namespace mv::gui;
 
 SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     GroupAction(parent, title),
@@ -58,14 +58,14 @@ void SettingsAction::fromVariantMap(const QVariantMap& variantMap)
     auto positionDataset = _positionDatasetPickerAction.getCurrentDataset();
     if (positionDataset.isValid())
     {
-        Dataset pickedDataset = core()->getDataManager().getSet(positionDataset.getDatasetId());
+        Dataset pickedDataset = mv::data().getDataset(positionDataset.getDatasetId());
         _plugin->getDataset() = pickedDataset;
     }
 
     auto colorDataset = _colorDatasetPickerAction.getCurrentDataset();
     if (colorDataset.isValid())
     {
-        Dataset pickedDataset = core()->getDataManager().getSet(colorDataset.getDatasetId());
+        Dataset pickedDataset = mv::data().getDataset(colorDataset.getDatasetId());
         _plugin->getColorDataset() = pickedDataset;
     }
 }

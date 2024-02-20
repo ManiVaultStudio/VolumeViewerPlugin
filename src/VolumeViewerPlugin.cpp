@@ -12,16 +12,16 @@
 #include <actions/PluginTriggerAction.h>
 #include <DatasetsMimeData.h>
 
-/** HDPS headers*/
+/** mv headers*/
 #include "PointData/PointData.h"
 #include <ClusterData/Cluster.h>
 #include <ClusterData/ClusterData.h>
 
 #include "ColorData/ColorData.h"
 
-using namespace hdps;
-using namespace hdps::gui;
-using namespace hdps::util;
+using namespace mv;
+using namespace mv::gui;
+using namespace mv::util;
 
 VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
@@ -131,7 +131,7 @@ void VolumeViewerPlugin::init()
         else {
             // Accept points datasets drag and drop
             if (dataType == PointType) {
-                const auto candidateDataset = getCore()->requestDataset<Points>(datasetId);
+                const auto candidateDataset = mv::data().getDataset<Points>(datasetId);
                 //const auto candidateDatasetName = candidateDataset.getName();
                 const auto description = QString("Visualize %1 as voxels").arg(candidateDataset->getGuiName());
 
@@ -207,7 +207,7 @@ void VolumeViewerPlugin::init()
 
 
             // Get clusters dataset from the core
-            auto candidateDataset = _core->requestDataset<Clusters>(datasetId);
+            auto candidateDataset = mv::data().getDataset<Clusters>(datasetId);
             
 
             // Establish drop region description
@@ -395,14 +395,14 @@ void VolumeViewerPlugin::reInitializeLayout(QHBoxLayout layout) {
 
 }
 
-hdps::CoreInterface* VolumeViewerPlugin::getCore()
+mv::CoreInterface* VolumeViewerPlugin::getCore()
 {
     return _core;
 }
 
 QIcon VolumeViewerPluginFactory::getIcon(const QColor& color /*= Qt::black*/) const
 {
-    return hdps::Application::getIconFont("FontAwesome").getIcon("cube", color);
+    return mv::Application::getIconFont("FontAwesome").getIcon("cube", color);
 }
 
 VolumeViewerPlugin* VolumeViewerPluginFactory::produce()
@@ -410,14 +410,14 @@ VolumeViewerPlugin* VolumeViewerPluginFactory::produce()
     return new VolumeViewerPlugin(this);
 }
 
-hdps::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
+mv::DataTypes VolumeViewerPluginFactory::supportedDataTypes() const
 {
     DataTypes supportedTypes;
     supportedTypes.append(PointType);
     return supportedTypes;
 }
 
-hdps::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActions(const hdps::Datasets& datasets) const
+mv::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActions(const mv::Datasets& datasets) const
 {
     PluginTriggerActions pluginTriggerActions;
 

@@ -8,7 +8,7 @@
 #include <PositionAction.h>
 #include <ThresholdAction.h>
 
-using namespace hdps;
+using namespace mv;
 
 SelectedPointsAction::SelectedPointsAction(RendererSettingsAction& rendererSettingsAction, const QString& title) :
     GroupAction(reinterpret_cast<QObject*>(&rendererSettingsAction), title),

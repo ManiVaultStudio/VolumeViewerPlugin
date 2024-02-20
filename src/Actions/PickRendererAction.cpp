@@ -2,14 +2,14 @@
 
 #include "VolumeViewerPlugin.h"
 
-using namespace hdps::gui;
+using namespace mv::gui;
 
 PickRendererAction::PickRendererAction(QObject* parent, const QString& title) :
     OptionAction(parent, title, { "OpenGL" }),
     _plugin(nullptr),
     _openGLAction(this, "OpenGL")
 {
-    setIcon(hdps::Application::getIconFont("FontAwesome").getIcon("image"));
+    setIcon(mv::Application::getIconFont("FontAwesome").getIcon("image"));
     setDefaultWidgetFlags(OptionAction::ComboBox);
     setEnabled(true);
 

@@ -27,7 +27,7 @@ public:
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
-    void setCursorPoint(hdps::Vector3f cursorPoint);
+    void setCursorPoint(mv::Vector3f cursorPoint);
 
 public:
     bool eventFilter(QObject* target, QEvent* event);
@@ -41,9 +41,9 @@ protected:
 private:
     VolumeRenderer _volumeRenderer;
 
-    hdps::Vector3f _camPos;
+    mv::Vector3f _camPos;
     float _camDist = 1.0f;
-    hdps::Vector2f _camAngle = hdps::Vector2f(3.14159f / 2, 0);
+    mv::Vector2f _camAngle = mv::Vector2f(3.14159f / 2, 0);
 
     QPointF _previousMousePos;
     bool _mousePressed = false;

@@ -7,7 +7,7 @@
 /** Plugin headers*/
 #include <ViewPlugin.h>
 //#include <Transfer/CustomColorMapEditor.h>
-/** HDPS headers*/
+/** mv headers*/
 #include <Dataset.h>
 #include <widgets/DropWidget.h>
 #include <RendererSettingsAction.h>
@@ -24,18 +24,18 @@
 #include "Widgets/VolumeViewerWidget.h"
 #include "Renderer/OpenGL/OpenGLRendererWidget.h"
 
-using hdps::plugin::ViewPluginFactory;
-using hdps::plugin::ViewPlugin;
-using namespace hdps::plugin;
-using namespace hdps::util;
-using namespace hdps;
+using mv::plugin::ViewPluginFactory;
+using mv::plugin::ViewPlugin;
+using namespace mv::plugin;
+using namespace mv::util;
+using namespace mv;
 
 class Images;
 class SettingsWidget;
 class ViewerWidget;
 class Points;
 
-namespace hdps {
+namespace mv {
     class CoreInterface;
     namespace gui {
         class DropWidget;
@@ -44,7 +44,7 @@ namespace hdps {
 
 /**
  * 3D viewer plugin class
- * This HDPS view plugin class provides functionality to view high-dimensional Points Data loaded by the HDVOL loader plugin
+ * This mv view plugin class provides functionality to view high-dimensional Points Data loaded by the HDVOL loader plugin
  *
  * @author Mitchell M. de Boer
  */
@@ -59,7 +59,7 @@ public:
 
 public:
     /** Constructor */
-    VolumeViewerPlugin(const hdps::plugin::PluginFactory* factory);
+    VolumeViewerPlugin(const mv::plugin::PluginFactory* factory);
 
 public: // Inherited from ViewPlugin
 
@@ -67,14 +67,14 @@ public: // Inherited from ViewPlugin
 
     /** Initializes the plugin */
     void init() override;
-    hdps::CoreInterface* getCore();
+    mv::CoreInterface* getCore();
 
     void reInitializeLayout(QHBoxLayout layout);
 
     void setSelectionPosition(double x, double y, double z);
 
     /** Returns a pointer to the core interface */
-    hdps::CoreInterface* core() { return _core; }
+    mv::CoreInterface* core() { return _core; }
 
 public: // Miscellaneous
     void setRendererBackend(RendererBackend backend)
@@ -93,7 +93,7 @@ public: // Miscellaneous
     }
 
 
-    /** Returns the names of the points datasets in HDPS */
+    /** Returns the names of the points datasets in mv */
     QStringList getPointsDatasets() const {
         return _pointsDatasets;
     }
@@ -140,7 +140,7 @@ public: // Serialization
     QVariantMap toVariantMap() const override;
 
 signals:
-    /** Signals that list of point datasets in HDPS has changed */
+    /** Signals that list of point datasets in mv has changed */
     void pointsDatasetsChanged(QStringList pointsDatasets);
 
 private:
@@ -154,8 +154,8 @@ private:
     Dataset<Clusters>                   _pointsColorCluster;        /** Declare a points dataset reference */
     Dataset<Points>                     _pointsColorPoints;         /** Declare a points dataset reference */
     Dataset<Points>                     _pointsOpacityPoints;       /** Declare a points dataset reference */
-    QStringList                         _pointsDatasets;            /** Point datasets loaded in HDPS */
-    hdps::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
+    QStringList                         _pointsDatasets;            /** Point datasets loaded in mv */
+    mv::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */
     std::vector<int>                    _planeArray;                /** Array indicating the index+1 of the x,y and z clipping planes in the plane collection*/
     std::vector<double>                 _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/
@@ -185,7 +185,7 @@ private:
  */
 class VolumeViewerPluginFactory : public ViewPluginFactory
 {
-    Q_INTERFACES(hdps::plugin::ViewPluginFactory hdps::plugin::PluginFactory)
+    Q_INTERFACES(mv::plugin::ViewPluginFactory mv::plugin::PluginFactory)
         Q_OBJECT
         Q_PLUGIN_METADATA(IID "nl.tudelft.VolumeViewerPlugin" FILE "VolumeViewerPlugin.json")
 
@@ -206,12 +206,12 @@ public:
     /** Creates an image viewer plugin instance */
     VolumeViewerPlugin* produce() override;
 
-    hdps::DataTypes supportedDataTypes() const override;
+    mv::DataTypes supportedDataTypes() const override;
 
     /**
      * Get plugin trigger actions given \p datasets
      * @param datasets Vector of input datasets
      * @return Vector of plugin trigger actions
      */
-    PluginTriggerActions getPluginTriggerActions(const hdps::Datasets& datasets) const override;
+    PluginTriggerActions getPluginTriggerActions(const mv::Datasets& datasets) const override;
 };
