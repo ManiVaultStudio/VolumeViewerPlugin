@@ -126,6 +126,10 @@ public: // Miscellaneous
         return _pointsColorPoints;
     }
 
+public: // Focus selection
+    void setFocusSelection(bool focusSelection);
+    void setFocusFloodfill(bool focusFloodfill);
+
 public: // Serialization
     /**
     * Load plugin from variant map
@@ -143,6 +147,11 @@ signals:
     /** Signals that list of point datasets in mv has changed */
     void pointsDatasetsChanged(QStringList pointsDatasets);
 
+private: // Focus section or focus floodfill
+    void loadFloodfillDataset();
+    void getFloodfillIndices(std::vector<int>& indices);
+    void applyMaskToColors(const std::vector<int>& indices);
+
 private:
     RendererBackend                     _rendererBackend;
 
@@ -154,6 +163,8 @@ private:
     Dataset<Clusters>                   _pointsColorCluster;        /** Declare a points dataset reference */
     Dataset<Points>                     _pointsColorPoints;         /** Declare a points dataset reference */
     Dataset<Points>                     _pointsOpacityPoints;       /** Declare a points dataset reference */
+    Dataset<Points>                     _floodFillDataset;          /** For focusing on floodfill */
+
     QStringList                         _pointsDatasets;            /** Point datasets loaded in mv */
     mv::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */
@@ -174,6 +185,8 @@ private:
     float                               _backgroundAlpha;           /** Float indcating the alpha value of the background during selection.*/
     bool                                _selectionDisabled;
     bool                                _pointOpacityLoaded;
+    bool                                _focusSelection = false;    /** Boolian indicating whether focus on selection*/
+    bool                                _focusFloodfill = false;    /** Boolian indicating whether focus on floodfill*/
 
     HorizontalToolbarAction             _primaryToolbarAction;      /** Horizontal toolbar for primary content */
     HorizontalToolbarAction             _secondaryToolbarAction;    /** Secondary toolbar for secondary content */

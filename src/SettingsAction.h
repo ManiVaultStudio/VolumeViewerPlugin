@@ -53,6 +53,8 @@ public: // Action getters
 
     RendererSettingsAction& getRendererSettingsAction() { return _renderSettingsAction; }
     PickRendererAction& getPickRendererAction() { return _pickRendererAction; }
+    ToggleAction& getFocusSelectionAction() { return _focusSelectionAction; }
+    ToggleAction& getFocusFloodfillAction() { return _focusFloodfillAction; }
 
 protected:
     VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
@@ -60,4 +62,6 @@ protected:
     PickRendererAction      _pickRendererAction;
     DatasetPickerAction     _positionDatasetPickerAction;
     DatasetPickerAction     _colorDatasetPickerAction;
+    ToggleAction            _focusSelectionAction;
+    ToggleAction            _focusFloodfillAction;
 };

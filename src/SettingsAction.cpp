@@ -12,7 +12,9 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _renderSettingsAction(this, title),
     _pickRendererAction(this, "Pick Renderer Action"),
     _positionDatasetPickerAction(this, "Position"),
-    _colorDatasetPickerAction(this, "ColorPoints")
+    _colorDatasetPickerAction(this, "ColorPoints"),
+    _focusSelectionAction(this, "Focus Selection"),
+    _focusFloodfillAction(this, "Focus Floodfill")
 {
     GroupsAction::GroupActions groupActions;
 
@@ -36,6 +38,14 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_plugin->getColorDataset(), &Dataset<Points>::changed, this, [this](DatasetImpl* dataset) -> void {
         _colorDatasetPickerAction.setCurrentDataset(dataset);
+    });
+
+    connect(&_focusSelectionAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
+            _plugin->setFocusSelection(toggled);
+    });
+
+    connect(&_focusFloodfillAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
+            _plugin->setFocusFloodfill(toggled);
     });
 }
 
