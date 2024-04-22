@@ -84,7 +84,7 @@ void VolumeRenderer::init()
 {
     initializeOpenGLFunctions();
     
-    glClearColor(22 / 255.0f, 22 / 255.0f, 22/255.0f, 1.0f);
+    glClearColor(20 / 255.0f, 20 / 255.0f, 20/255.0f, 1.0f);
 
     // Make float buffer to support low alpha blending
     _colorAttachment.create();
