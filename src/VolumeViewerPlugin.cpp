@@ -23,6 +23,34 @@ using namespace mv;
 using namespace mv::gui;
 using namespace mv::util;
 
+namespace
+{
+    void normalizeVector(std::vector<float>& v)
+    {
+        float scalarMin = std::numeric_limits<float>::max();
+        float scalarMax = -std::numeric_limits<float>::max();
+
+        // Compute min and max of scalars
+        for (int i = 0; i < v.size(); i++)
+        {
+            if (v[i] < scalarMin) scalarMin = v[i];
+            if (v[i] > scalarMax) scalarMax = v[i];
+        }
+        float scalarRange = scalarMax - scalarMin;
+
+        if (scalarRange != 0)
+        {
+            float invScalarRange = 1.0f / (scalarMax - scalarMin);
+            // Normalize the scalars
+#pragma omp parallel for
+            for (int i = 0; i < v.size(); i++)
+            {
+                v[i] = (v[i] - scalarMin) * invScalarRange;
+            }
+        }
+    }
+}
+
 VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     ViewPlugin(factory),
     _primaryToolbarAction(this, "PrimaryToolbar"),
@@ -75,7 +103,10 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
 
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
+   
 }
 
 void VolumeViewerPlugin::init()
@@ -267,23 +298,7 @@ void VolumeViewerPlugin::init()
     connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this]() {
         if (_rendererBackend == RendererBackend::OpenGL)
         {
-            if (!_focusSelection && !_focusFloodfill) {
-                std::vector<float> colors;
-                _pointsColorPoints->extractDataForDimension(colors, 0);
-                _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
-                _volumeViewerWidget->getOpenGLWidget()->update();
-            }
-            else if (_focusSelection) {
-                std::vector<int> indices;
-                const auto& selectionSet = _points->getSelection<Points>();
-                indices.assign(selectionSet->indices.begin(), selectionSet->indices.end());
-                applyMaskToColors(indices);
-            }
-            else if (_focusFloodfill) {
-                std::vector<int> indices;
-                getFloodfillIndices(indices);
-                applyMaskToColors(indices);
-            }
+            updateFocusMode();
         }
     });
 
@@ -305,21 +320,7 @@ void VolumeViewerPlugin::init()
             auto colorMapImage = colorMapAction.getColorMapImage();
             _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
 
-            if (!_focusSelection && !_focusFloodfill) {
-                std::vector<float> colors;
-                _pointsColorPoints->extractDataForDimension(colors, 0);
-                _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
-                _volumeViewerWidget->getOpenGLWidget()->update();
-            } else if (_focusSelection) {
-                std::vector<int> indices;
-                const auto& selectionSet = _points->getSelection<Points>();
-                indices.assign(selectionSet->indices.begin(), selectionSet->indices.end());
-                applyMaskToColors(indices);
-            } else if (_focusFloodfill) {
-                std::vector<int> indices;
-                getFloodfillIndices(indices);
-                applyMaskToColors(indices);
-            }  
+            updateFocusMode();
         }
     });
 
@@ -398,7 +399,6 @@ void VolumeViewerPlugin::init()
 
             // if the selection is not empty add the selection to the vector 
             if (selectionSet->indices.size() != 0) {
-
                 _dataSelected = true;
             }
             else {
@@ -416,11 +416,14 @@ void VolumeViewerPlugin::init()
             }
 
             // Focus selection
-            if (selectionSet->indices.size() >=1 && _focusSelection)
+            if (selectionSet->indices.size() >=1)
             {
                 std::vector<int> indices;
                 indices.assign(selectionSet->indices.begin(), selectionSet->indices.end());
-                applyMaskToColors(indices);
+                if (_focusSelection)
+                    applyMaskToColors(indices, false);
+                else if (_focusSelectionNorm)
+                    applyMaskToColors(indices, true);
             }
         }
     });// Selection changed connection.
@@ -431,20 +434,7 @@ void VolumeViewerPlugin::setFocusSelection(bool focusSelection) {
     _focusSelection = focusSelection;
     qDebug() << "Focus selection: " << _focusSelection;
 
-    const auto& selectionSet = _points->getSelection<Points>();
-
-    if (_focusSelection)
-    {
-        std::vector<int> indices;
-        indices.assign(selectionSet->indices.begin(), selectionSet->indices.end());
-        applyMaskToColors(indices);      
-    }
-    else {
-        std::vector<float> colors;
-        _pointsColorPoints->extractDataForDimension(colors, 0);
-        _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
-        _volumeViewerWidget->getOpenGLWidget()->update();
-    }
+    updateFocusMode();
 }
 
 void VolumeViewerPlugin::setFocusFloodfill(bool focusFloodfill) {
@@ -456,12 +446,64 @@ void VolumeViewerPlugin::setFocusFloodfill(bool focusFloodfill) {
         loadFloodfillDataset();
         std::vector<int> indices;
         getFloodfillIndices(indices);
-        applyMaskToColors(indices);
+        applyMaskToColors(indices, false);
     } else {
+        updateFocusMode();
+    }
+}
+
+void VolumeViewerPlugin::setFocusSelectionNorm(bool focusSelectionNorm) {
+    _focusSelectionNorm = focusSelectionNorm;
+    qDebug() << "Focus selection norm: " << _focusSelectionNorm;
+
+    updateFocusMode();
+}
+
+void VolumeViewerPlugin::setFocusFloodfillNorm(bool focusFloodfillNorm) {
+    _focusFloodfillNorm = focusFloodfillNorm;
+    qDebug() << "Focus floodfill norm: " << _focusFloodfillNorm;
+
+    if (_focusFloodfillNorm)
+    {
+        loadFloodfillDataset();
+        std::vector<int> indices;
+        getFloodfillIndices(indices);
+        applyMaskToColors(indices, true);
+    }
+    else {
+        updateFocusMode();
+    }
+}
+
+void VolumeViewerPlugin::updateFocusMode() {
+    qDebug() << "Update focus mode";
+    if (!_focusSelection && !_focusFloodfill && !_focusSelectionNorm && !_focusFloodfillNorm) {
         std::vector<float> colors;
         _pointsColorPoints->extractDataForDimension(colors, 0);
         _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
         _volumeViewerWidget->getOpenGLWidget()->update();
+    }
+    else if (_focusSelection) {
+        std::vector<int> indices;
+        const auto& selectionSet = _points->getSelection<Points>();
+        indices.assign(selectionSet->indices.begin(), selectionSet->indices.end());
+        applyMaskToColors(indices, false);
+    }
+    else if (_focusFloodfill) {
+        std::vector<int> indices;
+        getFloodfillIndices(indices);
+        applyMaskToColors(indices, false);
+    }
+    else if (_focusSelectionNorm) {
+        std::vector<int> indices;
+        const auto& selectionSet = _points->getSelection<Points>();
+        indices.assign(selectionSet->indices.begin(), selectionSet->indices.end());
+        applyMaskToColors(indices, true);
+    }
+    else if (_focusFloodfillNorm) {
+        std::vector<int> indices;
+        getFloodfillIndices(indices);
+        applyMaskToColors(indices, true);
     }
 }
 
@@ -484,7 +526,11 @@ void VolumeViewerPlugin::loadFloodfillDataset() {
         if (_focusFloodfill) {
             std::vector<int> indices;
             getFloodfillIndices(indices);
-            applyMaskToColors(indices);
+            applyMaskToColors(indices, false);
+        } else if (_focusFloodfillNorm) {
+            std::vector<int> indices;
+            getFloodfillIndices(indices);
+            applyMaskToColors(indices, true);
         }
      });
 }
@@ -500,13 +546,17 @@ void VolumeViewerPlugin::getFloodfillIndices(std::vector<int>& indices) {
     }
 }
 
-void VolumeViewerPlugin::applyMaskToColors(const std::vector<int>& indices) {
+void VolumeViewerPlugin::applyMaskToColors(const std::vector<int>& indices, bool norm) {
     std::vector<float> colors;
     _pointsColorPoints->extractDataForDimension(colors, 0);
 
     std::vector<float> maskedColors(colors.size(), 0);
     for (int idx : indices) {
          maskedColors[idx] = colors[idx];
+    }
+
+    if (norm) {
+        normalizeVector(maskedColors);
     }
 
     _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);
