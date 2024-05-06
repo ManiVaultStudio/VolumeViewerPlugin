@@ -192,6 +192,7 @@ private:
     bool                                _focusFloodfill = false;    /** Boolian indicating whether focus on floodfill*/
     bool                                _focusSelectionNorm = false;/** Boolian indicating whether focus on selection, normalized on selection*/
     bool                                _focusFloodfillNorm = false;/** Boolian indicating whether focus on floodfill, normalized on floodfill*/
+    bool                                _floodFillDatasetFound = false;/** Boolian indicating whether floodfill dataset is found*/
 
     HorizontalToolbarAction             _primaryToolbarAction;      /** Horizontal toolbar for primary content */
     HorizontalToolbarAction             _secondaryToolbarAction;    /** Secondary toolbar for secondary content */

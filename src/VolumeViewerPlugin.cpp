@@ -441,15 +441,10 @@ void VolumeViewerPlugin::setFocusFloodfill(bool focusFloodfill) {
     _focusFloodfill = focusFloodfill;
     qDebug() << "Focus floodfill: " << _focusFloodfill;
 
-    if (_focusFloodfill)
-    {
+    if (!_floodFillDatasetFound)
         loadFloodfillDataset();
-        std::vector<int> indices;
-        getFloodfillIndices(indices);
-        applyMaskToColors(indices, false);
-    } else {
-        updateFocusMode();
-    }
+
+    updateFocusMode();
 }
 
 void VolumeViewerPlugin::setFocusSelectionNorm(bool focusSelectionNorm) {
@@ -463,16 +458,10 @@ void VolumeViewerPlugin::setFocusFloodfillNorm(bool focusFloodfillNorm) {
     _focusFloodfillNorm = focusFloodfillNorm;
     qDebug() << "Focus floodfill norm: " << _focusFloodfillNorm;
 
-    if (_focusFloodfillNorm)
-    {
+    if (!_floodFillDatasetFound)
         loadFloodfillDataset();
-        std::vector<int> indices;
-        getFloodfillIndices(indices);
-        applyMaskToColors(indices, true);
-    }
-    else {
-        updateFocusMode();
-    }
+
+    updateFocusMode();
 }
 
 void VolumeViewerPlugin::updateFocusMode() {
@@ -508,16 +497,15 @@ void VolumeViewerPlugin::updateFocusMode() {
 }
 
 void VolumeViewerPlugin::loadFloodfillDataset() {
-    bool floodFillDatasetFound = false;
     for (const auto& data : mv::data().getAllDatasets())
     {
         if (data->getGuiName() == "allFloodNodesIndices") {
             _floodFillDataset = data;
-            floodFillDatasetFound = true;
+            _floodFillDatasetFound = true;
             break;
         }
     }
-    if (!floodFillDatasetFound) {
+    if (!_floodFillDatasetFound) {
         qDebug() << "VolumeViewer Warning: No floodFillDataset named allFloodNodesIndices found!";
         return;
     }
