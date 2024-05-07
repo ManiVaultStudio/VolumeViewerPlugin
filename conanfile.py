@@ -5,25 +5,24 @@ import os
 import shutil
 import pathlib
 import subprocess
-import traceback
 from rules_support import PluginBranchInfo
 
 
-class VolumeViewerPluginConan(ConanFile):
-    """Class to package ImageViewerPlugin using conan
+class VolumeViewer(ConanFile):
+    """Class to package the plugin using conan
 
     Packages both RELEASE and DEBUG.
     Uses rules_support (github.com/hdps/rulessupport) to derive
     versioninfo based on the branch naming convention
-    as described in https://github.com/hdps/core/wiki/Branch-naming-rules
+    as described in https://github.com/ManiVaultStudio/core/wiki/Branch-naming-rules
     """
 
-    name = "VolumeViewerPlugin"
-    description = "A plugin for viewing volume data in ManiVault Studio."
-    topics = ("hdps", "plugin", "volume data", "view")
-    url = "https://github.com/hdps/VolumeViewerPlugin"
+    name = "VolumeViewer"
+    description = """Plugin for viewing volumetric data"""
+    topics = ("manivault", "plugin", "view", "volume")
+    url = "https://github.com/ManiVaultStudio/VolumeViewerPlugin"
     author = "B. van Lew b.van_lew@lumc.nl"  # conan recipe author
-    license = "MIT"
+    license = "LGPL 3.0"
 
     short_paths = True
     generators = "CMakeDeps"
@@ -33,21 +32,20 @@ class VolumeViewerPluginConan(ConanFile):
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": True, "fPIC": True}
 
+    # Qt requirement is inherited from hdps-core
+
     scm = {
         "type": "git",
-        "subfolder": "hdps/VolumeViewerPlugin",
+        "subfolder": "hdps/VolumeViewer",
         "url": "auto",
         "revision": "auto",
     }
 
     def __get_git_path(self):
-        if pathlib.Path(".git").exists():
-            path = pathlib.Path.cwd()
-        else:
-            path = load(
-                pathlib.Path(pathlib.Path(__file__).parent.resolve(), "__gitpath.txt")
-            )
-            print(f"Loaded path {path}")
+        path = load(
+            pathlib.Path(pathlib.Path(__file__).parent.resolve(), "__gitpath.txt")
+        )
+        print(f"git info from {path}")
         return path
 
     def export(self):
@@ -62,6 +60,7 @@ class VolumeViewerPluginConan(ConanFile):
         # Assign a version from the branch name
         branch_info = PluginBranchInfo(self.recipe_folder)
         self.version = branch_info.version
+        # print(f"Got version: {self.version}")
 
     def requirements(self):
         branch_info = PluginBranchInfo(self.__get_git_path())
@@ -94,24 +93,29 @@ class VolumeViewerPluginConan(ConanFile):
             tc.variables["CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS"] = True
         if self.settings.os == "Linux" or self.settings.os == "Macos":
             tc.variables["CMAKE_CXX_STANDARD_REQUIRED"] = "ON"
-        tc.variables["CMAKE_PREFIX_PATH"] = f"{qt_root}"
+        tc.variables["CMAKE_PREFIX_PATH"] = qt_root
+        
+        # Set the installation directory for ManiVault based on the MV_INSTALL_DIR environment variable
+        # or if none is specified, set it to the build/install dir.
+        if not os.environ.get("MV_INSTALL_DIR", None):
+            os.environ["MV_INSTALL_DIR"] = os.path.join(self.build_folder, "install")
+        print("MV_INSTALL_DIR: ", os.environ["MV_INSTALL_DIR"])
+        self.install_dir = pathlib.Path(os.environ["MV_INSTALL_DIR"]).as_posix()
+        # Give the installation directory to CMake
+        tc.variables["MV_INSTALL_DIR"] = self.install_dir
+        
         tc.generate()
 
     def _configure_cmake(self):
         cmake = CMake(self)
-        cmake.configure(build_script_folder="hdps/VolumeViewerPlugin")
+        cmake.configure(build_script_folder="hdps/VolumeViewer")
         cmake.verbose = True
         return cmake
 
     def build(self):
         print("Build OS is : ", self.settings.os)
-        # If the user has no preference in HDPS_INSTALL_DIR simply set the install dir
-        if not os.environ.get("HDPS_INSTALL_DIR", None):
-            os.environ["HDPS_INSTALL_DIR"] = os.path.join(self.build_folder, "install")
-        print("HDPS_INSTALL_DIR: ", os.environ["HDPS_INSTALL_DIR"])
-        self.install_dir = os.environ["HDPS_INSTALL_DIR"]
 
-        # The ImageViewerPlugin build expects the HDPS package to be in this install dir
+        # The BinNIO plugins expect the HDPS package to be in this install dir
         hdps_pkg_root = self.deps_cpp_info["hdps-core"].rootpath
         print("Install dir type: ", self.install_dir)
         shutil.copytree(hdps_pkg_root, self.install_dir)
@@ -150,6 +154,10 @@ class VolumeViewerPluginConan(ConanFile):
             ]
         )
         self.copy(pattern="*", src=package_dir)
+        # Add the debug support files to the package
+        # (*.pdb) if building the Visual Studio version
+        if self.settings.compiler == "Visual Studio":
+            self.copy("*.pdb", dst="Debug/Plugins", keep_path=False)
 
     def package_info(self):
         self.cpp_info.debug.libdirs = ["Debug/lib"]
