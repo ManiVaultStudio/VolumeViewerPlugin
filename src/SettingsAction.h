@@ -1,7 +1,7 @@
 #pragma once
 
 #include "RendererSettingsAction.h"
-#include "actions/PickRendererAction.h"
+#include "Actions/PickRendererAction.h"
 #include "actions/DatasetPickerAction.h"
 
 #include <actions/GroupAction.h>

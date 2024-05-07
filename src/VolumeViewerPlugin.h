@@ -19,7 +19,7 @@
 #include <actions/VerticalGroupAction.h>
 //#include <ClusterData/Cluster.h>
 
-#include <common.h>
+#include <Common.h>
 
 #include "Widgets/VolumeViewerWidget.h"
 #include "Renderer/OpenGL/OpenGLRendererWidget.h"
