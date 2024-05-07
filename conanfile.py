@@ -19,8 +19,8 @@ class VolumeViewerPluginConan(ConanFile):
     """
 
     name = "VolumeViewerPlugin"
-    description = "A VTK based plugin for viewing volume data in the high-dimensional plugin system (HDPS)."
-    topics = ("hdps", "plugin", "volume data", "viewing")
+    description = "A plugin for viewing volume data in ManiVault Studio."
+    topics = ("hdps", "plugin", "volume data", "view")
     url = "https://github.com/hdps/VolumeViewerPlugin"
     author = "B. van Lew b.van_lew@lumc.nl"  # conan recipe author
     license = "MIT"
@@ -32,8 +32,6 @@ class VolumeViewerPluginConan(ConanFile):
     settings = {"os": None, "build_type": None, "compiler": None, "arch": None}
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": True, "fPIC": True}
-
-    requires = "vtk/9.1.0@lkeb/stable"
 
     scm = {
         "type": "git",
@@ -71,8 +69,7 @@ class VolumeViewerPluginConan(ConanFile):
         self.requires(branch_info.core_requirement)
 
     def configure(self):
-        # Use the small VTK build
-        self.options["vtk"].basic_viewer = True
+        pass
 
     def system_requirements(self):
         #  May be needed for macOS or Linux
@@ -92,19 +89,12 @@ class VolumeViewerPluginConan(ConanFile):
         qtpath = pathlib.Path(self.deps_cpp_info["qt"].rootpath)
         qt_root = str(list(qtpath.glob("**/Qt6Config.cmake"))[0].parents[3].as_posix())
 
-        # Get vtk root
-        vtkpath = pathlib.Path(self.deps_cpp_info["vtk"].rootpath)
-        vtk_root = str(
-            list(vtkpath.glob("**/vtk-config.cmake"))[0].parents[3].as_posix()
-        )
-        print("vtk root ", vtk_root)
-
         tc = CMakeToolchain(self, generator=generator)
         if self.settings.os == "Windows" and self.options.shared:
             tc.variables["CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS"] = True
         if self.settings.os == "Linux" or self.settings.os == "Macos":
             tc.variables["CMAKE_CXX_STANDARD_REQUIRED"] = "ON"
-        tc.variables["CMAKE_PREFIX_PATH"] = f"{qt_root};{vtk_root}"
+        tc.variables["CMAKE_PREFIX_PATH"] = f"{qt_root}"
         tc.generate()
 
     def _configure_cmake(self):
