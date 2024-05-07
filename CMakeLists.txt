@@ -10,22 +10,28 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 if(MSVC)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DWIN32 /EHsc /MP /permissive- /Zc:__cplusplus")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG /NODEFAULTLIB:LIBCMT")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DWIN32 /EHsc /MP /permissive- /Zc:__cplusplus")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG /NODEFAULTLIB:LIBCMT")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
 endif(MSVC)
 
-find_package(OpenGL REQUIRED)
-find_package(Qt6 6.3 COMPONENTS Core Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
-find_package(OpenMP)
-# Normalize the incoming install path
+# -----------------------------------------------------------------------------
+# Set install directory
+# -----------------------------------------------------------------------------
 # Check if the directory to the ManiVault installation has been provided
 if(NOT DEFINED MV_INSTALL_DIR)
     set(MV_INSTALL_DIR "" CACHE PATH "Directory where ManiVault is installed")
     message(FATAL_ERROR "Please set MV_INSTALL_DIR to the directory where ManiVault is installed")
 endif()
 file(TO_CMAKE_PATH ${MV_INSTALL_DIR} MV_INSTALL_DIR)
+
+# -----------------------------------------------------------------------------
+# Dependencies
+# -----------------------------------------------------------------------------
+find_package(OpenGL REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
+find_package(OpenMP)
 
 set(PLUGIN
     src/Common.h
