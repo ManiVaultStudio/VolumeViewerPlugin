@@ -14,9 +14,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _positionDatasetPickerAction(this, "Position"),
     _colorDatasetPickerAction(this, "ColorPoints"),
     _focusSelectionAction(this, "Focus Selection"),
-    _focusFloodfillAction(this, "Focus Floodfill"),
-    _focusSelectionNormAction(this, "SNorm"),
-    _focusFloodfillNormAction(this, "FNorm")
+    _focusSelectionNormAction(this, "SNorm")
 {
     GroupsAction::GroupActions groupActions;
 
@@ -46,17 +44,10 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
             _plugin->setFocusSelection(toggled);
     });
 
-    connect(&_focusFloodfillAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
-            _plugin->setFocusFloodfill(toggled);
-    });
-
     connect(&_focusSelectionNormAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
             _plugin->setFocusSelectionNorm(toggled);
     });
 
-    connect(&_focusFloodfillNormAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
-            _plugin->setFocusFloodfillNorm(toggled);
-    });
 }
 
 QMenu* SettingsAction::getContextMenu(QWidget* parent /*= nullptr*/)

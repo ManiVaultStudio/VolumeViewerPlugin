@@ -128,9 +128,7 @@ public: // Miscellaneous
 
 public: // Focus selection
     void setFocusSelection(bool focusSelection);
-    void setFocusFloodfill(bool focusFloodfill);
     void setFocusSelectionNorm(bool focusSelectionNorm);
-    void setFocusFloodfillNorm(bool focusFloodfillNorm);
 
 public: // Serialization
     /**
@@ -149,9 +147,7 @@ signals:
     /** Signals that list of point datasets in mv has changed */
     void pointsDatasetsChanged(QStringList pointsDatasets);
 
-private: // Focus section or focus floodfill
-    void loadFloodfillDataset();
-    void getFloodfillIndices(std::vector<int>& indices);
+private: // Focus selection
     void applyMaskToColors(const std::vector<int>& indices, bool norm);
     void updateFocusMode();
 
@@ -189,10 +185,7 @@ private:
     bool                                _selectionDisabled;
     bool                                _pointOpacityLoaded;
     bool                                _focusSelection = false;    /** Boolian indicating whether focus on selection*/
-    bool                                _focusFloodfill = false;    /** Boolian indicating whether focus on floodfill*/
     bool                                _focusSelectionNorm = false;/** Boolian indicating whether focus on selection, normalized on selection*/
-    bool                                _focusFloodfillNorm = false;/** Boolian indicating whether focus on floodfill, normalized on floodfill*/
-    bool                                _floodFillDatasetFound = false;/** Boolian indicating whether floodfill dataset is found*/
 
     HorizontalToolbarAction             _primaryToolbarAction;      /** Horizontal toolbar for primary content */
     HorizontalToolbarAction             _secondaryToolbarAction;    /** Secondary toolbar for secondary content */
