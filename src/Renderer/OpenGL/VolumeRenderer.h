@@ -8,8 +8,17 @@
 
 #include <QOpenGLFunctions_3_3_Core>
 #include <QMatrix4x4>
+#include <QTimer>
 
 #include <vector>
+
+namespace PSTech
+{
+    namespace pstsdk
+    {
+        class Tracker;
+    }
+}
 
 /**
  * OpenGL Volume Renderer
@@ -57,4 +66,6 @@ private:
     QMatrix4x4 _projMatrix;
     QMatrix4x4 _viewMatrix;
     QMatrix4x4 _modelMatrix;
+
+    PSTech::pstsdk::Tracker* _pst;
 };

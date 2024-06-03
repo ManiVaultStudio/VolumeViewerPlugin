@@ -10,6 +10,8 @@
 
 #include <vector>
 
+#include <QTimer>
+
 /**
  * OpenGL Volume Renderer Widget
  * This class provides a widget interface to the OpenGL Volume Renderer
@@ -49,4 +51,6 @@ private:
     bool _mousePressed = false;
 
     bool _isInitialized = false;
+
+    QTimer* _updateTimer;
 };

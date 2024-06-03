@@ -53,6 +53,10 @@ void OpenGLRendererWidget::initializeGL()
     _isInitialized = true;
 
     _camPos.set(0, 0, _camDist);
+
+    _updateTimer = new QTimer(this);
+    connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });
+    _updateTimer->start(16);
 }
 
 void OpenGLRendererWidget::resizeGL(int w, int h)
