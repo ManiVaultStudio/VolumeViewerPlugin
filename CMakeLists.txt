@@ -93,6 +93,7 @@ add_library(${PROJECT} SHARED ${SOURCES} ${AUX} ${QRESOURCES} ${RESOURCE_FILES})
 
 target_include_directories(${PROJECT} PRIVATE "${MV_INSTALL_DIR}/$<CONFIGURATION>/include/")
 target_include_directories(${PROJECT} PRIVATE src)
+target_include_directories(${PROJECT} PRIVATE "C:/Program Files/PS-Tech/PST/Development/include")
 
 target_compile_features(${PROJECT} PRIVATE cxx_std_17)
 
@@ -101,6 +102,7 @@ target_link_libraries(${PROJECT} PRIVATE Qt6::WebEngineWidgets)
 target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGL)
 target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGLWidgets)
 target_link_libraries(${PROJECT} PRIVATE ${OPENGL_LIBRARIES})
+target_link_libraries(${PROJECT} PRIVATE "C:/Program Files/PS-Tech/PST/Development/lib/pstsdk_cpp.lib")
 
 set(MV_LINK_PATH "${MV_INSTALL_DIR}/$<CONFIGURATION>/lib")
 set(PLUGIN_LINK_PATH "${MV_INSTALL_DIR}/$<CONFIGURATION>/$<IF:$<CXX_COMPILER_ID:MSVC>,lib,Plugins>")

@@ -4,6 +4,108 @@
 
 #include <random>
 
+
+////////////////
+#define CONNECTED
+
+#include "pstsdk_cpp.h"
+#include "TrackerExceptions.h"
+#include "PstStringIoStream.h"
+
+#include <mutex>
+////////////////
+
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <csignal>
+#endif
+
+/*
+ * Define handler functions required to ensure a clean shutdown of the PST Tracker when the
+ * application is terminated.
+ */
+
+static void Exithandler(int sig);
+
+#ifdef WIN32
+BOOL WINAPI ConsoleHandler(DWORD CEvent)
+{
+    Exithandler(CEvent);
+    return TRUE;
+}
+#endif
+
+/* End of handler functions */
+
+std::mutex mtx;
+Matrix4f trackerMatrix;
+
+///////////////////////
+/*
+ * Helper function for clear printing of 4x4 matrices.
+ */
+static inline void PrintMatrix(const PSTech::Utils::PstArray<float, 16>& mat)
+{
+    for (int y = 0; y < 4; ++y)
+    {
+        for (int x = 0; x < 4; ++x)
+        {
+            std::cout << mat[x + y * 4] << "\t";
+        }
+        std::cout << "\n";
+    }
+}
+
+/* Control variable for main loop */
+static bool running = true;
+
+/* Number of data points to grab before application termination */
+static const uint32_t numberOfSamplesToGrab = 100;
+
+
+/*
+ * Implementation of the PSTech::pstsdk::Listener class to receive tracking data.
+ * The OnTrackerData() callback function receives the data as soon as it becomes
+ * available and prints the tracking target pose to the command line.
+ */
+class MyListener : public PSTech::pstsdk::Listener
+{
+    virtual void OnTrackerData(PSTech::pstsdk::TrackerData& td)
+    {
+        static uint32_t samplesGrabbed = 0;
+        //if (samplesGrabbed++ >= numberOfSamplesToGrab)
+        //    running = false;
+
+        for (int d = 0; d < td.targetlist.size(); ++d)
+        {
+            auto& mat = td.targetlist[d].pose;
+            std::cout << "Pose for " << td.targetlist[d].name << "\n";
+            std::cout << " ID " << td.targetlist[d].id << "\n";
+            PrintMatrix(mat);
+
+            if (td.targetlist[d].id == 3)
+            {
+                const std::lock_guard<std::mutex> lock(mtx);
+
+                for (int i = 0; i < 16; i++)
+                    trackerMatrix[i] = mat[i];
+                trackerMatrix = transpose(trackerMatrix);
+            }
+        }
+    }
+} listener;
+
+/*
+ * Implement the exit handler to shut-down the PST Tracker connection on application termination.
+ */
+static void Exithandler(int sig)
+{
+    PSTech::pstsdk::Tracker::Shutdown();
+    running = false;
+}
+
+
 void VolumeRenderer::setTexels(int width, int height, int depth, std::vector<float>& texels)
 {
     //std::vector<float> texels(width * height * depth, 0);
