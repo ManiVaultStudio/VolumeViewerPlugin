@@ -23,6 +23,11 @@ if(NOT DEFINED MV_INSTALL_DIR)
 endif()
 file(TO_CMAKE_PATH ${MV_INSTALL_DIR} MV_INSTALL_DIR)
 
+if(UNIX)
+    message(STATUS "pThreads for Linux")
+    find_package(Threads REQUIRED)
+endif(UNIX)
+
 # vtk Dir build needs to be in the same mode as hdps is to be run. (for release hdps release vtk is needed)
 #set(VTK_DIR $ENV{VTK_DIR})
 
