@@ -3,22 +3,22 @@
 /** QT headers*/
 #include <QWidget>
 #include <QResizeEvent>
-/**  HDPS headers*/
+/**  ManiVault headers*/
 #include <Dataset.h>
 #include "PointData/PointData.h"
 #include "ClusterData/ClusterData.h"
 /** VTk headers*/
 #include <vtkGenericOpenGLRenderWindow.h>
 #include <vtkRenderer.h>
-#include <QVTKInteractor.h>
-#include <vtkInteractorStyle.h>
 #include <vtkImageData.h>
-#include <QVTKOpenGLNativeWidget.h>
-#include <vtkSmartVolumeMapper.h>  
-#include <vtkCellArray.h>
+#include <vtkSmartPointer.h>
+#include <vtkPlaneCollection.h>
 #include <vtkPolyData.h>
 #include <vtkVertexGlyphFilter.h>
+//#include <vtkInteractorStyle.h>
 
+#include <QVTKInteractor.h>
+#include <QVTKOpenGLNativeWidget.h>
 
 class VolumeViewerPlugin;
 using namespace mv;

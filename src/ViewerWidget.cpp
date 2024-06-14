@@ -20,8 +20,6 @@
 #include <qvector.h>
 #include <QMenu>
 /** VTK headers */
-#include <QVTKOpenGLNativeWidget.h>
-#include <vtkPlane.h>
 #include <vtkPlaneCollection.h>
 #include <vtkImageData.h>
 #include <vtkVolume.h>
@@ -32,28 +30,20 @@
 #include <vtkPointData.h>
 #include <vtkActor.h>
 #include <vtkProperty.h>
-#include <vtkCamera.h>
 #include <vtkIntArray.h>
 #include <vtkGPUVolumeRayCastMapper.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkNamedColors.h>
-
 #include <vtkInteractorStyleTrackballCamera.h>
 #include <vtkPointPicker.h>
-#include <vtkRendererCollection.h>
-#include <vtkNamedColors.h>
 #include <vtkCellPicker.h>
-#include <vtkCellLocator.h>
 #include <vtkPoints.h>
-#include <vtkImageThreshold.h>
-
-
-
-#include <vtkPointSource.h>
 #include <vtkCellArray.h>
 #include <vtkVertexGlyphFilter.h>
 #include <vtkLookupTable.h>
+
+#include <QVTKOpenGLNativeWidget.h>
 
 //#include <vtkIdTypeArray.h>
 //#include <vtkSelectionNode.h>
