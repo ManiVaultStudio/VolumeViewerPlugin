@@ -165,7 +165,7 @@ class VolumeViewerPluginFactory : public ViewPluginFactory
 {
     Q_INTERFACES(mv::plugin::ViewPluginFactory mv::plugin::PluginFactory)
         Q_OBJECT
-        Q_PLUGIN_METADATA(IID "nl.tudelft.VolumeViewerPlugin" FILE "VolumeViewerPlugin.json")
+        Q_PLUGIN_METADATA(IID "studio.manivault.VolumeViewerPlugin" FILE "VolumeViewerPlugin.json")
 
 public:
     /** Default constructor */

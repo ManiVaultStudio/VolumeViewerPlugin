@@ -25,8 +25,7 @@
 #include <vtkPlaneCollection.h>
 #include <vtkPlane.h>
 
-
-
+Q_PLUGIN_METADATA(IID "studio.manivault.VolumeViewerPlugin")
 
 using namespace mv;
 using namespace mv::gui;
