@@ -7,21 +7,28 @@ import pathlib
 import subprocess
 import traceback
 from rules_support import PluginBranchInfo
+import re
 
+def compatibility(os, compiler, compiler_version):
+    # On macos fallback to zlib apple-clang 13
+    if os == "Macos" and compiler == "apple-clang" and bool(re.match("14.*", compiler_version)):  
+        print("Compatibility match")
+        return ["zlib/1.3:compiler.version=13"]
+    return None
 
 class VolumeViewerPluginConan(ConanFile):
     """Class to package ImageViewerPlugin using conan
 
     Packages both RELEASE and DEBUG.
-    Uses rules_support (github.com/hdps/rulessupport) to derive
+    Uses rules_support (github.com/ManiVaultStudio/rulessupport) to derive
     versioninfo based on the branch naming convention
-    as described in https://github.com/hdps/core/wiki/Branch-naming-rules
+    as described in https://github.com/ManiVaultStudio/core/wiki/Branch-naming-rules
     """
 
     name = "VolumeViewerPlugin"
-    description = "A VTK based plugin for viewing volume data in the high-dimensional plugin system (HDPS)."
-    topics = ("hdps", "plugin", "volume data", "viewing")
-    url = "https://github.com/hdps/VolumeViewerPlugin"
+    description = "A VTK based plugin for viewing volume data in the high-dimensional plugin system (ManiVault)."
+    topics = ("hdps", "ManiVault", "plugin", "volume data", "viewing")
+    url = "https://github.com/ManiVaultStudio/VolumeViewerPlugin"
     author = "B. van Lew b.van_lew@lumc.nl"  # conan recipe author
     license = "MIT"
 
