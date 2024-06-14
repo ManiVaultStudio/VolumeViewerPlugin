@@ -1,0 +1,29 @@
+{
+    "name": "volumeviewerplugin",
+    "version-string": "1.0.0",
+    "dependencies": [
+      {
+        "name": "vtk",
+        "features": ["qt"]
+      },
+      "qtbase",
+      "qttools",
+      "qtsvg",
+      "qtshadertools",
+      "qtlanguageserver",
+      "qtimageformats",
+      "qtdeclarative"
+    ],
+    "builtin-baseline":"943c5ef1c8f6b5e6ced092b242c8299caae2ff01",
+    "overrides": [
+      { "name": "vtk", "version": "9.3.0-pv5.12.0" },
+      { "name": "qtbase", "version": "6.6.3" },
+      { "name": "qttools", "version": "6.6.3" },
+      { "name": "qtsvg", "version": "6.6.3" },
+      { "name": "qtshadertools", "version": "6.6.3" },
+      { "name": "qtlanguageserver", "version": "6.6.3" },
+      { "name": "qtimageformats", "version": "6.6.3" },
+      { "name": "qtdeclarative", "version": "6.6.3" }
+    ]
+
+  }

@@ -1,14 +1,11 @@
 # VolumeViewerPlugin
 View plugin for volumetric image data.
 
-This plugin is made using vtk 9.1 and requires VTK 9+.  Other versions of vtk could work but are not tested, but any versions below 9 will not work work due to the cmake structure change between vtk 8.7 and 9.0.
+This plugin is made using vtk 9.1 and requires VTK 9+. Other versions of vtk could work but are not tested, but any versions below 9 will not work work due to the cmake structure change between vtk 8.7 and 9.0.
 
 While running cmake for VTK, make sure to enable `VTK_group_QT`.
 
 If the plugin is to be run in debug, make sure the vtk library is also build in debug, otherwise hdps will crash the moment the plugin is initiated due to a mismatch. (same for the other way around).
 
 ## Installing VTK with vcpkg
-When installing [VTK](https://github.com/Kitware/VTK) with [vcpkg](https://github.com/microsoft/vcpkg), be sure to install the qt feature with it:
-```
-vcpkg install vtk[qt]
-```
+You may use the `vcpkg.json` file to install [VTK](https://github.com/Kitware/VTK) with [vcpkg](https://github.com/microsoft/vcpkg). Be sure to adjust the qt version in the manifest file to fit the qt version you've build ManiVault with.

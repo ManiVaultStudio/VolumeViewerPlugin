@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17.0)
+cmake_minimum_required(VERSION 3.23)
 
 set(PROJECT "VolumeViewerPlugin")
 
@@ -25,7 +25,12 @@ file(TO_CMAKE_PATH ${MV_INSTALL_DIR} MV_INSTALL_DIR)
 
 # vtk Dir build needs to be in the same mode as hdps is to be run. (for release hdps release vtk is needed)
 #set(VTK_DIR $ENV{VTK_DIR})
-find_package(VTK CONFIG REQUIRED)
+
+if(DEFINED VCPKG_TOOLCHAIN)
+    find_package(VTK REQUIRED)
+else()
+    find_package(VTK CONFIG REQUIRED)
+endif()
 
 find_package(OpenGL REQUIRED)
 find_package(Qt6 6.3.1 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
@@ -52,6 +57,10 @@ add_library(${PROJECT} SHARED ${SOURCES} ${AUX})
 
 target_include_directories(${PROJECT} PRIVATE "${MV_INSTALL_DIR}/$<CONFIGURATION>/include/")
 target_include_directories(${PROJECT} PRIVATE src)
+
+if(DEFINED VCPKG_TOOLCHAIN)
+    target_include_directories(${PROJECT} PRIVATE "${VTK_USE_FILE}")
+endif()
 
 target_compile_features(${PROJECT} PRIVATE cxx_std_17)
 
@@ -89,6 +98,26 @@ add_custom_command(TARGET ${PROJECT} POST_BUILD
 	--prefix ${MV_INSTALL_DIR}/$<CONFIGURATION>
 	--verbose
 )
+
+if(WIN32 AND DEFINED VCPKG_TOOLCHAIN)
+    # install vtk runtime dependencices
+    file(TO_CMAKE_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin" VCPKG_DLL_DIR)
+    
+    set(VTK_DEPENDENCIES "vtkRenderingCellGrid" "vtkRenderingGL2PSOpenGL2" "vtkGUISupportQt" "vtkRenderingVolume" "vtkInteractionStyle" "vtkFiltersParallel" "vtkRenderingFreeType" "vtkRenderingOpenGL2" "vtkRenderingUI" "vtkRenderingCore" "vtkCommonColor" "vtkFiltersGeneral" "vtkCommonExecutionModel" "vtkCommonDataModel" "vtkCommonCore" "vtksys")
+
+    foreach(VCPKG_DLL ${VTK_DEPENDENCIES})
+        list(APPEND VCPKG_DLLS "${VCPKG_DLL_DIR}/${VCPKG_DLL}-${VTK_VERSION_MAJOR}.${VTK_VERSION_MINOR}.dll")
+    endforeach()
+
+    message(STATUS "VTK_DEPENDENCIES: ${VTK_DEPENDENCIES}")
+    message(STATUS "VCPKG_DLLS: ${VCPKG_DLLS}")
+
+    add_custom_command(TARGET ${PROJECT} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E echo "Installing: vtk runtime dependencices"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${VCPKG_DLLS} ${MV_INSTALL_DIR}/$<CONFIGURATION>)
+endif()
+
 
 # Automatically set the debug environment (command + working directory) for MSVC
 if(MSVC)
