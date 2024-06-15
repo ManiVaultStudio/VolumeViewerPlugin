@@ -2,12 +2,35 @@
 
 #include <QEvent>
 #include <QMouseEvent>
+#include <QWindow>
 
-OpenGLRendererWidget::OpenGLRendererWidget()
+OpenGLRendererWidget::OpenGLRendererWidget() :
+    QOpenGLWidget()
 {
     setAcceptDrops(true);
     setFocusPolicy(Qt::FocusPolicy::ClickFocus);
     installEventFilter(this);
+
+    connect(this, &OpenGLRendererWidget::created, this, [this]() {
+        [[maybe_unused]] auto windowID = this->window()->winId(); // This is needed to produce a valid windowHandle on some systems
+
+        QWindow* winHandle = windowHandle();
+
+        // On some systems we might need to use a different windowHandle
+        if (!winHandle)
+        {
+            const QWidget* nativeParent = nativeParentWidget();
+            winHandle = nativeParent->windowHandle();
+        }
+
+        if (winHandle == nullptr)
+        {
+            qDebug() << "ScatterplotWidget: Not connecting updatePixelRatio - could not get window handle";
+            return;
+        }
+
+        QObject::connect(winHandle, &QWindow::screenChanged, this, &OpenGLRendererWidget::updatePixelRatio, Qt::UniqueConnection);
+    });
 }
 
 void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
@@ -61,7 +84,9 @@ void OpenGLRendererWidget::initializeGL()
 
 void OpenGLRendererWidget::resizeGL(int w, int h)
 {
-    _volumeRenderer.resize(w, h);
+    _pixelRatio = devicePixelRatio();
+
+    _volumeRenderer.resize(w * _pixelRatio, h * _pixelRatio);
     //_windowSize.setWidth(w);
     //_windowSize.setHeight(h);
 
@@ -149,4 +174,17 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
     }
     }
     return QObject::eventFilter(target, event);
+}
+
+void OpenGLRendererWidget::updatePixelRatio()
+{
+    float pixelRatio = devicePixelRatio();
+
+    // we only update if the ratio actually changed
+    if (_pixelRatio != pixelRatio)
+    {
+        _pixelRatio = pixelRatio;
+        resizeGL(width(), height());
+        update();
+    }
 }

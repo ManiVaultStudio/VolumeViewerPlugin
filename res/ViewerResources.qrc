@@ -1,8 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>shaders/points.vert</file>
-        <file>shaders/points.frag</file>
+        <file>shaders/VolumeDraw.frag</file>
         <file>shaders/Quad.vert</file>
         <file>shaders/Texture.frag</file>
+        <file>shaders/StereoMerge.frag</file>
     </qresource>
 </RCC>
