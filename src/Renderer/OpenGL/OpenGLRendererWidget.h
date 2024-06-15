@@ -38,6 +38,18 @@ protected:
     void paintGL()              Q_DECL_OVERRIDE;
     void cleanup();
 
+    void showEvent(QShowEvent* event) Q_DECL_OVERRIDE
+    {
+        emit created();
+        QWidget::showEvent(event);
+    }
+
+private slots:
+    void updatePixelRatio();
+
+signals:
+    void created();
+
 private:
     VolumeRenderer _volumeRenderer;
 
@@ -49,4 +61,6 @@ private:
     bool _mousePressed = false;
 
     bool _isInitialized = false;
+
+    float _pixelRatio = 1.0f; /** Current pixel ratio */
 };

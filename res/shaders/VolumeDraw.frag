@@ -10,7 +10,7 @@ in float v_Color;
 out vec4 fragColor;
 
 void main()
-{
+{    
     if (isCursor)
     {
         fragColor = vec4(1, 0, 0, 1);
