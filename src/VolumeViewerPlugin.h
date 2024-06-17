@@ -126,6 +126,11 @@ public: // Miscellaneous
         return _pointsColorPoints;
     }
 
+    void connectToTracker()
+    {
+        _volumeViewerWidget->getOpenGLWidget()->connectToTracker();
+    }
+
 public: // Focus selection
     void setFocusSelection(bool focusSelection);
     void setFocusFloodfill(bool focusFloodfill);

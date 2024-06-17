@@ -12,15 +12,6 @@
 
 #include <vector>
 
-
-namespace PSTech
-{
-    namespace pstsdk
-    {
-        class Tracker;
-    }
-}
-
 #define STEREO
 
 /**
@@ -42,7 +33,7 @@ public:
     void init();
     void resize(int w, int h);
 
-    void render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2f camAngle, float aspect);
+    void render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2f camAngle, float aspect, QMatrix4x4 modelMatrix);
     void drawVolume(mv::ShaderProgram& shader);
 
 private:
@@ -79,6 +70,4 @@ private:
     QMatrix4x4 _rightProjMatrix;
     QMatrix4x4 _viewMatrix;
     QMatrix4x4 _modelMatrix;
-
-    PSTech::pstsdk::Tracker* _pst;
 };

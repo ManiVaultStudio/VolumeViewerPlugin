@@ -57,6 +57,7 @@ public: // Action getters
     ToggleAction& getFocusFloodfillAction() { return _focusFloodfillAction; }
     ToggleAction& getFocusSelectionNormAction() { return _focusSelectionNormAction; }
     ToggleAction& getFocusFloodfillNormAction() { return _focusFloodfillNormAction; }
+    TriggerAction& getConnectToTrackerAction() { return _connectToTrackerAction; }
 
 protected:
     VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
@@ -68,4 +69,5 @@ protected:
     ToggleAction            _focusFloodfillAction;
     ToggleAction            _focusSelectionNormAction;
     ToggleAction            _focusFloodfillNormAction;
+    TriggerAction           _connectToTrackerAction;
 };

@@ -16,7 +16,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusSelectionAction(this, "Focus Selection"),
     _focusFloodfillAction(this, "Focus Floodfill"),
     _focusSelectionNormAction(this, "SNorm"),
-    _focusFloodfillNormAction(this, "FNorm")
+    _focusFloodfillNormAction(this, "FNorm"),
+    _connectToTrackerAction(this, "Connect Tracker")
 {
     GroupsAction::GroupActions groupActions;
 
@@ -57,6 +58,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     connect(&_focusFloodfillNormAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
             _plugin->setFocusFloodfillNorm(toggled);
     });
+
+    connect(&_connectToTrackerAction, &TriggerAction::triggered, this, [this]() { _plugin->connectToTracker(); });
 }
 
 QMenu* SettingsAction::getContextMenu(QWidget* parent /*= nullptr*/)

@@ -44,6 +44,8 @@ set(PLUGIN
     src/Common.h
     src/VolumeViewerPlugin.h
     src/VolumeViewerPlugin.cpp
+    src/Tracker.h
+    src/Tracker.cpp
 )
 
 set(RENDERERS

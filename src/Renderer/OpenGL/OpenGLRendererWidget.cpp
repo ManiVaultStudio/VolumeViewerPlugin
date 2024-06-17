@@ -63,6 +63,11 @@ void OpenGLRendererWidget::setCursorPoint(mv::Vector3f cursorPoint)
     update();
 }
 
+void OpenGLRendererWidget::connectToTracker()
+{
+    _tracker.Connect();
+}
+
 void OpenGLRendererWidget::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -114,7 +119,7 @@ void OpenGLRendererWidget::paintGL()
 
     float aspect = (float)w / h;
 
-    _volumeRenderer.render(defaultFramebufferObject(), _camPos, _camAngle, aspect);
+    _volumeRenderer.render(defaultFramebufferObject(), _camPos, _camAngle, aspect, _tracker.GetTrackerMatrix());
 }
 
 void OpenGLRendererWidget::cleanup()

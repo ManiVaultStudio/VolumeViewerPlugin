@@ -4,6 +4,7 @@
 #include <QOpenGLFunctions_4_2_Core>
 
 #include "VolumeRenderer.h"
+#include "Tracker.h"
 
 #include "graphics/Vector3f.h"
 #include "graphics/Vector2f.h"
@@ -30,6 +31,7 @@ public:
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
     void setCursorPoint(mv::Vector3f cursorPoint);
+    void connectToTracker();
 
 public:
     bool eventFilter(QObject* target, QEvent* event);
@@ -54,6 +56,7 @@ signals:
 
 private:
     VolumeRenderer _volumeRenderer;
+    PSTracker _tracker;
 
     mv::Vector3f _camPos;
     float _camDist = 1.0f;
