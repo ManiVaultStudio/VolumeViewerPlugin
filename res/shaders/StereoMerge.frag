@@ -6,14 +6,15 @@
 
 uniform sampler2D leftImage;
 uniform sampler2D rightImage;
+uniform int interlacing;
 
 in vec2 pass_texCoord;
 
 out vec4 fragColor;
 
 void main() {
-    if (int(gl_FragCoord.y) % 2 == 0)
-        fragColor = texture(leftImage, pass_texCoord);
+    if (int(gl_FragCoord.y) % 2 == interlacing)
+        fragColor = texture(leftImage, pass_texCoord);// * vec4(3, 1, 1, 1);
     else
-        fragColor = texture(rightImage, pass_texCoord);
+        fragColor = texture(rightImage, pass_texCoord);// * vec4(1, 1, 3, 1);
 }

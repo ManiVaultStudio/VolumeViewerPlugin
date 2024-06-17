@@ -126,6 +126,16 @@ public: // Miscellaneous
         return _pointsColorPoints;
     }
 
+    OpenGLRendererWidget& getOpenGLRendererWidget()
+    {
+        return *_volumeViewerWidget->getOpenGLWidget();
+    }
+
+    VolumeRenderer& getVolumeRenderer()
+    {
+        return _volumeViewerWidget->getOpenGLWidget()->getVolumeRenderer();
+    }
+
     void connectToTracker()
     {
         _volumeViewerWidget->getOpenGLWidget()->connectToTracker();

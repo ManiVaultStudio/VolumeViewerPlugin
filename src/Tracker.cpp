@@ -1,10 +1,8 @@
 #include "Tracker.h"
 
 ////////////////
-#define PSTECH
 #define CONNECTED
 
-#ifdef PSTECH
 #include "pstsdk_cpp.h"
 #include "TrackerExceptions.h"
 #include "PstStringIoStream.h"
@@ -101,11 +99,9 @@ static void Exithandler(int sig)
     PSTech::pstsdk::Tracker::Shutdown();
     running = false;
 }
-#endif
 
 void PSTracker::Connect()
 {
-#ifdef PSTECH
     // Register the exit handler with the application
 #ifdef WIN32
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
@@ -174,15 +170,29 @@ void PSTracker::Connect()
         // Pause command line to see error message.
         //std::cout << "Press enter to continue...\n";
         //std::cin.get();
+        return;
     }
-#endif
+    _connected = true;
+    qDebug() << "Connected to tracker!";
 }
+
+float t = 0;
 
 QMatrix4x4 PSTracker::GetTrackerMatrix()
 {
-#ifdef PSTECH
-    return trackerMatrix;
-#else
-    return QMatrix4x4();
-#endif
+    if (_connected)
+    {
+        // Read tracker matrix
+        const std::lock_guard<std::mutex> lock(mtx);
+
+        return trackerMatrix;
+    }
+    else
+    {
+        t += 0.1f;
+        if (t > 360) t = t - 360;
+        _defaultMatrix.setToIdentity();
+        _defaultMatrix.rotate(t, 0, 1, 0);
+        return _defaultMatrix;
+    }
 }

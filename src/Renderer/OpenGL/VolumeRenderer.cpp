@@ -259,20 +259,12 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
 
         //_projMatrix.data()[12] = 1;
     
-    _modelMatrix.setToIdentity();
+    _modelMatrix = modelMatrix;
 
-#ifdef PSTECH
-    // Read tracker matrix
-    {
-        const std::lock_guard<std::mutex> lock(mtx);
-
-        _modelMatrix = trackerMatrix;
-    }
-#endif
     _modelMatrix.data()[12] *= 10;
     _modelMatrix.data()[13] *= 10;
     _modelMatrix.data()[14] *= 10;
-
+    //qDebug() << modelMatrix;
 #ifndef STEREO
     _viewMatrix.setToIdentity();
     _viewMatrix.lookAt(QVector3D(camPos.x, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
@@ -305,6 +297,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _rightColorAttachment.bind(1);
     _stereoMergeProgram.uniform1i("leftImage", 0);
     _stereoMergeProgram.uniform1i("rightImage", 1);
+    _stereoMergeProgram.uniform1i("interlacing", _interlacing);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
     // Draw the cursor
@@ -346,8 +339,6 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
 void VolumeRenderer::drawVolume(mv::ShaderProgram& shader)
 {
     glClear(GL_COLOR_BUFFER_BIT);
-
-    _modelMatrix.setToIdentity();
 
     shader.uniformMatrix4f("projMatrix", _projMatrix.data());
     shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());

@@ -29,6 +29,7 @@ public:
     void setColormap(const QImage& colormap);
     void setCursorPoint(mv::Vector3f cursorPoint);
     void setEyeOffset(float eyeOffset) { _eyeOffset = eyeOffset; }
+    void setInterlacingFlip(bool flipped) { _interlacing = flipped ? 1 : 0; }
     void reloadShader();
 
     void init();
@@ -61,6 +62,7 @@ private:
     GLuint _cursorVbo;
     mv::Vector3f _cursorPoint;
     float _eyeOffset = 0.065;
+    int _interlacing = 0;
 
     bool _hasColors = false;
 

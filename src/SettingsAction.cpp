@@ -18,7 +18,9 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
     _connectToTrackerAction(this, "Connect Tracker"),
-    _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.065, 3)
+    _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.065, 3),
+    _camDistAction(this, "Cam dist", 0, 3, 1.0, 2),
+    _flipInterlacingAction(this, "Flip interlace", false)
 {
     GroupsAction::GroupActions groupActions;
 
@@ -62,7 +64,11 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_connectToTrackerAction, &TriggerAction::triggered, this, [this]() { _plugin->connectToTracker(); });
 
-    connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->setEyeOffset(value); });
+    connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setEyeOffset(value); });
+
+    connect(&_camDistAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setCamDist(value); });
+
+    connect(&_flipInterlacingAction, &ToggleAction::toggled, [this](const bool& toggled) { _plugin->getVolumeRenderer().setInterlacingFlip(toggled); });
 }
 
 QMenu* SettingsAction::getContextMenu(QWidget* parent /*= nullptr*/)

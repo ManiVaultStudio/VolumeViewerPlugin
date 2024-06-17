@@ -73,6 +73,11 @@ void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
     _volumeRenderer.setEyeOffset(eyeOffset);
 }
 
+void OpenGLRendererWidget::setCamDist(float camDist)
+{
+    _camPos = mv::Vector3f(0, 0, camDist);
+}
+
 void OpenGLRendererWidget::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -84,8 +89,6 @@ void OpenGLRendererWidget::initializeGL()
     qDebug() << "VolumeRendererWidget: InitializeGL Done";
     // OpenGL is initialized
     _isInitialized = true;
-
-    _camPos.set(0, 0, _camDist);
 
     _updateTimer = new QTimer(this);
     connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });

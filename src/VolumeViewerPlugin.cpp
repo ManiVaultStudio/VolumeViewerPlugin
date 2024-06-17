@@ -108,6 +108,8 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getConnectToTrackerAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getEyeOffsetAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getCamDistAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getFlipInterlacingAction());
 }
 
 void VolumeViewerPlugin::init()

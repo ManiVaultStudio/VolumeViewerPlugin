@@ -59,6 +59,8 @@ public: // Action getters
     ToggleAction& getFocusFloodfillNormAction() { return _focusFloodfillNormAction; }
     TriggerAction& getConnectToTrackerAction() { return _connectToTrackerAction; }
     DecimalAction& getEyeOffsetAction() { return _eyeOffsetAction; }
+    DecimalAction& getCamDistAction() { return _camDistAction; }
+    ToggleAction& getFlipInterlacingAction() { return _flipInterlacingAction; }
 
 protected:
     VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
@@ -72,4 +74,6 @@ protected:
     ToggleAction            _focusFloodfillNormAction;
     TriggerAction           _connectToTrackerAction;
     DecimalAction           _eyeOffsetAction;
+    DecimalAction           _camDistAction;
+    ToggleAction            _flipInterlacingAction;
 };

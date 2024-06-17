@@ -18,4 +18,7 @@ public:
 
 private:
     PSTech::pstsdk::Tracker* _pst;
+
+    bool _connected = false;
+    QMatrix4x4 _defaultMatrix;
 };

@@ -26,6 +26,8 @@ class OpenGLRendererWidget : public QOpenGLWidget, QOpenGLFunctions_4_2_Core
 public:
     OpenGLRendererWidget();
 
+    VolumeRenderer& getVolumeRenderer() { return _volumeRenderer; }
+
     void setTexels(int width, int height, int depth, std::vector<float>& texels);
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
@@ -33,6 +35,7 @@ public:
     void setCursorPoint(mv::Vector3f cursorPoint);
     void connectToTracker();
     void setEyeOffset(float eyeOffset);
+    void setCamDist(float camDist);
 
 public:
     bool eventFilter(QObject* target, QEvent* event);
@@ -60,7 +63,7 @@ private:
     PSTracker _tracker;
 
     mv::Vector3f _camPos;
-    float _camDist = 1.0f;
+    float _camDist = 0.5f;
     mv::Vector2f _camAngle = mv::Vector2f(3.14159f / 2, 0);
 
     QPointF _previousMousePos;
