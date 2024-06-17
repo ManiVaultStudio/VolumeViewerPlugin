@@ -13,7 +13,7 @@ out vec4 fragColor;
 
 void main() {
     if (int(gl_FragCoord.y) % 2 == 0)
-        fragColor = texture(leftImage, pass_texCoord) * vec4(1, 0.3, 0.3, 1);
+        fragColor = texture(leftImage, pass_texCoord);
     else
-        fragColor = texture(rightImage, pass_texCoord) * vec4(0.3, 0.3, 1, 1);
+        fragColor = texture(rightImage, pass_texCoord);
 }
