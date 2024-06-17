@@ -63,7 +63,7 @@ private:
     PSTracker _tracker;
 
     mv::Vector3f _camPos;
-    float _camDist = 0.5f;
+    float _camDist = 1.0f;
     mv::Vector2f _camAngle = mv::Vector2f(3.14159f / 2, 0);
 
     QPointF _previousMousePos;
