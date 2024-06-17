@@ -32,6 +32,7 @@ public:
     void setColormap(const QImage& colormap);
     void setCursorPoint(mv::Vector3f cursorPoint);
     void connectToTracker();
+    void setEyeOffset(float eyeOffset);
 
 public:
     bool eventFilter(QObject* target, QEvent* event);

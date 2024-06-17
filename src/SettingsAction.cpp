@@ -17,7 +17,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusFloodfillAction(this, "Focus Floodfill"),
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
-    _connectToTrackerAction(this, "Connect Tracker")
+    _connectToTrackerAction(this, "Connect Tracker"),
+    _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.065, 3)
 {
     GroupsAction::GroupActions groupActions;
 
@@ -60,6 +61,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     });
 
     connect(&_connectToTrackerAction, &TriggerAction::triggered, this, [this]() { _plugin->connectToTracker(); });
+
+    connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->setEyeOffset(value); });
 }
 
 QMenu* SettingsAction::getContextMenu(QWidget* parent /*= nullptr*/)

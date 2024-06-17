@@ -281,13 +281,13 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     drawVolume(_pointsShaderProgram, false, 0);
 #else
     _viewMatrix.setToIdentity();
-    _viewMatrix.lookAt(QVector3D(camPos.x - eyeOffset, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+    _viewMatrix.lookAt(QVector3D(camPos.x - _eyeOffset, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
     _leftRenderFBO.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     drawVolume(_pointsShaderProgram);
 
     _viewMatrix.setToIdentity();
-    _viewMatrix.lookAt(QVector3D(camPos.x + eyeOffset, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+    _viewMatrix.lookAt(QVector3D(camPos.x + _eyeOffset, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
     _rightRenderFBO.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     drawVolume(_pointsShaderProgram);

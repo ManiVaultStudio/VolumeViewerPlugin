@@ -28,6 +28,7 @@ public:
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
     void setCursorPoint(mv::Vector3f cursorPoint);
+    void setEyeOffset(float eyeOffset) { _eyeOffset = eyeOffset; }
     void reloadShader();
 
     void init();
@@ -59,7 +60,7 @@ private:
     GLuint _cursorVao;
     GLuint _cursorVbo;
     mv::Vector3f _cursorPoint;
-    float eyeOffset = 0.065;
+    float _eyeOffset = 0.065;
 
     bool _hasColors = false;
 

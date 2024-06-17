@@ -68,6 +68,11 @@ void OpenGLRendererWidget::connectToTracker()
     _tracker.Connect();
 }
 
+void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
+{
+    _volumeRenderer.setEyeOffset(eyeOffset);
+}
+
 void OpenGLRendererWidget::initializeGL()
 {
     initializeOpenGLFunctions();

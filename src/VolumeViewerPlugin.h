@@ -131,6 +131,11 @@ public: // Miscellaneous
         _volumeViewerWidget->getOpenGLWidget()->connectToTracker();
     }
 
+    void setEyeOffset(float value)
+    {
+        _volumeViewerWidget->getOpenGLWidget()->setEyeOffset(value);
+    }
+
 public: // Focus selection
     void setFocusSelection(bool focusSelection);
     void setFocusFloodfill(bool focusFloodfill);
