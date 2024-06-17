@@ -7,8 +7,10 @@
 #include <QMatrix4x4>
 
 ////////////////
+//#define PSTECH
 #define CONNECTED
 
+#ifdef PSTECH
 #include "pstsdk_cpp.h"
 #include "TrackerExceptions.h"
 #include "PstStringIoStream.h"
@@ -105,7 +107,7 @@ static void Exithandler(int sig)
     PSTech::pstsdk::Tracker::Shutdown();
     running = false;
 }
-
+#endif
 
 void VolumeRenderer::setTexels(int width, int height, int depth, std::vector<float>& texels)
 {
@@ -295,6 +297,7 @@ void VolumeRenderer::init()
     //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+#ifdef PSTECH
         // Register the exit handler with the application
 #ifdef WIN32
     SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
@@ -364,6 +367,7 @@ void VolumeRenderer::init()
         std::cout << "Press enter to continue...\n";
         std::cin.get();
     }
+#endif
 }
 
 void VolumeRenderer::resize(int w, int h)
@@ -432,12 +436,14 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     
     _modelMatrix.setToIdentity();
 
+#ifdef PSTECH
     // Read tracker matrix
     {
         const std::lock_guard<std::mutex> lock(mtx);
 
         _modelMatrix = trackerMatrix;
-}
+    }
+#endif
     _modelMatrix.data()[12] *= 10;
     _modelMatrix.data()[13] *= 10;
     _modelMatrix.data()[14] *= 10;

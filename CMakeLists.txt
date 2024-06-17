@@ -26,6 +26,13 @@ if(NOT DEFINED MV_INSTALL_DIR)
 endif()
 file(TO_CMAKE_PATH ${MV_INSTALL_DIR} MV_INSTALL_DIR)
 
+# Check if the directory to the ManiVault installation has been provided
+if(NOT DEFINED PS_TECH_INSTALL_DIR)
+    set(PS_TECH_INSTALL_DIR "" CACHE PATH "Directory where PSTech is installed")
+    message(FATAL_ERROR "Please set PS_TECH_INSTALL_DIR to the directory where ManiVault is installed")
+endif()
+file(TO_CMAKE_PATH ${PS_TECH_INSTALL_DIR} PS_TECH_INSTALL_DIR)
+
 # -----------------------------------------------------------------------------
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -93,7 +100,7 @@ add_library(${PROJECT} SHARED ${SOURCES} ${AUX} ${QRESOURCES} ${RESOURCE_FILES})
 
 target_include_directories(${PROJECT} PRIVATE "${MV_INSTALL_DIR}/$<CONFIGURATION>/include/")
 target_include_directories(${PROJECT} PRIVATE src)
-target_include_directories(${PROJECT} PRIVATE "C:/Program Files/PS-Tech/PST/Development/include")
+target_include_directories(${PROJECT} PRIVATE "${PS_TECH_INSTALL_DIR}/include")
 
 target_compile_features(${PROJECT} PRIVATE cxx_std_17)
 
@@ -102,7 +109,7 @@ target_link_libraries(${PROJECT} PRIVATE Qt6::WebEngineWidgets)
 target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGL)
 target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGLWidgets)
 target_link_libraries(${PROJECT} PRIVATE ${OPENGL_LIBRARIES})
-target_link_libraries(${PROJECT} PRIVATE "C:/Program Files/PS-Tech/PST/Development/lib/pstsdk_cpp.lib")
+target_link_libraries(${PROJECT} PRIVATE "${PS_TECH_INSTALL_DIR}/lib/pstsdk_cpp.lib")
 
 set(MV_LINK_PATH "${MV_INSTALL_DIR}/$<CONFIGURATION>/lib")
 set(PLUGIN_LINK_PATH "${MV_INSTALL_DIR}/$<CONFIGURATION>/$<IF:$<CXX_COMPILER_ID:MSVC>,lib,Plugins>")
