@@ -75,7 +75,7 @@ void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
 
 void OpenGLRendererWidget::setCamDist(float camDist)
 {
-    _camPos = mv::Vector3f(0, 0, camDist);
+    _camPos = mv::Vector3f(0, 1, camDist);
 }
 
 void OpenGLRendererWidget::initializeGL()
@@ -90,7 +90,7 @@ void OpenGLRendererWidget::initializeGL()
     // OpenGL is initialized
     _isInitialized = true;
 
-    _camPos.set(0, 0, _camDist);
+    _camPos.set(0, 1, _camDist);
 
     _updateTimer = new QTimer(this);
     connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });

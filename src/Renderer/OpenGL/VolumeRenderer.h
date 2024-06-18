@@ -14,6 +14,71 @@
 
 #define STEREO
 
+class Cube : public QOpenGLFunctions_3_3_Core
+{
+public:
+    void create()
+    {
+        initializeOpenGLFunctions();
+
+        std::vector<mv::Vector3f> vertices;
+
+        vertices.emplace_back(-0.5f, -0.5f, 0.5f);
+        vertices.emplace_back(0.5f, -0.5f, 0.5f);
+        vertices.emplace_back(-0.5f, 0.5f, 0.5f);
+        vertices.emplace_back(0.5f, 0.5f, 0.5f);
+        vertices.emplace_back(-0.5f, -0.5f, -0.5f);
+        vertices.emplace_back(0.5f, -0.5f, -0.5f);
+        vertices.emplace_back(-0.5f, 0.5f, -0.5f);
+        vertices.emplace_back(0.5f, 0.5f, -0.5f);
+
+        std::vector<mv::Vector3f> normals;
+
+        normals.emplace_back(0, 0, 1);
+        normals.emplace_back(1, 0, 0);
+        normals.emplace_back(0, 0, -1);
+        normals.emplace_back(-1, 0, 0);
+        normals.emplace_back(0, 1, 0);
+        normals.emplace_back(0, -1, 0);
+
+        std::vector<int> indices;
+
+        indices.push_back(0); indices.push_back(1); indices.push_back(2); indices.push_back(2); indices.push_back(1); indices.push_back(3);
+        indices.push_back(1); indices.push_back(5); indices.push_back(3); indices.push_back(3); indices.push_back(5); indices.push_back(7);
+        indices.push_back(5); indices.push_back(4); indices.push_back(7); indices.push_back(7); indices.push_back(4); indices.push_back(6);
+        indices.push_back(4); indices.push_back(0); indices.push_back(6); indices.push_back(6); indices.push_back(0); indices.push_back(2);
+        indices.push_back(2); indices.push_back(3); indices.push_back(6); indices.push_back(6); indices.push_back(3); indices.push_back(7);
+        indices.push_back(5); indices.push_back(4); indices.push_back(1); indices.push_back(1); indices.push_back(4); indices.push_back(0);
+
+        std::vector<mv::Vector3f> aVertices;
+        std::vector<mv::Vector3f> aNormals;
+        for (int i = 0; i < indices.size(); i++)
+        {
+            aVertices.push_back(vertices[indices[i]]);
+            aNormals.push_back(normals[i / 6]);
+        }
+
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, aVertices.size() * sizeof(mv::Vector3f), aVertices.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+        glEnableVertexAttribArray(0);
+
+        glGenBuffers(1, &nbo);
+        glBindBuffer(GL_ARRAY_BUFFER, nbo);
+        glBufferData(GL_ARRAY_BUFFER, aNormals.size() * sizeof(mv::Vector3f), aNormals.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
+        glEnableVertexAttribArray(1);
+    }
+
+    GLuint vao;
+    GLuint vbo;
+    GLuint nbo;
+    int numVerts = 36;
+};
+
 /**
  * OpenGL Volume Renderer
  * This class provides a pure OpenGL renderer for volume data
@@ -37,6 +102,7 @@ public:
 
     void render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2f camAngle, float aspect, QMatrix4x4 modelMatrix);
     void drawVolume(mv::ShaderProgram& shader);
+    void drawCube(mv::ShaderProgram& shader);
 
 private:
     mv::Framebuffer _framebuffer;
@@ -45,10 +111,14 @@ private:
     mv::Texture2D _colorAttachment;
     mv::Texture2D _leftColorAttachment;
     mv::Texture2D _rightColorAttachment;
+
+    mv::Texture2D _leftDepthAttachment;
+    mv::Texture2D _rightDepthAttachment;
     //GLuint _texture;
 
     mv::ShaderProgram _volumeShaderProgram;
     mv::ShaderProgram _pointsShaderProgram;
+    mv::ShaderProgram _cubeShaderProgram;
     mv::ShaderProgram _stereoMergeProgram;
 
     mv::ShaderProgram _framebufferShaderProgram;
@@ -67,6 +137,8 @@ private:
     bool _hasColors = false;
 
     mv::Texture2D _colormap;
+
+    Cube _cube;
 
     QMatrix4x4 _projMatrix;
     QMatrix4x4 _leftProjMatrix;

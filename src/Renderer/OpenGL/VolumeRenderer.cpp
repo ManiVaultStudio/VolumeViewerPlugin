@@ -112,9 +112,18 @@ void VolumeRenderer::init()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+    _leftDepthAttachment.create();
+    _leftDepthAttachment.bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
     _leftRenderFBO.create();
     _leftRenderFBO.bind();
     _leftRenderFBO.addColorTexture(0, &_leftColorAttachment);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, _leftDepthAttachment.getHandle(), 0);
     _leftRenderFBO.validate();
 
     // Make float buffer to support low alpha blending
@@ -126,14 +135,24 @@ void VolumeRenderer::init()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+    _rightDepthAttachment.create();
+    _rightDepthAttachment.bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
     _rightRenderFBO.create();
     _rightRenderFBO.bind();
     _rightRenderFBO.addColorTexture(0, &_rightColorAttachment);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, _rightDepthAttachment.getHandle(), 0);
     _rightRenderFBO.validate();
 
     bool loaded = true;
     //loaded &= _volumeShaderProgram.loadShaderFromFile("volume.vert", "volume.frag");
     loaded &= _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/VolumeDraw.frag");
+    loaded &= _cubeShaderProgram.loadShaderFromFile(":shaders/CubeDraw.vert", ":shaders/CubeDraw.frag");
     loaded &= _framebufferShaderProgram.loadShaderFromFile(":shaders/Quad.vert", ":shaders/Texture.frag");
     loaded &= _stereoMergeProgram.loadShaderFromFile(":shaders/Quad.vert", ":shaders/StereoMerge.frag");
 
@@ -193,6 +212,8 @@ void VolumeRenderer::init()
     //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    _cube.create();
 }
 
 void VolumeRenderer::resize(int w, int h)
@@ -206,6 +227,12 @@ void VolumeRenderer::resize(int w, int h)
 
     _rightColorAttachment.bind();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, nullptr);
+
+    _leftDepthAttachment.bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+    _rightDepthAttachment.bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glViewport(0, 0, w, h);
 }
@@ -226,11 +253,10 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 #else
-    _pointsShaderProgram.bind();
 
     //#ifndef STEREO
     _projMatrix.setToIdentity();
-    float fovyr = 1.57079633;
+    float fovyr = 1.0472;// 1.57079633;
     float zNear = 0.1f;
     float zFar = 100;
     _projMatrix.data()[0] = (float)(1 / tan(fovyr / 2)) / aspect;
@@ -265,6 +291,8 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _modelMatrix.data()[13] *= 10;
     _modelMatrix.data()[14] *= 10;
     //qDebug() << modelMatrix;
+    _pointsShaderProgram.bind();
+
 #ifndef STEREO
     _viewMatrix.setToIdentity();
     _viewMatrix.lookAt(QVector3D(camPos.x, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
@@ -273,13 +301,13 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     drawVolume(_pointsShaderProgram, false, 0);
 #else
     _viewMatrix.setToIdentity();
-    _viewMatrix.lookAt(QVector3D(camPos.x - _eyeOffset, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+    _viewMatrix.lookAt(QVector3D(camPos.x - _eyeOffset, camPos.y, camPos.z), QVector3D(0, 1, 0), QVector3D(0, 1, 0));
     _leftRenderFBO.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     drawVolume(_pointsShaderProgram);
 
     _viewMatrix.setToIdentity();
-    _viewMatrix.lookAt(QVector3D(camPos.x + _eyeOffset, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+    _viewMatrix.lookAt(QVector3D(camPos.x + _eyeOffset, camPos.y, camPos.z), QVector3D(0, 1, 0), QVector3D(0, 1, 0));
     _rightRenderFBO.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     drawVolume(_pointsShaderProgram);
@@ -334,6 +362,24 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
             std::cout << "Error: " << error << std::endl;
         }
     }
+}
+
+void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
+{
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    shader.uniformMatrix4f("projMatrix", _projMatrix.data());
+    shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
+    shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
+
+    glBindVertexArray(_cube.vao);
+
+    glDrawArrays(GL_TRIANGLES, 0, _cube.numVerts);
+
+    glEnable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
 }
 
 void VolumeRenderer::drawVolume(mv::ShaderProgram& shader)

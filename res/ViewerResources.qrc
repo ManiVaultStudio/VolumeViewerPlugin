@@ -5,5 +5,7 @@
         <file>shaders/Quad.vert</file>
         <file>shaders/Texture.frag</file>
         <file>shaders/StereoMerge.frag</file>
+        <file>shaders/CubeDraw.vert</file>
+        <file>shaders/CubeDraw.frag</file>
     </qresource>
 </RCC>
