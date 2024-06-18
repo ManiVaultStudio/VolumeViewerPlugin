@@ -18,8 +18,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
     _connectToTrackerAction(this, "Connect Tracker"),
-    _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.065, 3),
-    _camDistAction(this, "Cam dist", 0, 3, 1.0, 2),
+    _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.03, 3),
+    _camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
     _flipInterlacingAction(this, "Flip interlace", false)
 {
     GroupsAction::GroupActions groupActions;
