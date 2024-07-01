@@ -32,7 +32,7 @@ find_package(Qt6 6.3.1 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidg
 find_package(OpenMP)
 
 set(PLUGIN
-	src/Common.h
+	src/common.h
 	src/VolumeViewerPlugin.h
 	src/VolumeViewerPlugin.cpp
 )
