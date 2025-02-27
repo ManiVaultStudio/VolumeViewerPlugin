@@ -935,6 +935,11 @@ mv::CoreInterface* VolumeViewerPlugin::getCore()
     return _core;
 }
 
+VolumeViewerPluginFactory::VolumeViewerPluginFactory()
+{
+    setIconByName("cube");
+}
+
 VolumeViewerPlugin* VolumeViewerPluginFactory::produce()
 {
     return new VolumeViewerPlugin(this);
