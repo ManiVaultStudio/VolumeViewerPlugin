@@ -935,11 +935,6 @@ mv::CoreInterface* VolumeViewerPlugin::getCore()
     return _core;
 }
 
-QIcon VolumeViewerPluginFactory::getIcon(const QColor& color /*= Qt::black*/) const
-{
-    return mv::Application::getIconFont("FontAwesome").getIcon("cube", color);
-}
-
 VolumeViewerPlugin* VolumeViewerPluginFactory::produce()
 {
     return new VolumeViewerPlugin(this);
