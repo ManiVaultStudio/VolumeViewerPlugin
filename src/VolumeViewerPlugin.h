@@ -169,7 +169,7 @@ class VolumeViewerPluginFactory : public ViewPluginFactory
 
 public:
     /** Default constructor */
-    VolumeViewerPluginFactory() {}
+    VolumeViewerPluginFactory();
 
     /** Destructor */
     ~VolumeViewerPluginFactory() override {}
