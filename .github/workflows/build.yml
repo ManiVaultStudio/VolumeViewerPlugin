@@ -20,7 +20,7 @@ jobs:
       id: matrix_setup
       uses: ManiVaultStudio/github-actions/matrix_setup@main
       with:
-        matrix_ids : 'linux_gcc13 macos_code14'
+        matrix_ids : 'windows_2022 linux_gcc13 macos_code14'
 
   cross-platform-build:
     name: Cross platform build
