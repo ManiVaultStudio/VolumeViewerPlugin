@@ -24,6 +24,10 @@ endif(MSVC)
 # -----------------------------------------------------------------------------
 # Dependencies
 # -----------------------------------------------------------------------------
+if(UNIX)
+    find_package(Threads REQUIRED)
+endif(UNIX)
+
 find_package(VTK CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(Qt6 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
@@ -75,6 +79,10 @@ target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGLWidgets)
 target_link_libraries(${PROJECT} PRIVATE ${OPENGL_LIBRARIES})
 target_link_libraries(${PROJECT} PRIVATE ${VTK_LIBRARIES})
 vtk_module_autoinit(TARGETS ${PROJECT} MODULES ${VTK_LIBRARIES})
+
+if(UNIX)
+    target_link_libraries(${PROJECT} PRIVATE Threads::Threads)
+endif(UNIX)
 
 target_link_libraries(${PROJECT} PRIVATE ManiVault::Core)
 target_link_libraries(${PROJECT} PRIVATE ManiVault::PointData)
