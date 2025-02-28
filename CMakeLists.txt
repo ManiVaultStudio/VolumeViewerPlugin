@@ -28,21 +28,7 @@ if(UNIX)
     find_package(Threads REQUIRED)
 endif(UNIX)
 
-find_package(VTK REQUIRED COMPONENTS 
-    CommonCore 
-    CommonDataModel
-    FiltersCore 
-    FiltersGeneral 
-    FiltersSources 
-    ImagingCore
-    ImagingGeneral
-    InteractionStyle 
-    RenderingCore 
-    RenderingOpenGL2 
-    RenderingVolume 
-    RenderingVolumeOpenGL2 
-)
-
+find_package(VTK REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(Qt6 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
 find_package(ManiVault COMPONENTS Core PointData ClusterData ImageData CONFIG QUIET)
