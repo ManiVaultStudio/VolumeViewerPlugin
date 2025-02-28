@@ -33,6 +33,10 @@ find_package(OpenGL REQUIRED)
 find_package(Qt6 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
 find_package(ManiVault COMPONENTS Core PointData ClusterData ImageData CONFIG QUIET)
 
+if(VTK_FOUND)
+  message (STATUS "VTK_VERSION: ${VTK_VERSION}")
+endif()
+
 # -----------------------------------------------------------------------------
 # Source files
 # -----------------------------------------------------------------------------
