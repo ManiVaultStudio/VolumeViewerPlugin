@@ -100,6 +100,15 @@ class VolumeViewerPluginConan(ConanFile):
 
         tc.variables["Qt6_DIR"] = qt_dir
         
+        # Use the VTK provided .cmake files
+        vtk_path = pathlib.Path(self.deps_cpp_info["vtk"].rootpath)
+        vtk_dir = (vtk_path / "lib" / "cmake" / "vtk-9.4").as_posix()
+
+        print(f"vtk_path: {vtk_path}")
+        print(f"vtk_dir: {vtk_dir}")
+
+        tc.variables["VTK_DIR"] = vtk_dir
+
         # Use the ManiVault .cmake file to find ManiVault with find_package
         mv_core_root = self.deps_cpp_info["hdps-core"].rootpath
         manivault_dir = pathlib.Path(mv_core_root, "cmake", "mv").as_posix()
