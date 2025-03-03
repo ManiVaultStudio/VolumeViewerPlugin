@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17.0)
+cmake_minimum_required(VERSION 3.22)
 
 # -----------------------------------------------------------------------------
 # Volume Viewer Plugin
@@ -16,21 +16,26 @@ set(CMAKE_AUTOUIC ON)
 
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DWIN32 /EHsc /MP /permissive- /Zc:__cplusplus")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LTCG /NODEFAULTLIB:LIBCMT")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MD")
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
 endif(MSVC)
 
 # -----------------------------------------------------------------------------
 # Dependencies
 # -----------------------------------------------------------------------------
-find_package(VTK CONFIG REQUIRED)
+if(UNIX)
+    find_package(Threads REQUIRED)
+endif(UNIX)
 
+find_package(VTK REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(Qt6 6.3.1 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
-find_package(OpenMP)
+find_package(Qt6 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
+find_package(ManiVault COMPONENTS Core PointData ClusterData ImageData CONFIG QUIET)
 
-find_package(ManiVault COMPONENTS Core PointData ClusterData ImageData CONFIG)
+if(VTK_FOUND)
+  message (STATUS "VTK_VERSION: ${VTK_VERSION}")
+endif()
 
 # -----------------------------------------------------------------------------
 # Source files
@@ -66,7 +71,7 @@ target_include_directories(${PROJECT} PRIVATE src)
 # -----------------------------------------------------------------------------
 # Target properties
 # -----------------------------------------------------------------------------
-target_compile_features(${PROJECT} PRIVATE cxx_std_17)
+target_compile_features(${PROJECT} PRIVATE cxx_std_20)
 
 # -----------------------------------------------------------------------------
 # Target library linking
@@ -78,6 +83,10 @@ target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGLWidgets)
 target_link_libraries(${PROJECT} PRIVATE ${OPENGL_LIBRARIES})
 target_link_libraries(${PROJECT} PRIVATE ${VTK_LIBRARIES})
 vtk_module_autoinit(TARGETS ${PROJECT} MODULES ${VTK_LIBRARIES})
+
+if(UNIX)
+    target_link_libraries(${PROJECT} PRIVATE Threads::Threads)
+endif(UNIX)
 
 target_link_libraries(${PROJECT} PRIVATE ManiVault::Core)
 target_link_libraries(${PROJECT} PRIVATE ManiVault::PointData)
@@ -110,6 +119,6 @@ set_target_properties(${PROJECT}
 # -----------------------------------------------------------------------------
 # Automatically set the debug environment (command + working directory) for MSVC
 if(MSVC)
-	set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY $<IF:$<CONFIG:DEBUG>,${ManiVault_INSTALL_DIR}/debug,${ManiVault_INSTALL_DIR}/release>)
-    set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_COMMAND $<IF:$<CONFIG:DEBUG>,"${ManiVault_INSTALL_DIR}/debug/ManiVault Studio.exe","${ManiVault_INSTALL_DIR}/release/ManiVault Studio.exe">)
+    set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY $<IF:$<CONFIG:DEBUG>,${ManiVault_INSTALL_DIR}/Debug,$<IF:$<CONFIG:RELWITHDEBINFO>,${ManiVault_INSTALL_DIR}/RelWithDebInfo,${ManiVault_INSTALL_DIR}/Release>>)
+    set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_COMMAND $<IF:$<CONFIG:DEBUG>,"${ManiVault_INSTALL_DIR}/Debug/ManiVault Studio.exe",$<IF:$<CONFIG:RELWITHDEBINFO>,"${ManiVault_INSTALL_DIR}/RelWithDebInfo/ManiVault Studio.exe","${ManiVault_INSTALL_DIR}/Release/ManiVault Studio.exe">>)
 endif()
