@@ -210,17 +210,10 @@ class VolumeViewerPluginFactory : public ViewPluginFactory
 
 public:
     /** Default constructor */
-    VolumeViewerPluginFactory() {}
+    VolumeViewerPluginFactory();
 
     /** Destructor */
     ~VolumeViewerPluginFactory() override {}
-
-    /**
-     * Get plugin icon
-     * @param color Icon color for flat (font) icons
-     * @return Icon
-     */
-    QIcon getIcon(const QColor& color = Qt::black) const override;
 
     /** Creates an image viewer plugin instance */
     VolumeViewerPlugin* produce() override;
