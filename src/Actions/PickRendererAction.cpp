@@ -9,7 +9,7 @@ PickRendererAction::PickRendererAction(QObject* parent, const QString& title) :
     _plugin(nullptr),
     _openGLAction(this, "OpenGL")
 {
-    setIcon(mv::Application::getIconFont("FontAwesome").getIcon("image"));
+    setIconByName("image");
     setDefaultWidgetFlags(OptionAction::ComboBox);
     setEnabled(true);
 
