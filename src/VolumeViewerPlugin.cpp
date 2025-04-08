@@ -563,11 +563,6 @@ mv::CoreInterface* VolumeViewerPlugin::getCore()
     return _core;
 }
 
-QIcon VolumeViewerPluginFactory::getIcon(const QColor& color /*= Qt::black*/) const
-{
-    return mv::Application::getIconFont("FontAwesome").getIcon("cube", color);
-}
-
 VolumeViewerPlugin* VolumeViewerPluginFactory::produce()
 {
     return new VolumeViewerPlugin(this);
@@ -593,7 +588,7 @@ mv::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActions
     if (PluginFactory::areAllDatasetsOfTheSameType(datasets, PointType)) {
         if (numberOfDatasets >= 1) {
             if (datasets.first()->getDataType() == PointType) {
-                auto pluginTriggerAction = new PluginTriggerAction(const_cast<VolumeViewerPluginFactory*>(this), this, "Volume viewer", "Load dataset in volume viewer", getIcon(), [this, getInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
+                auto pluginTriggerAction = new PluginTriggerAction(const_cast<VolumeViewerPluginFactory*>(this), this, "Volume viewer", "Load dataset in volume viewer", icon(), [this, getInstance, datasets](PluginTriggerAction& pluginTriggerAction) -> void {
                     for (auto dataset : datasets)
                         getInstance()->loadData(Datasets({ dataset }));
                 });

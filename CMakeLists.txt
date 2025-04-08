@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.17.0)
 
-set(PROJECT "VolumeViewerPlugin")
-
-PROJECT(${PROJECT})
+PROJECT("VolumeViewerPlugin")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
@@ -20,13 +18,6 @@ endif(MSVC)
 # Set install directory
 # -----------------------------------------------------------------------------
 # Check if the directory to the ManiVault installation has been provided
-if(NOT DEFINED MV_INSTALL_DIR)
-    set(MV_INSTALL_DIR "" CACHE PATH "Directory where ManiVault is installed")
-    message(FATAL_ERROR "Please set MV_INSTALL_DIR to the directory where ManiVault is installed")
-endif()
-file(TO_CMAKE_PATH ${MV_INSTALL_DIR} MV_INSTALL_DIR)
-
-# Check if the directory to the ManiVault installation has been provided
 if(NOT DEFINED PS_TECH_INSTALL_DIR)
     set(PS_TECH_INSTALL_DIR "" CACHE PATH "Directory where PSTech is installed")
     message(FATAL_ERROR "Please set PS_TECH_INSTALL_DIR to the directory where ManiVault is installed")
@@ -36,10 +27,14 @@ file(TO_CMAKE_PATH ${PS_TECH_INSTALL_DIR} PS_TECH_INSTALL_DIR)
 # -----------------------------------------------------------------------------
 # Dependencies
 # -----------------------------------------------------------------------------
-find_package(OpenGL REQUIRED)
-find_package(Qt6 COMPONENTS Core Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
-find_package(OpenMP)
+find_package(Qt6 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
 
+find_package(ManiVault COMPONENTS Core PointData CONFIG REQUIRED)
+
+# -----------------------------------------------------------------------------
+# Source files
+# -----------------------------------------------------------------------------
+# Define the plugin sources
 set(PLUGIN
     src/Common.h
     src/VolumeViewerPlugin.h
@@ -98,50 +93,61 @@ source_group(Widgets FILES ${WIDGETS})
 source_group(Actions FILES ${ACTIONS})
 source_group(Resources FILES ${QRESOURCES})
 
-add_library(${PROJECT} SHARED ${SOURCES} ${AUX} ${QRESOURCES} ${RESOURCE_FILES})
+# -----------------------------------------------------------------------------
+# CMake Target
+# -----------------------------------------------------------------------------
+# Create dynamic library for the plugin
+add_library(${PROJECT_NAME} SHARED ${SOURCES} ${AUX} ${QRESOURCES} ${RESOURCE_FILES})
 
-target_include_directories(${PROJECT} PRIVATE "${MV_INSTALL_DIR}/$<CONFIGURATION>/include/")
-target_include_directories(${PROJECT} PRIVATE src)
-target_include_directories(${PROJECT} PRIVATE "${PS_TECH_INSTALL_DIR}/include")
+# -----------------------------------------------------------------------------
+# Target include directories
+# -----------------------------------------------------------------------------
+# Include ManiVault headers, including system data plugins
+target_include_directories(${PROJECT_NAME} PRIVATE "${ManiVault_INCLUDE_DIR}")
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_include_directories(${PROJECT_NAME} PRIVATE "${PS_TECH_INSTALL_DIR}/include")
 
-target_compile_features(${PROJECT} PRIVATE cxx_std_17)
+# -----------------------------------------------------------------------------
+# Target properties
+# -----------------------------------------------------------------------------
+# Request C++17
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
-target_link_libraries(${PROJECT} PRIVATE Qt6::Widgets)
-target_link_libraries(${PROJECT} PRIVATE Qt6::WebEngineWidgets)
-target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGL)
-target_link_libraries(${PROJECT} PRIVATE Qt6::OpenGLWidgets)
-target_link_libraries(${PROJECT} PRIVATE ${OPENGL_LIBRARIES})
-target_link_libraries(${PROJECT} PRIVATE "${PS_TECH_INSTALL_DIR}/lib/pstsdk_cpp.lib")
+# -----------------------------------------------------------------------------
+# Target library linking
+# -----------------------------------------------------------------------------
+# Link to Qt libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::WebEngineWidgets)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::OpenGL)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::OpenGLWidgets)
+target_link_libraries(${PROJECT_NAME} PRIVATE "${PS_TECH_INSTALL_DIR}/lib/pstsdk_cpp.lib")
 
-set(MV_LINK_PATH "${MV_INSTALL_DIR}/$<CONFIGURATION>/lib")
-set(PLUGIN_LINK_PATH "${MV_INSTALL_DIR}/$<CONFIGURATION>/$<IF:$<CXX_COMPILER_ID:MSVC>,lib,Plugins>")
-set(MV_LINK_SUFFIX $<IF:$<CXX_COMPILER_ID:MSVC>,${CMAKE_LINK_LIBRARY_SUFFIX},${CMAKE_SHARED_LIBRARY_SUFFIX}>)
+# Link to ManiVault and data plugins
+target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::Core)
+target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::PointData)
 
-set(MV_LINK_LIBRARY "${MV_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}MV_Public${MV_LINK_SUFFIX}")
-set(POINTDATA_LINK_LIBRARY "${PLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}PointData${MV_LINK_SUFFIX}") 
-set(IMAGEDATA_LINK_LIBRARY "${PLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}ImageData${MV_LINK_SUFFIX}") 
-set(CLUSTERDATA_LINK_LIBRARY "${PLUGIN_LINK_PATH}/${CMAKE_SHARED_LIBRARY_PREFIX}ClusterData${MV_LINK_SUFFIX}") 
-
-target_link_libraries(${PROJECT} PRIVATE "${MV_LINK_LIBRARY}")
-target_link_libraries(${PROJECT} PRIVATE "${POINTDATA_LINK_LIBRARY}")
-target_link_libraries(${PROJECT} PRIVATE "${IMAGEDATA_LINK_LIBRARY}")
-target_link_libraries(${PROJECT} PRIVATE "${CLUSTERDATA_LINK_LIBRARY}")
-
-install(TARGETS ${PROJECT}
+# -----------------------------------------------------------------------------
+# Target installation
+# -----------------------------------------------------------------------------
+# Install the shared plugin libary to the "Plugins" folder in the ManiVault install directory
+install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION Plugins COMPONENT PLUGINS # Windows .dll
     LIBRARY DESTINATION Plugins COMPONENT PLUGINS # Linux/Mac .so
 )
 
-add_custom_command(TARGET ${PROJECT} POST_BUILD
-	COMMAND "${CMAKE_COMMAND}"
-	--install ${CMAKE_CURRENT_BINARY_DIR}
-	--config $<CONFIGURATION>
-	--prefix ${MV_INSTALL_DIR}/$<CONFIGURATION>
-	--verbose
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}"
+        --install ${CMAKE_CURRENT_BINARY_DIR}
+        --config $<CONFIGURATION>
+        --prefix ${ManiVault_INSTALL_DIR}/$<CONFIGURATION>
 )
 
+# -----------------------------------------------------------------------------
+# Miscellaneous
+# -----------------------------------------------------------------------------
 # Automatically set the debug environment (command + working directory) for MSVC
 if(MSVC)
-	set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY $<IF:$<CONFIG:DEBUG>,${MV_INSTALL_DIR}/debug,${MV_INSTALL_DIR}/release>)
-    set_property(TARGET ${PROJECT} PROPERTY VS_DEBUGGER_COMMAND $<IF:$<CONFIG:DEBUG>,${MV_INSTALL_DIR}/debug/ManiVault Studio.exe,${MV_INSTALL_DIR}/release/ManiVault Studio.exe>)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY $<IF:$<CONFIG:DEBUG>,${ManiVault_INSTALL_DIR}/debug,${ManiVault_INSTALL_DIR}/release>)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_COMMAND $<IF:$<CONFIG:DEBUG>,${ManiVault_INSTALL_DIR}/debug/ManiVault\ Studio.exe,${ManiVault_INSTALL_DIR}/release/ManiVault\ Studio.exe>)
 endif()
