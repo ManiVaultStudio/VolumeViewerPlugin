@@ -62,22 +62,6 @@ void VolumeViewerWidget::setData(Dataset<Points> points)
             values[i * 3 + 2] = (z - _meanCoord.z()) / _maxRange;
         }
 
-        //qDebug() << minCoord << maxCoord;
-        //int xSize = (maxCoord.x() - minCoord.x()) * 10 + 1;
-        //int ySize = (maxCoord.y() - minCoord.y()) * 10 + 1;
-        //int zSize = (maxCoord.z() - minCoord.z()) * 10 + 1;
-        //qDebug() << xSize << ySize << zSize;
-        //std::vector<float> texels(xSize * ySize * zSize, 0);
-
-        //for (int i = 0; i < points->getNumPoints(); i++)
-        //{
-        //    int x = points->getValueAt(i * numDimensions + 0) * 10;
-        //    int y = points->getValueAt(i * numDimensions + 1) * 10;
-        //    int z = points->getValueAt(i * numDimensions + 2) * 10;
-        //    //qDebug() << x << y << z;
-        //    texels[x * ySize * zSize + y * zSize + z] = 1;
-        //}
-
         getOpenGLWidget()->setData(values);
 
         //Initial render

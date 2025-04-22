@@ -33,11 +33,11 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
     });
 }
 
-void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
-{
-    makeCurrent();
-    _volumeRenderer.setTexels(width, height, depth, texels);
-}
+//void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
+//{
+//    makeCurrent();
+//    _volumeRenderer.setTexels(width, height, depth, texels);
+//}
 
 void OpenGLRendererWidget::setData(std::vector<float>& data)
 {
@@ -102,24 +102,7 @@ void OpenGLRendererWidget::resizeGL(int w, int h)
     _pixelRatio = devicePixelRatio();
 
     _volumeRenderer.resize(w * _pixelRatio, h * _pixelRatio);
-    //_windowSize.setWidth(w);
-    //_windowSize.setHeight(h);
 
-    //_pointRenderer.resize(QSize(w, h));
-    //_densityRenderer.resize(QSize(w, h));
-
-    //// Set matrix for normalizing from pixel coordinates to [0, 1]
-    //toNormalisedCoordinates = Matrix3f(1.0f / w, 0, 0, 1.0f / h, 0, 0);
-
-    //// Take the smallest dimensions in order to calculate the aspect ratio
-    //int size = w < h ? w : h;
-
-    //float wAspect = (float)w / size;
-    //float hAspect = (float)h / size;
-    //float wDiff = ((wAspect - 1) / 2.0);
-    //float hDiff = ((hAspect - 1) / 2.0);
-
-    //toIsotropicCoordinates = Matrix3f(wAspect, 0, 0, hAspect, -wDiff, -hDiff);
 }
 
 void OpenGLRendererWidget::paintGL()

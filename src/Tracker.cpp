@@ -71,9 +71,12 @@ class MyListener : public PSTech::pstsdk::Listener
         static uint32_t samplesGrabbed = 0;
         //if (samplesGrabbed++ >= numberOfSamplesToGrab)
         //    running = false;
+        std::cout << "On Tracker Data : " << std::endl;
 
         for (int d = 0; d < td.targetlist.size(); ++d)
         {
+            std::cout << td.targetlist[d].name.c_str() << std::endl;
+
             auto& mat = td.targetlist[d].pose;
             //std::cout << "Pose for " << td.targetlist[d].name << "\n";
             //std::cout << " ID " << td.targetlist[d].id << "\n";
@@ -140,13 +143,27 @@ void PSTracker::Connect()
         // Print version number of the tracker server being used.
         std::cout << "Running PST Server version " << _pst->GetVersionInfo() << "\n";
 
-        // Register the listener object to the tracker server.
-        _pst->AddTrackerListener(&listener);
+        _pst->EnableSharedMemory();
 
-        std::cout << "Put the Reference card in front of the PST in order to see tracking results.\n\n";
+        try
+        {
 
-        // Start the tracker server.
-        _pst->Start();
+            // Register the listener object to the tracker server.
+            _pst->AddTrackerListener(&listener);
+
+            std::cout << "Put the Reference card in front of the PST in order to see tracking results.\n\n";
+
+            // Start the tracker server.
+            _pst->Start();
+
+            // TODO : Do once if not already imported ?
+            
+
+        }
+        catch (PSTech::TrackerException& e)
+        {
+            std::cout << "Could not add tracker listener" << std::endl;
+        }
 
         // Perform a system check to see if the tracker server is running OK and print the result.
         std::cout << "System check: " << (int)_pst->Systemcheck() << "\n";

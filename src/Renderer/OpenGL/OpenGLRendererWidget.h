@@ -28,7 +28,7 @@ public:
 
     VolumeRenderer& getVolumeRenderer() { return _volumeRenderer; }
 
-    void setTexels(int width, int height, int depth, std::vector<float>& texels);
+    //void setTexels(int width, int height, int depth, std::vector<float>& texels);
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);

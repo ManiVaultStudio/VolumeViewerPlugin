@@ -88,7 +88,6 @@ public:
 class VolumeRenderer : public QOpenGLFunctions_3_3_Core
 {
 public:
-    void setTexels(int width, int height, int depth, std::vector<float>& texels);
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
@@ -114,7 +113,6 @@ private:
 
     mv::Texture2D _leftDepthAttachment;
     mv::Texture2D _rightDepthAttachment;
-    //GLuint _texture;
 
     mv::ShaderProgram _volumeShaderProgram;
     mv::ShaderProgram _pointsShaderProgram;

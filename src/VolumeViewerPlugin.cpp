@@ -6,7 +6,6 @@
 #include <QLayout>
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
-//#include "Transfer/CustomColorMapEditor.h"
 #include <widgets/DropWidget.h>
 
 #include <actions/PluginTriggerAction.h>
@@ -57,10 +56,6 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _secondaryToolbarAction(this, "SecondaryToolbar"),
     _settingsAction(),
     _volumeViewerWidget(nullptr),
-    //_viewerWidget(nullptr),
-    //_volumeRenderer(new OpenGLRendererWidget()),
-    //_transferWidget(nullptr),
-    //_selectionData(vtkSmartPointer<vtkImageData>::New()),
     // initiate a planeCollection for the SlicingAction
     _points(),
     _pointsParent(),
@@ -95,7 +90,6 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 {
     // Add the viewerwidget and dropwidget to the layout.
     _volumeViewerWidget = new VolumeViewerWidget(this, "Volume Viewer Widget");
-    //_viewerWidget = new ViewerWidget(*this);
     // Add the dropwidget to the layout.
     _dropWidget = new DropWidget(_volumeViewerWidget);
     _settingsAction = new SettingsAction(this, "SettingsAction");
@@ -118,26 +112,10 @@ void VolumeViewerPlugin::init()
     auto layout = new QVBoxLayout();
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
-    //layout->addWidget(_viewerWidget, 1);
     layout->addWidget(_primaryToolbarAction.createWidget(&getWidget()));
     layout->addWidget(_volumeViewerWidget, 1);
     layout->addWidget(_secondaryToolbarAction.createWidget(&getWidget()));
 
-    //auto settingsLayout = new QVBoxLayout();
-
-    
-    //_rendererSettingsAction->setShowLabels(true);
-    //_rendererSettingsAction->addAction(&_rendererSettingsAction->getColoringAction());
-    //_rendererSettingsAction->
-    //settingsLayout->setContentsMargins(6, 6, 6, 6);
-
-    //_primaryGroupSettings.addAction(&_rendererSettingsAction->getRenderSettingsAction());
-    //layout->addWidget(_rendererSettingsAction->createWidget(&getWidget()));
-    
-
-    //layout->addLayout(settingsLayout, 1);
-
-    //getWidget().setAutoFillBackground(true);
     getWidget().setLayout(layout);
 
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
@@ -180,12 +158,6 @@ void VolumeViewerPlugin::init()
                             _pointsParent = _points->getParent();
                         }
                         
-                        //_rendererSettingsAction.reset();
-                        
-                        //GroupsAction::GroupActions groupActionsPointcloudData;
-                        //groupActionsPointcloudData << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
-                        //_rendererSettingsAction.setActionGroup()
-                        //_rendererSettingsAction.setGroupActions(groupActionsPointcloudData);
 
                     });
                     
@@ -200,14 +172,10 @@ void VolumeViewerPlugin::init()
                             if (_points->getDataHierarchyItem().hasParent()) {
                                 _pointsParent = _points->getParent();
                             }
-                            // Add the actions.
-                            //_rendererSettingsAction.resetGroupActions();
-                            //GroupsAction::GroupActions groupActions;
-                            //groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
-                            //_rendererSettingsAction.setGroupActions(groupActions);
+                           
                         });
                         dropRegions << new DropWidget::DropRegion(this, "Colors and Point Opacity", "Color and Opacity points by scalars", "palette", true, [this, candidateDataset]() {
-                            //_points = candidateDataset;
+                          
                             if (_points->getDataHierarchyItem().hasParent()) {
                                 _pointsColorPoints = candidateDataset;
                                 _pointsOpacityPoints = candidateDataset;
@@ -215,26 +183,18 @@ void VolumeViewerPlugin::init()
                         });
 
                         dropRegions << new DropWidget::DropRegion(this, "Colors", "Color points by scalars", "palette", true, [this, candidateDataset]() {
-                            //_points = candidateDataset;
+                          
                             if (_points->getDataHierarchyItem().hasParent()) {
                                 _pointsColorPoints = candidateDataset;
                             }
                         });
                         
                         dropRegions << new DropWidget::DropRegion(this, "Point Opacity", "Opacity by scalars", "brush", true, [this, candidateDataset]() {
-                            //_points = candidateDataset;
+                        
                             if (_points->getDataHierarchyItem().hasParent()) {
                                 _pointsOpacityPoints = candidateDataset;
                             }
                         });
-                        //if (candidateDataset->getNumPoints() == _points->getNumPoints()) {
-
-                        //    // The number of points is equal, so offer the option to use the points dataset as source for points colors
-                        //    dropRegions << new DropWidget::DropRegion(this, "Point color", QString("Colorize %1 points with %2"), "palette", true, [this, candidateDataset]() {
-                        //        //_settingsAction.getColoringAction().addColorDataset(candidateDataset);
-                        //        //_settingsAction.getColoringAction().setCurrentColorDataset(candidateDataset);
-                        //        _pointsColorCluster = candidateDataset;
-                        //    });
 
                     }
                 }
@@ -266,8 +226,6 @@ void VolumeViewerPlugin::init()
 
                     // Use the clusters set for points color
                     dropRegions << new DropWidget::DropRegion(this, "Color", description, "palette", true, [this, candidateDataset]() {
-                        //_settingsAction.getColoringAction().addColorDataset(candidateDataset);
-                        //_settingsAction.getColoringAction().setCurrentColorDataset(candidateDataset);
                     });
                 }
             }
@@ -371,7 +329,7 @@ void VolumeViewerPlugin::init()
 
         // Check if shading is enbabled.
         if (_shadingEnabled) {
-
+            qDebug() << "Shading not implemented in volumeViewerPlugin";
         }
     });
     // Ambient parameter.
@@ -386,7 +344,7 @@ void VolumeViewerPlugin::init()
 
         // Check if shading is enbabled.
         if (_shadingEnabled) {
-
+            qDebug() << "Shading not implemented in volumeViewerPlugin";
         }
     });
 
@@ -614,7 +572,6 @@ void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {
 
 void VolumeViewerPlugin::fromVariantMap(const QVariantMap& variantMap)
 {
-    //_loadingFromProject = true;
 
     ViewPlugin::fromVariantMap(variantMap);
 
@@ -622,7 +579,6 @@ void VolumeViewerPlugin::fromVariantMap(const QVariantMap& variantMap)
 
     _settingsAction->fromVariantMap(variantMap["SettingsAction"].toMap());
 
-    //_loadingFromProject = false;
 }
 
 QVariantMap VolumeViewerPlugin::toVariantMap() const

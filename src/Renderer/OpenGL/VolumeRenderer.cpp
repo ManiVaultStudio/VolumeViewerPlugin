@@ -6,34 +6,6 @@
 
 #include <QMatrix4x4>
 
-void VolumeRenderer::setTexels(int width, int height, int depth, std::vector<float>& texels)
-{
-    //std::vector<float> texels(width * height * depth, 0);
-
-    //for (int z = 0; z < depth; z++)
-    //{
-    //    for (int x = 0; x < width; x++)
-    //    {
-    //        for (int y = 0; y < height; y++)
-    //        {
-    //            if (z > 25 && z < 75)
-    //                texels[z * width * height + x * height + y] = 1;
-    //        }
-    //    }
-    //}
-    //for (int i = 0; i < texels.size(); i+= 1)
-    //{
-    //    if (texels[i] == 1)
-    //        qDebug() << texels[i];
-    //}
-    //glBindTexture(GL_TEXTURE_2D_ARRAY, _texture);
-    //glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_R32F, width, height, depth);
-    //glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, depth, GL_RED, GL_FLOAT, texels.data());
-    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-}
 
 void VolumeRenderer::setData(std::vector<float>& data)
 {
@@ -48,7 +20,6 @@ void VolumeRenderer::setData(std::vector<float>& data)
     glGenBuffers(1, &cbo);
     glBindBuffer(GL_ARRAY_BUFFER, cbo);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, 0);
-    //glEnableVertexAttribArray(1);
 
     _numPoints = data.size() / 3;
 }
@@ -150,7 +121,6 @@ void VolumeRenderer::init()
     _rightRenderFBO.validate();
 
     bool loaded = true;
-    //loaded &= _volumeShaderProgram.loadShaderFromFile("volume.vert", "volume.frag");
     loaded &= _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/VolumeDraw.frag");
     loaded &= _cubeShaderProgram.loadShaderFromFile(":shaders/CubeDraw.vert", ":shaders/CubeDraw.frag");
     loaded &= _framebufferShaderProgram.loadShaderFromFile(":shaders/Quad.vert", ":shaders/Texture.frag");
@@ -160,7 +130,6 @@ void VolumeRenderer::init()
         qCritical() << "Failed to load one of the Volume Renderer shaders";
     }
 
-    //glGenTextures(1, &_texture);
 
     glGenVertexArrays(1, &vao);
 
@@ -180,38 +149,6 @@ void VolumeRenderer::init()
     glBufferData(GL_ARRAY_BUFFER, 0 * sizeof(float), nullptr, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
-
-    /////////////
-    //int width = 200;
-    //int height = 400;
-    //int depth = 100;
-    //std::vector<float> texels(width * height * depth, 0);
-
-    //std::default_random_engine generator;
-    //std::uniform_real_distribution<float> distribution(0, 1);
-
-    //for (int z = 0; z < depth; z++)
-    //{
-    //    for (int x = 0; x < width; x++)
-    //    {
-    //        for (int y = 0; y < height; y++)
-    //        {
-    //            float rand = distribution(generator);
-
-    //            //texels[x * height * depth + y * depth + z] = rand;
-    //            if (z > 25 && z < 75)
-    //                texels[z * width * height + x * height + y] = 1;
-    //        }
-    //    }
-    //}
-
-    //glBindTexture(GL_TEXTURE_2D_ARRAY, _texture);
-    //glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_R32F, width, height, depth);
-    //glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, depth, GL_RED, GL_FLOAT, texels.data());
-    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    //glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
     _cube.create();
 }
@@ -244,6 +181,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
 #ifdef VOLUME
+    // Seems to never be defined
     _volumeShaderProgram.bind();
 
     glActiveTexture(GL_TEXTURE0);
@@ -254,7 +192,6 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 #else
 
-    //#ifndef STEREO
     _projMatrix.setToIdentity();
     float fovyr = 1.0472;// 1.57079633;
     float zNear = 0.1f;
@@ -265,32 +202,14 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _projMatrix.data()[11] = -1;
     _projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
     _projMatrix.data()[15] = 0;
-    //#else
-    //    _leftProjMatrix.setToIdentity();
-    //    float convergence_distance = 1.0f;
-    //    float parallax_factor = 0.05f;
-    //
-    //    float fovyr = 1.57079633;
-    //    float zNear = 0.1f;
-    //    float zFar = 100;
-    //    float stereo_offset = eye * zNear * parallax_factor / convergence_distance;
-    //
-    //    _projMatrix.data()[0] = (float)(1 / tan(fovyr / 2)) / aspect;
-    //    _projMatrix.data()[5] = (float)(1 / tan(fovyr / 2));
-    //    _projMatrix.data()[10] = (zNear + zFar) / (zNear - zFar);
-    //    _projMatrix.data()[11] = -1;
-    //    _projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
-    //    _projMatrix.data()[15] = 0;
-    //#endif
 
-        //_projMatrix.data()[12] = 1;
     
     _modelMatrix = modelMatrix;
 
     _modelMatrix.data()[12] *= 10;
     _modelMatrix.data()[13] *= 10;
     _modelMatrix.data()[14] *= 10;
-    //qDebug() << modelMatrix;
+  
     _pointsShaderProgram.bind();
 
 #ifndef STEREO
@@ -298,19 +217,19 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _viewMatrix.lookAt(QVector3D(camPos.x, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
     _framebuffer.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawVolume(_pointsShaderProgram, false, 0);
+    drawCube(_pointsShaderProgram, false, 0);
 #else
     _viewMatrix.setToIdentity();
     _viewMatrix.lookAt(QVector3D(camPos.x - _eyeOffset, camPos.y, camPos.z), QVector3D(0, 1, 0), QVector3D(0, 1, 0));
     _leftRenderFBO.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawVolume(_pointsShaderProgram);
+    drawCube(_pointsShaderProgram);
 
     _viewMatrix.setToIdentity();
     _viewMatrix.lookAt(QVector3D(camPos.x + _eyeOffset, camPos.y, camPos.z), QVector3D(0, 1, 0), QVector3D(0, 1, 0));
     _rightRenderFBO.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawVolume(_pointsShaderProgram);
+    drawCube(_pointsShaderProgram);
 #endif
 
     // If stereo rendering is on, combine both left and right textures
@@ -372,7 +291,7 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
 
     shader.uniformMatrix4f("projMatrix", _projMatrix.data());
     shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
-    shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
+    shader.uniformMatrix4f("modelMatrix", _modelMatrix.data()); // For the remote work, use identity matrix instead of the tracker's
 
     glBindVertexArray(_cube.vao);
 
