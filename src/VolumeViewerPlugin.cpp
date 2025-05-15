@@ -385,27 +385,30 @@ void VolumeViewerPlugin::init()
             }
 
 
+            std::vector<int> indices;
+            indices.assign(selectionSet->indices.begin(), selectionSet->indices.end());
 
-            // Focus selection
-            if (selectionSet->indices.size() >=1)
-            {
-                std::vector<int> indices;
-                indices.assign(selectionSet->indices.begin(), selectionSet->indices.end());
-
-                if (!_focusSelection && !_focusSelectionNorm) {
+            if (!_focusSelection && !_focusSelectionNorm) {
 
 
-                    std::vector<bool> selected;
+                std::vector<bool> selected;
 
-                    _points->selectedLocalIndices(selectionSet->indices, selected);
+                _points->selectedLocalIndices(selectionSet->indices, selected);
 
 
-                    highlightSelection(selected, static_cast<std::int32_t>(selectionSet->indices.size()));
+                highlightSelection(selected, static_cast<std::int32_t>(selectionSet->indices.size()));
+            }
+            else {
+
+                // Focus selection
+                if (selectionSet->indices.size() >= 1)
+                {
+
+                    if (_focusSelection)
+                        applyMaskToColors(indices, false);
+                    else if (_focusSelectionNorm)
+                        applyMaskToColors(indices, true);
                 }
-                else if (_focusSelection)
-                    applyMaskToColors(indices, false);
-                else if (_focusSelectionNorm)
-                    applyMaskToColors(indices, true);
             }
         }
     });// Selection changed connection.
