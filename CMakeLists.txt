@@ -24,6 +24,14 @@ if(NOT DEFINED PS_TECH_INSTALL_DIR)
 endif()
 file(TO_CMAKE_PATH ${PS_TECH_INSTALL_DIR} PS_TECH_INSTALL_DIR)
 
+set(PST_DEPENDENCIES_BIN ${PS_TECH_INSTALL_DIR}/Redist)
+file(TO_CMAKE_PATH ${PST_DEPENDENCIES_BIN} PST_DEPENDENCIES_BIN)
+message(STATUS "PST dependency dir :" ${PST_DEPENDENCIES_BIN})
+if(NOT EXISTS ${PST_DEPENDENCIES_BIN})
+    message(FATAL_ERROR "There is an issue with the PS-Tech SDK path provided. It must contain a valid Redist directory")
+endif()
+
+
 # -----------------------------------------------------------------------------
 # Dependencies
 # -----------------------------------------------------------------------------
@@ -41,6 +49,8 @@ set(PLUGIN
     src/VolumeViewerPlugin.cpp
     src/Tracker.h
     src/Tracker.cpp
+    src/Controls.h
+    src/Controls.cpp
 )
 
 set(RENDERERS
@@ -142,6 +152,10 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         --config $<CONFIGURATION>
         --prefix ${ManiVault_INSTALL_DIR}/$<CONFIGURATION>
 )
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${PST_DEPENDENCIES_BIN} ${ManiVault_INSTALL_DIR}/$<CONFIGURATION>)
 
 # -----------------------------------------------------------------------------
 # Miscellaneous
