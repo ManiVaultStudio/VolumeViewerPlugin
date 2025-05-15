@@ -20,7 +20,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _connectToTrackerAction(this, "Connect Tracker"),
     _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.03, 3),
     _camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
-    _flipInterlacingAction(this, "Flip interlace", false)
+    _flipInterlacingAction(this, "Flip interface", false),
+    _selectionColorPicker(this, "Selection Color", QColor(255,0,0))
 {
     GroupsAction::GroupActions groupActions;
 
@@ -69,6 +70,9 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     connect(&_camDistAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setCamDist(value); });
 
     connect(&_flipInterlacingAction, &ToggleAction::toggled, [this](const bool& toggled) { _plugin->getVolumeRenderer().setInterlacingFlip(toggled); });
+
+    connect(&_selectionColorPicker, &ColorAction::colorChanged, [this](const QColor& color) { _plugin->getVolumeRenderer().setSelectionColor(color); });
+
 }
 
 QMenu* SettingsAction::getContextMenu(QWidget* parent /*= nullptr*/)

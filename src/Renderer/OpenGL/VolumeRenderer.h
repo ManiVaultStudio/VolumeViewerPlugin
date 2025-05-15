@@ -12,7 +12,7 @@
 
 #include <vector>
 
-#define STEREO
+//#define STEREO
 
 class Cube : public QOpenGLFunctions_3_3_Core
 {
@@ -90,16 +90,18 @@ class VolumeRenderer : public QOpenGLFunctions_3_3_Core
 public:
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
+    void setHighlights(std::vector<int>& highlights);
     void setColormap(const QImage& colormap);
     void setCursorPoint(mv::Vector3f cursorPoint);
     void setEyeOffset(float eyeOffset) { _eyeOffset = eyeOffset; }
-    void setInterlacingFlip(bool flipped) { _interlacing = flipped ? 1 : 0; }
+    void setInterlacingFlip(const bool & flipped) { _interlacing = flipped ? 1 : 0; }
+    void setSelectionColor(const QColor& color) { _selectionColor = color; }
     void reloadShader();
 
     void init();
     void resize(int w, int h);
 
-    void render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2f camAngle, float aspect, QMatrix4x4 modelMatrix);
+    void render(GLuint framebuffer, mv::Vector3f camPos, float aspect, QMatrix4x4 modelMatrix);
     void drawVolume(mv::ShaderProgram& shader);
     void drawCube(mv::ShaderProgram& shader);
 
@@ -124,6 +126,7 @@ private:
     GLuint vao;
     GLuint vbo;
     GLuint cbo;
+    GLuint highlightVBO;
     int _numPoints = 0;
 
     GLuint _cursorVao;
@@ -132,9 +135,11 @@ private:
     float _eyeOffset = 0.065;
     int _interlacing = 0;
 
+    QColor _selectionColor = QColor(0,0,0);
     bool _hasColors = false;
 
     mv::Texture2D _colormap;
+    QSize cMapSize;
 
     Cube _cube;
 

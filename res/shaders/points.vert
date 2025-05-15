@@ -2,15 +2,18 @@
 
 layout(location = 0) in vec4 position;
 layout(location = 1) in float color;
+layout(location = 2) in int highlight;
 
 uniform mat4 projMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 modelMatrix;
 
 out float v_Color;
+flat out int vHighlight;
 
 void main() {
     gl_Position = projMatrix * viewMatrix * modelMatrix * position;
     
     v_Color = color;
+    vHighlight = highlight;
 }

@@ -13,12 +13,21 @@
 
 #include <QTimer>
 
+#include <Controls.h>
+
 /**
  * OpenGL Volume Renderer Widget
  * This class provides a widget interface to the OpenGL Volume Renderer
  * 
  * @author Julian Thijssen
  */
+
+struct sphericCoords {
+    float distance {1}; // Distance to center
+    float polar { 90 }; // Angle with the vertical in deg
+    float azimuthal{ 0 }; // Angle or rotation around vertical in deg
+};
+
 class OpenGLRendererWidget : public QOpenGLWidget, QOpenGLFunctions_4_2_Core
 {
     Q_OBJECT
@@ -26,7 +35,9 @@ class OpenGLRendererWidget : public QOpenGLWidget, QOpenGLFunctions_4_2_Core
 public:
     OpenGLRendererWidget();
 
+
     VolumeRenderer& getVolumeRenderer() { return _volumeRenderer; }
+
 
     //void setTexels(int width, int height, int depth, std::vector<float>& texels);
     void setData(std::vector<float>& data);
@@ -62,9 +73,14 @@ private:
     VolumeRenderer _volumeRenderer;
     PSTracker _tracker;
 
-    mv::Vector3f _camPos;
-    float _camDist = 1.0f;
-    mv::Vector2f _camAngle = mv::Vector2f(3.14159f / 2, 0);
+    ControlsWidget* _controls;
+
+    sphericCoords viewPosSpheric;
+    /**
+    * Returns vector of position of the camera in space, calculated from the spherical coordinates
+    */
+    mv::Vector3f getCamPos() const;
+    float _camStartDist = 1.0f;
 
     QPointF _previousMousePos;
     bool _mousePressed = false;

@@ -2,8 +2,8 @@
     <qresource prefix="/">
         <file>shaders/points.vert</file>
         <file>shaders/VolumeDraw.frag</file>
-        <file>shaders/Quad.vert</file>
-        <file>shaders/Texture.frag</file>
+        <file>shaders/QuadPST.vert</file>
+        <file>shaders/TexturePST.frag</file>
         <file>shaders/StereoMerge.frag</file>
         <file>shaders/CubeDraw.vert</file>
         <file>shaders/CubeDraw.frag</file>

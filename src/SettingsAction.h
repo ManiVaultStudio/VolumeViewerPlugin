@@ -61,6 +61,7 @@ public: // Action getters
     DecimalAction& getEyeOffsetAction() { return _eyeOffsetAction; }
     DecimalAction& getCamDistAction() { return _camDistAction; }
     ToggleAction& getFlipInterlacingAction() { return _flipInterlacingAction; }
+    ColorAction& getSelectionColorPicker() { return _selectionColorPicker; }
 
 protected:
     VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
@@ -76,4 +77,5 @@ protected:
     DecimalAction           _eyeOffsetAction;
     DecimalAction           _camDistAction;
     ToggleAction            _flipInterlacingAction;
+    ColorAction             _selectionColorPicker;
 };

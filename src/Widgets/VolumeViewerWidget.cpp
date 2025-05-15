@@ -11,6 +11,7 @@ VolumeViewerWidget::VolumeViewerWidget(QObject* parent, const QString& title) :
     _plugin(dynamic_cast<VolumeViewerPlugin*>(parent)),
     _openGLWidget(nullptr)
 {
+
     setAcceptDrops(true);
 
     _openGLWidget = new OpenGLRendererWidget();
@@ -19,6 +20,7 @@ VolumeViewerWidget::VolumeViewerWidget(QObject* parent, const QString& title) :
     layout->addWidget(_openGLWidget);
 
     setLayout(layout);
+    
 }
 
 void VolumeViewerWidget::setData(Dataset<Points> points)

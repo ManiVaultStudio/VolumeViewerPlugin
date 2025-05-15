@@ -41,7 +41,7 @@ namespace
         {
             float invScalarRange = 1.0f / (scalarMax - scalarMin);
             // Normalize the scalars
-#pragma omp parallel for
+            #pragma omp parallel for
             for (int i = 0; i < v.size(); i++)
             {
                 v[i] = (v[i] - scalarMin) * invScalarRange;
@@ -104,10 +104,14 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _secondaryToolbarAction.addAction(&_settingsAction->getEyeOffsetAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getCamDistAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFlipInterlacingAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getSelectionColorPicker());
+
+    getVolumeRenderer().setSelectionColor(_settingsAction->getSelectionColorPicker().getColor());
 }
 
 void VolumeViewerPlugin::init()
 {    
+
     // Create the layout.
     auto layout = new QVBoxLayout();
     layout->setContentsMargins(0, 0, 0, 0);
@@ -117,6 +121,10 @@ void VolumeViewerPlugin::init()
     layout->addWidget(_secondaryToolbarAction.createWidget(&getWidget()));
 
     getWidget().setLayout(layout);
+
+    // Martin : Control widget
+    controls = new QWidget();
+    // END Martin : Control widget
 
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
     _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
@@ -376,12 +384,25 @@ void VolumeViewerPlugin::init()
                 _volumeViewerWidget->setCursorPoint(Vector3f(x, y, z));
             }
 
+
+
             // Focus selection
             if (selectionSet->indices.size() >=1)
             {
                 std::vector<int> indices;
                 indices.assign(selectionSet->indices.begin(), selectionSet->indices.end());
-                if (_focusSelection)
+
+                if (!_focusSelection && !_focusSelectionNorm) {
+
+
+                    std::vector<bool> selected;
+
+                    _points->selectedLocalIndices(selectionSet->indices, selected);
+
+
+                    highlightSelection(selected, static_cast<std::int32_t>(selectionSet->indices.size()));
+                }
+                else if (_focusSelection)
                     applyMaskToColors(indices, false);
                 else if (_focusSelectionNorm)
                     applyMaskToColors(indices, true);
@@ -499,6 +520,7 @@ void VolumeViewerPlugin::applyMaskToColors(const std::vector<int>& indices, bool
     std::vector<float> colors;
     _pointsColorPoints->extractDataForDimension(colors, 0);
 
+
     std::vector<float> maskedColors(colors.size(), 0);
     for (int idx : indices) {
          maskedColors[idx] = colors[idx];
@@ -588,4 +610,14 @@ QVariantMap VolumeViewerPlugin::toVariantMap() const
     _settingsAction->insertIntoVariantMap(variantMap);
 
     return variantMap;
+}
+
+
+void VolumeViewerPlugin::highlightSelection(const std::vector<bool>& highlights, const std::int32_t& numSelectedPoints) {
+    std::vector<int> intHighlights(highlights.size(), 0.f);
+    for (int i = 0; i < highlights.size(); i++) {
+        intHighlights[i] = highlights[i] ? 1 : 0;
+    }
+
+    _volumeViewerWidget->getOpenGLWidget()->getVolumeRenderer().setHighlights(intHighlights);
 }

@@ -16,28 +16,44 @@ void VolumeRenderer::setData(std::vector<float>& data)
     glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
     glEnableVertexAttribArray(0);
-
+    
     glGenBuffers(1, &cbo);
     glBindBuffer(GL_ARRAY_BUFFER, cbo);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(1);
+
+
+    glGenBuffers(1, &highlightVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, highlightVBO);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray(2);
+   
 
     _numPoints = data.size() / 3;
 }
 
 void VolumeRenderer::setColors(std::vector<float>& colors)
 {
+
     glBindVertexArray(vao);
     qDebug() << colors.size();
     glBindBuffer(GL_ARRAY_BUFFER, cbo);
     glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), colors.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(1);
     
     _hasColors = true;
+}
+
+void VolumeRenderer::setHighlights(std::vector<int>& highlights) {
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, highlightVBO);
+    glBufferData(GL_ARRAY_BUFFER, highlights.size() * sizeof(int), highlights.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(2);
 }
 
 void VolumeRenderer::setColormap(const QImage& colormap)
 {
     _colormap.loadFromImage(colormap);
+    cMapSize = colormap.size();
     qDebug() << "Colormap is set!";
 }
 
@@ -58,7 +74,7 @@ void VolumeRenderer::init()
 {
     initializeOpenGLFunctions();
     
-    glClearColor(20 / 255.0f, 20 / 255.0f, 20/255.0f, 1.0f);
+    glClearColor(40.f / 255.0f, 40.f / 255.0f, 40.f / 255.0f, 1.0f);
 
     // Make float buffer to support low alpha blending
     _colorAttachment.create();
@@ -123,8 +139,8 @@ void VolumeRenderer::init()
     bool loaded = true;
     loaded &= _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/VolumeDraw.frag");
     loaded &= _cubeShaderProgram.loadShaderFromFile(":shaders/CubeDraw.vert", ":shaders/CubeDraw.frag");
-    loaded &= _framebufferShaderProgram.loadShaderFromFile(":shaders/Quad.vert", ":shaders/Texture.frag");
-    loaded &= _stereoMergeProgram.loadShaderFromFile(":shaders/Quad.vert", ":shaders/StereoMerge.frag");
+    loaded &= _framebufferShaderProgram.loadShaderFromFile(":shaders/QuadPST.vert", ":shaders/TexturePST.frag");
+    loaded &= _stereoMergeProgram.loadShaderFromFile(":shaders/QuadPST.vert", ":shaders/StereoMerge.frag");
 
     if (!loaded) {
         qCritical() << "Failed to load one of the Volume Renderer shaders";
@@ -174,14 +190,14 @@ void VolumeRenderer::resize(int w, int h)
     glViewport(0, 0, w, h);
 }
 
-void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2f camAngle, float aspect, QMatrix4x4 modelMatrix)
+void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspect, QMatrix4x4 modelMatrix)
 {
     glEnable(GL_BLEND);
     glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
 #ifdef VOLUME
-    // Seems to never be defined
+
     _volumeShaderProgram.bind();
 
     glActiveTexture(GL_TEXTURE0);
@@ -191,6 +207,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
 
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 #else
+
 
     _projMatrix.setToIdentity();
     float fovyr = 1.0472;// 1.57079633;
@@ -203,7 +220,6 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
     _projMatrix.data()[15] = 0;
 
-    
     _modelMatrix = modelMatrix;
 
     _modelMatrix.data()[12] *= 10;
@@ -217,23 +233,32 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _viewMatrix.lookAt(QVector3D(camPos.x, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
     _framebuffer.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawCube(_pointsShaderProgram, false, 0);
+    drawVolume(_pointsShaderProgram);
 #else
-    _viewMatrix.setToIdentity();
-    _viewMatrix.lookAt(QVector3D(camPos.x - _eyeOffset, camPos.y, camPos.z), QVector3D(0, 1, 0), QVector3D(0, 1, 0));
-    _leftRenderFBO.bind();
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawCube(_pointsShaderProgram);
+    QVector3D viewPoint = QVector3D(camPos.x, camPos.y, camPos.z);
+    QVector3D offsetDir = QVector3D::crossProduct(
+        viewPoint,
+        QVector3D(0,1,0)
+    );
+
 
     _viewMatrix.setToIdentity();
-    _viewMatrix.lookAt(QVector3D(camPos.x + _eyeOffset, camPos.y, camPos.z), QVector3D(0, 1, 0), QVector3D(0, 1, 0));
+    _viewMatrix.lookAt(viewPoint + offsetDir * _eyeOffset, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+    _leftRenderFBO.bind();
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    drawVolume(_pointsShaderProgram);
+
+
+    _viewMatrix.setToIdentity();
+    _viewMatrix.lookAt(viewPoint - offsetDir * _eyeOffset, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
     _rightRenderFBO.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawCube(_pointsShaderProgram);
-#endif
+    drawVolume(_pointsShaderProgram);
+
 
     // If stereo rendering is on, combine both left and right textures
     glDisable(GL_BLEND);
+
 
     _framebuffer.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
@@ -246,6 +271,8 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _stereoMergeProgram.uniform1i("rightImage", 1);
     _stereoMergeProgram.uniform1i("interlacing", _interlacing);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+#endif
 
     // Draw the cursor
     _pointsShaderProgram.bind();
@@ -260,6 +287,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _pointsShaderProgram.uniform1i("isCursor", 0);
     glDisable(GL_POINT_SMOOTH);
 
+
     ///////////////////////////////////////////////////////////////////////
     // Draw the color framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -270,9 +298,12 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _framebufferShaderProgram.bind();
 
     _colorAttachment.bind(0);
+
+
     _framebufferShaderProgram.uniform1i("tex", 0);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
+
 #endif
     {
         GLenum error = glGetError();
@@ -304,28 +335,26 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
 void VolumeRenderer::drawVolume(mv::ShaderProgram& shader)
 {
     glClear(GL_COLOR_BUFFER_BIT);
-
     shader.uniformMatrix4f("projMatrix", _projMatrix.data());
     shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
     shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
 
     glPointSize(3);
     glBindVertexArray(vao);
-
     shader.uniform1i("hasColors", false);
-
-    glDrawArrays(GL_POINTS, 0, _numPoints);
+    shader.uniform3f("selectionColor", _selectionColor.redF(), _selectionColor.greenF(), _selectionColor.blueF());
+    shader.uniform1i("usesColormap", false);
 
     if (_hasColors)
     {
-        shader.uniform1i("hasColors", _hasColors);
-
+        shader.uniform1i("hasColors", true);
         if (_colormap.isCreated())
         {
+            shader.uniform1i("usesColorMap", true);
             _colormap.bind(0);
             shader.uniform1i("colormap", 0);
+            shader.uniform2f("mapSize", cMapSize.width(), cMapSize.height());
         }
-
-        glDrawArrays(GL_POINTS, 0, _numPoints);
     }
+    glDrawArrays(GL_POINTS, 0, _numPoints);
 }

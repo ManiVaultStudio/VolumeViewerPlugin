@@ -165,6 +165,8 @@ public: // Serialization
     */
     QVariantMap toVariantMap() const override;
 
+    void highlightSelection(const std::vector<bool>& highlights, const std::int32_t& numSelectedPoints);
+
 signals:
     /** Signals that list of point datasets in mv has changed */
     void pointsDatasetsChanged(QStringList pointsDatasets);
@@ -216,6 +218,9 @@ private:
 
     HorizontalToolbarAction             _primaryToolbarAction;      /** Horizontal toolbar for primary content */
     HorizontalToolbarAction             _secondaryToolbarAction;    /** Secondary toolbar for secondary content */
+
+    // Martin : widget
+    QWidget* controls;
 };
 
 /**

@@ -4,9 +4,16 @@
 #include <QMouseEvent>
 #include <QWindow>
 
+#include <QMainWindow>
+#include <algorithm>
+
+
+#define CONTROLS
+
 OpenGLRendererWidget::OpenGLRendererWidget() :
     QOpenGLWidget()
 {
+
     setAcceptDrops(true);
     setFocusPolicy(Qt::FocusPolicy::ClickFocus);
     installEventFilter(this);
@@ -31,6 +38,14 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
 
         QObject::connect(winHandle, &QWindow::screenChanged, this, &OpenGLRendererWidget::updatePixelRatio, Qt::UniqueConnection);
     });
+
+    #ifdef CONTROLS
+
+    _controls = new ControlsWidget(nativeParentWidget());
+
+    #endif
+
+    
 }
 
 //void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
@@ -48,12 +63,14 @@ void OpenGLRendererWidget::setData(std::vector<float>& data)
 
 void OpenGLRendererWidget::setColors(std::vector<float>& colors)
 {
-    makeCurrent();
+    makeCurrent(); 
     _volumeRenderer.setColors(colors);
 }
 
 void OpenGLRendererWidget::setColormap(const QImage& colormap)
 {
+    _controls->setImageColorMap(colormap);
+    std::cout << "W : " << colormap.size().width() << "  , H :" << colormap.size().height() << std::endl;
     _volumeRenderer.setColormap(colormap);
 }
 
@@ -75,7 +92,8 @@ void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
 
 void OpenGLRendererWidget::setCamDist(float camDist)
 {
-    _camPos = mv::Vector3f(0, 1, camDist);
+    //Reinitialise position and set correct distance
+    viewPosSpheric.distance = camDist;
 }
 
 void OpenGLRendererWidget::initializeGL()
@@ -90,7 +108,7 @@ void OpenGLRendererWidget::initializeGL()
     // OpenGL is initialized
     _isInitialized = true;
 
-    _camPos.set(0, 1, _camDist);
+    setCamDist(_camStartDist);
 
     _updateTimer = new QTimer(this);
     connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });
@@ -112,12 +130,19 @@ void OpenGLRendererWidget::paintGL()
 
     float aspect = (float)w / h;
 
-    _volumeRenderer.render(defaultFramebufferObject(), _camPos, _camAngle, aspect, _tracker.GetTrackerMatrix());
+    #ifdef CONTROLS
+    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _controls->getControlMatrix());
+    #else
+    qDebug() << "Tracker Matrix " << _tracker.GetTrackerMatrix();
+        _volumeRenderer.render(defaultFramebufferObject(), _camPos, _camAngle, aspect, _tracker.GetTrackerMatrix());
+    #endif
 }
 
 void OpenGLRendererWidget::cleanup()
 {
     _isInitialized = false;
+
+    delete _controls;
 
     makeCurrent();
 }
@@ -126,50 +151,60 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 {
     switch (event->type())
     {
-    case QEvent::KeyRelease:
-    {
-        qDebug() << "Beep";
-        makeCurrent();
-        _volumeRenderer.reloadShader();
-        break;
-    }
-    case QEvent::MouseButtonPress:
-    {
-        qDebug() << "Mouse press";
-        auto mouseEvent = static_cast<QMouseEvent*>(event);
-
-        QPointF mousePos = QPointF(mouseEvent->position().x(), mouseEvent->position().y());
-        _previousMousePos = mousePos;
-
-        _mousePressed = true;
-        break;
-    }
-    case QEvent::MouseMove:
-    {
-        if (!_mousePressed)
+        case QEvent::KeyRelease:
+        {
+            qDebug() << "Beep";
+            makeCurrent();
+            _volumeRenderer.reloadShader();
             break;
+        }
+        case QEvent::MouseButtonPress:
+        {
+            qDebug() << "Mouse press";
+            auto mouseEvent = static_cast<QMouseEvent*>(event);
 
-        auto mouseEvent = static_cast<QMouseEvent*>(event);
+            QPointF mousePos = QPointF(mouseEvent->position().x(), mouseEvent->position().y());
+            _previousMousePos = mousePos;
 
-        QPointF mousePos = QPointF(mouseEvent->position().x(), mouseEvent->position().y());
+            _mousePressed = true;
+            break;
+        }
+        case QEvent::Wheel:
+        {
+            auto wheelEvent = static_cast<QWheelEvent*>(event);
 
-        QPointF diff = mousePos - _previousMousePos;
+            float scaling = wheelEvent->angleDelta().y() / 30.f + 1;
+            scaling = std::clamp<float>(scaling, 0.1f, 2.f);
 
-        _camAngle.y += diff.x() * 0.01f;
-        _camAngle.x -= diff.y() * 0.01f;
-        if (_camAngle.x > 3.14150) _camAngle.x = 3.14150;
-        if (_camAngle.x < 0.0001) _camAngle.x = 0.0001;
 
-        _camPos.x = _camDist * sin(_camAngle.x) * cos(_camAngle.y);
-        _camPos.y = _camDist * cos(_camAngle.x);
-        _camPos.z = _camDist * sin(_camAngle.x) * sin(_camAngle.y);
+            viewPosSpheric.distance *= scaling;
+            break;
+        }
+        case QEvent::MouseMove:
+        {
+            if (!_mousePressed)
+                break;
 
-        update();
+            auto mouseEvent = static_cast<QMouseEvent*>(event);
 
-        _previousMousePos = mousePos;
+            QPointF mousePos = QPointF(mouseEvent->position().x(), mouseEvent->position().y());
 
-        break;
-    }
+            QPointF diff = mousePos - _previousMousePos;
+
+
+            viewPosSpheric.azimuthal -= diff.x();
+            viewPosSpheric.polar -= diff.y();
+
+
+            viewPosSpheric.polar = std::clamp<float>(viewPosSpheric.polar, 0.1f, 179.9f);
+
+
+            update();
+
+            _previousMousePos = mousePos;
+
+            break;
+        }
     }
     return QObject::eventFilter(target, event);
 }
@@ -186,3 +221,16 @@ void OpenGLRendererWidget::updatePixelRatio()
         update();
     }
 }
+
+mv::Vector3f OpenGLRendererWidget::getCamPos() const {
+    QMatrix4x4 transform = QMatrix4x4();
+    transform.setToIdentity();
+    transform.scale(viewPosSpheric.distance);
+    transform.rotate(viewPosSpheric.azimuthal, 0, 1, 0);
+    transform.rotate(viewPosSpheric.polar, 0, 0, 1);
+    QVector4D position = transform * QVector4D(0, 1, 0, 1);
+
+
+    return mv::Vector3f(position[0], position[1], position[2]);
+};
+
