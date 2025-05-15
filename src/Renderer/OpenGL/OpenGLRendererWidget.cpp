@@ -176,22 +176,17 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
             QPoint numPixels = wheelEvent->pixelDelta();
             QPoint numDegrees = wheelEvent->angleDelta() / 8;
-            float scaling;
+            float scaling = 0;
             if (!numPixels.isNull()) {
                 scaling = numPixels.y();
             }
             else if (!numDegrees.isNull()) {
-                scaling = numDegrees.y() / 15;
+                scaling = numDegrees.y() / 15.f;
             }
-            else {
-                throw "No scrolling data was received upon wheel event";
-            }
+            
 
-            scaling = pow(2, -scaling/5);
+            scaling = pow(2, -scaling/5.f);
 
-            qDebug() << "numPixels : " << numPixels.y();
-            qDebug() << "numDegrees : " << numDegrees.y();
-            qDebug() << "Scaling : " << scaling;
 
             viewPosSpheric.distance *= scaling;
 
