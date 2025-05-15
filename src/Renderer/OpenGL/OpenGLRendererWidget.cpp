@@ -6,6 +6,7 @@
 
 #include <QMainWindow>
 #include <algorithm>
+#include <cmath>
 
 
 #define CONTROLS
@@ -134,7 +135,7 @@ void OpenGLRendererWidget::paintGL()
     _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _controls->getControlMatrix());
     #else
     qDebug() << "Tracker Matrix " << _tracker.GetTrackerMatrix();
-        _volumeRenderer.render(defaultFramebufferObject(), _camPos, _camAngle, aspect, _tracker.GetTrackerMatrix());
+        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.GetTrackerMatrix());
     #endif
 }
 
@@ -173,11 +174,28 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
         {
             auto wheelEvent = static_cast<QWheelEvent*>(event);
 
-            float scaling = wheelEvent->angleDelta().y() / 30.f + 1;
-            scaling = std::clamp<float>(scaling, 0.1f, 2.f);
+            QPoint numPixels = wheelEvent->pixelDelta();
+            QPoint numDegrees = wheelEvent->angleDelta() / 8;
+            float scaling;
+            if (!numPixels.isNull()) {
+                scaling = numPixels.y();
+            }
+            else if (!numDegrees.isNull()) {
+                scaling = numDegrees.y() / 15;
+            }
+            else {
+                throw "No scrolling data was received upon wheel event";
+            }
 
+            scaling = pow(2, -scaling/5);
+
+            qDebug() << "numPixels : " << numPixels.y();
+            qDebug() << "numDegrees : " << numDegrees.y();
+            qDebug() << "Scaling : " << scaling;
 
             viewPosSpheric.distance *= scaling;
+
+            event->accept();
             break;
         }
         case QEvent::MouseMove:
