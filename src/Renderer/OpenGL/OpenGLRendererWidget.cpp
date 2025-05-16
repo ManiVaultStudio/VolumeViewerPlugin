@@ -9,7 +9,6 @@
 #include <cmath>
 
 
-//#define CONTROLS
 
 OpenGLRendererWidget::OpenGLRendererWidget() :
     QOpenGLWidget()
@@ -70,7 +69,9 @@ void OpenGLRendererWidget::setColors(std::vector<float>& colors)
 
 void OpenGLRendererWidget::setColormap(const QImage& colormap)
 {
+#ifdef CONTROLS
     _controls->setImageColorMap(colormap);
+#endif
     _volumeRenderer.setColormap(colormap);
 }
 
@@ -140,8 +141,9 @@ void OpenGLRendererWidget::paintGL()
 void OpenGLRendererWidget::cleanup()
 {
     _isInitialized = false;
-
-    delete _controls;
+#ifdef CONTROLS
+    if(_controls != nullptr) delete _controls;
+#endif
 
     makeCurrent();
 }
@@ -243,5 +245,4 @@ mv::Vector3f OpenGLRendererWidget::getCamPos() const {
 
 
     return mv::Vector3f(position[0], position[1], position[2]);
-};
-
+}

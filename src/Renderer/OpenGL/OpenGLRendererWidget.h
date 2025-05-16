@@ -12,8 +12,12 @@
 #include <vector>
 
 #include <QTimer>
+//#define CONTROLS
 
+#ifdef CONTROLS
 #include <Controls.h>
+#endif
+
 
 /**
  * OpenGL Volume Renderer Widget
@@ -73,7 +77,9 @@ private:
     VolumeRenderer _volumeRenderer;
     PSTracker _tracker;
 
-    ControlsWidget* _controls;
+    #ifdef CONTROLS
+        ControlsWidget* _controls;
+    #endif
 
     sphericCoords viewPosSpheric;
     /**

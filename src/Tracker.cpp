@@ -86,7 +86,7 @@ PSTracker::PSTracker() {
 
 PSTracker::~PSTracker() {
     Exithandler(0);
-    delete _pst;
+    if (_pst != nullptr) delete _pst;
 }
 
 

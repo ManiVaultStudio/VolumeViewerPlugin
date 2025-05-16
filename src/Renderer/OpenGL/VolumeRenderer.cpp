@@ -6,6 +6,7 @@
 
 #include <QMatrix4x4>
 
+//#define CUBE
 
 void VolumeRenderer::setData(std::vector<float>& data)
 {
@@ -196,17 +197,17 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
     glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
-#ifdef VOLUME
+    #ifdef VOLUME
 
-    _volumeShaderProgram.bind();
+        _volumeShaderProgram.bind();
 
-    glActiveTexture(GL_TEXTURE0);
-    _volumeShaderProgram.uniform1i("tex", 0);
+        glActiveTexture(GL_TEXTURE0);
+        _volumeShaderProgram.uniform1i("tex", 0);
 
-    glBindTexture(GL_TEXTURE_2D_ARRAY, _texture);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, _texture);
 
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-#else
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    #else
 
 
     _projMatrix.setToIdentity();
@@ -228,51 +229,63 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
   
     _pointsShaderProgram.bind();
 
-#ifndef STEREO
-    _viewMatrix.setToIdentity();
-    _viewMatrix.lookAt(QVector3D(camPos.x, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-    _framebuffer.bind();
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawVolume(_pointsShaderProgram);
-#else
-    QVector3D viewPoint = QVector3D(camPos.x, camPos.y, camPos.z);
-    QVector3D offsetDir = QVector3D::crossProduct(
-        viewPoint,
-        QVector3D(0,1,0)
-    );
+    #ifndef STEREO
+        _viewMatrix.setToIdentity();
+        _viewMatrix.lookAt(QVector3D(camPos.x, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        _framebuffer.bind();
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        #ifdef CUBE
+            drawCube(_pointsShaderProgram);
+        #else
+            drawVolume(_pointsShaderProgram);
+        #endif
+    #else
+        QVector3D viewPoint = QVector3D(camPos.x, camPos.y, camPos.z);
+        QVector3D offsetDir = QVector3D::crossProduct(
+            viewPoint,
+            QVector3D(0,1,0)
+        );
 
 
-    _viewMatrix.setToIdentity();
-    _viewMatrix.lookAt(viewPoint + offsetDir * _eyeOffset, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-    _leftRenderFBO.bind();
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawVolume(_pointsShaderProgram);
+        _viewMatrix.setToIdentity();
+        _viewMatrix.lookAt(viewPoint + offsetDir * _eyeOffset, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        _leftRenderFBO.bind();
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        #ifdef CUBE
+            drawCube(_pointsShaderProgram);
+        #else
+            drawVolume(_pointsShaderProgram);
+        #endif
 
 
-    _viewMatrix.setToIdentity();
-    _viewMatrix.lookAt(viewPoint - offsetDir * _eyeOffset, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-    _rightRenderFBO.bind();
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawVolume(_pointsShaderProgram);
+        _viewMatrix.setToIdentity();
+        _viewMatrix.lookAt(viewPoint - offsetDir * _eyeOffset, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        _rightRenderFBO.bind();
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        #ifdef CUBE
+            drawCube(_pointsShaderProgram);
+        #else
+            drawVolume(_pointsShaderProgram);
+        #endif
 
 
-    // If stereo rendering is on, combine both left and right textures
-    glDisable(GL_BLEND);
+        // If stereo rendering is on, combine both left and right textures
+        glDisable(GL_BLEND);
 
 
-    _framebuffer.bind();
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    glClear(GL_COLOR_BUFFER_BIT);
+        _framebuffer.bind();
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glClear(GL_COLOR_BUFFER_BIT);
 
-    _stereoMergeProgram.bind();
-    _leftColorAttachment.bind(0);
-    _rightColorAttachment.bind(1);
-    _stereoMergeProgram.uniform1i("leftImage", 0);
-    _stereoMergeProgram.uniform1i("rightImage", 1);
-    _stereoMergeProgram.uniform1i("interlacing", _interlacing);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        _stereoMergeProgram.bind();
+        _leftColorAttachment.bind(0);
+        _rightColorAttachment.bind(1);
+        _stereoMergeProgram.uniform1i("leftImage", 0);
+        _stereoMergeProgram.uniform1i("rightImage", 1);
+        _stereoMergeProgram.uniform1i("interlacing", _interlacing);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-#endif
+    #endif
 
     // Draw the cursor
     _pointsShaderProgram.bind();
@@ -334,27 +347,29 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
 
 void VolumeRenderer::drawVolume(mv::ShaderProgram& shader)
 {
-    glClear(GL_COLOR_BUFFER_BIT);
-    shader.uniformMatrix4f("projMatrix", _projMatrix.data());
-    shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
-    shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
+    if (_numPoints > 0) {
+        glClear(GL_COLOR_BUFFER_BIT);
+        shader.uniformMatrix4f("projMatrix", _projMatrix.data());
+        shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
+        shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
 
-    glPointSize(3);
-    glBindVertexArray(vao);
-    shader.uniform1i("hasColors", false);
-    shader.uniform3f("selectionColor", _selectionColor.redF(), _selectionColor.greenF(), _selectionColor.blueF());
-    shader.uniform1i("usesColormap", false);
+        glPointSize(3);
+        glBindVertexArray(vao);
+        shader.uniform1i("hasColors", false);
+        shader.uniform3f("selectionColor", _selectionColor.redF(), _selectionColor.greenF(), _selectionColor.blueF());
+        shader.uniform1i("usesColormap", false);
 
-    if (_hasColors)
-    {
-        shader.uniform1i("hasColors", true);
-        if (_colormap.isCreated())
+        if (_hasColors)
         {
-            shader.uniform1i("usesColorMap", true);
-            _colormap.bind(0);
-            shader.uniform1i("colormap", 0);
-            shader.uniform2f("mapSize", cMapSize.width(), cMapSize.height());
+            shader.uniform1i("hasColors", true);
+            if (_colormap.isCreated())
+            {
+                shader.uniform1i("usesColorMap", true);
+                _colormap.bind(0);
+                shader.uniform1i("colormap", 0);
+                shader.uniform2f("mapSize", cMapSize.width(), cMapSize.height());
+            }
         }
+        glDrawArrays(GL_POINTS, 0, _numPoints);
     }
-    glDrawArrays(GL_POINTS, 0, _numPoints);
 }
