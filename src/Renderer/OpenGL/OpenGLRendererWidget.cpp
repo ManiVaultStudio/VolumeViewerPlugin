@@ -9,7 +9,7 @@
 #include <cmath>
 
 
-#define CONTROLS
+//#define CONTROLS
 
 OpenGLRendererWidget::OpenGLRendererWidget() :
     QOpenGLWidget()
@@ -71,7 +71,6 @@ void OpenGLRendererWidget::setColors(std::vector<float>& colors)
 void OpenGLRendererWidget::setColormap(const QImage& colormap)
 {
     _controls->setImageColorMap(colormap);
-    std::cout << "W : " << colormap.size().width() << "  , H :" << colormap.size().height() << std::endl;
     _volumeRenderer.setColormap(colormap);
 }
 
@@ -134,7 +133,6 @@ void OpenGLRendererWidget::paintGL()
     #ifdef CONTROLS
     _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _controls->getControlMatrix());
     #else
-    qDebug() << "Tracker Matrix " << _tracker.GetTrackerMatrix();
         _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.GetTrackerMatrix());
     #endif
 }

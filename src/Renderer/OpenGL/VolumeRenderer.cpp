@@ -233,7 +233,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
     _viewMatrix.lookAt(QVector3D(camPos.x, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
     _framebuffer.bind();
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    drawCube(_pointsShaderProgram);
+    drawVolume(_pointsShaderProgram);
 #else
     QVector3D viewPoint = QVector3D(camPos.x, camPos.y, camPos.z);
     QVector3D offsetDir = QVector3D::crossProduct(

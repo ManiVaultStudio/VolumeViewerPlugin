@@ -1,20 +1,11 @@
 #include "Tracker.h"
 
-////////////////
-#define CONNECTED
 
-#include "pstsdk_cpp.h"
-#include "TrackerExceptions.h"
-#include "PstStringIoStream.h"
 
-#include <mutex>
-////////////////
+#include <thread>
 
-#ifdef WIN32
-#include <windows.h>
-#else
-#include <csignal>
-#endif
+
+
 
 /*
  * Define handler functions required to ensure a clean shutdown of the PST Tracker when the
@@ -36,134 +27,101 @@ BOOL WINAPI ConsoleHandler(DWORD CEvent)
 std::mutex mtx;
 QMatrix4x4 trackerMatrix;
 
-///////////////////////
-/*
- * Helper function for clear printing of 4x4 matrices.
- */
-static inline void PrintMatrix(const PSTech::Utils::PstArray<float, 16>& mat)
+void MyListener::OnTrackerData(const PSTech::pstsdk::TrackerData& td)
 {
-    for (int y = 0; y < 4; ++y)
+
+
+    for (int d = 0; d < td.targetlist.size(); ++d)
     {
-        for (int x = 0; x < 4; ++x)
+
+        auto& mat = td.targetlist[d].pose;
+
+        if (td.targetlist[d].id == controlTargetId)
         {
-            std::cout << mat[x + y * 4] << "\t";
+            const std::lock_guard<std::mutex> lock(mtx);
+
+            for (int i = 0; i < 16; i++)
+                trackerMatrix.data()[i] = mat[i];
+            trackerMatrix = trackerMatrix.transposed();
         }
-        std::cout << "\n";
     }
+
+
 }
 
-/* Control variable for main loop */
-static bool running = true;
-
-/* Number of data points to grab before application termination */
-static const uint32_t numberOfSamplesToGrab = 100;
 
 
-/*
- * Implementation of the PSTech::pstsdk::Listener class to receive tracking data.
- * The OnTrackerData() callback function receives the data as soon as it becomes
- * available and prints the tracking target pose to the command line.
- */
-class MyListener : public PSTech::pstsdk::Listener
-{
-    virtual void OnTrackerData(PSTech::pstsdk::TrackerData& td)
-    {
-        static uint32_t samplesGrabbed = 0;
-        //if (samplesGrabbed++ >= numberOfSamplesToGrab)
-        //    running = false;
-        std::cout << "On Tracker Data : " << std::endl;
 
-        for (int d = 0; d < td.targetlist.size(); ++d)
-        {
-            std::cout << td.targetlist[d].name.c_str() << std::endl;
 
-            auto& mat = td.targetlist[d].pose;
-            //std::cout << "Pose for " << td.targetlist[d].name << "\n";
-            //std::cout << " ID " << td.targetlist[d].id << "\n";
-            //PrintMatrix(mat);
-
-            if (td.targetlist[d].id == 3)
-            {
-                const std::lock_guard<std::mutex> lock(mtx);
-
-                for (int i = 0; i < 16; i++)
-                    trackerMatrix.data()[i] = mat[i];
-                trackerMatrix = trackerMatrix.transposed();
-            }
-        }
-    }
-} listener;
 
 /*
  * Implement the exit handler to shut-down the PST Tracker connection on application termination.
  */
 static void Exithandler(int sig)
 {
+    std::cout << "Shutting down" << std::endl;
     PSTech::pstsdk::Tracker::Shutdown();
-    running = false;
 }
+
+
+
+PSTracker::PSTracker() {
+    // Register the exit handler with the application
+    #ifdef WIN32
+        SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
+    #else
+        signal(SIGTERM, Exithandler);
+        signal(SIGKILL, Exithandler);
+        signal(SIGQUIT, Exithandler);
+        signal(SIGINT, Exithandler);
+    #endif
+    try {
+        _pst = new PSTech::pstsdk::Tracker();
+    } catch (PSTech::TrackerException& e) {
+        std::cout << "Could not connect to tracker." << std::endl;
+       std::cout << e.full_description() << std::endl; // DEV 
+        // throw e;
+    }
+}
+
+PSTracker::~PSTracker() {
+    Exithandler(0);
+    delete _pst;
+}
+
 
 void PSTracker::Connect()
 {
-    // Register the exit handler with the application
-#ifdef WIN32
-    SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
-#else
-    signal(SIGTERM, Exithandler);
-    signal(SIGKILL, Exithandler);
-    signal(SIGQUIT, Exithandler);
-    signal(SIGINT, Exithandler);
-#endif
+
 
     // Implement error handling of PSTech::TrackerException exceptions to prevent 
     // improper PST Tracker shutdown on errors.
     try
     {
-#ifdef CONNECTED
-        // Create an instance of the Tracker object using the default configuration path and file names.
-#ifdef WIN32
-        _pst = new PSTech::pstsdk::Tracker();
-#else
-        // On Linux, specify the type of grabber that needs to be used as the last parameter: 
-        // "basler_ace" for PST HD or "basler_dart" for PST Pico
-        PSTech::pstsdk::Tracker pst("", "config.cfg", "models.db", argv[1]);
-#endif
+
 
         // Check if calibration information is available for all cameras. When this is not the case, provide a warning.
         if (_pst->GetUncalibratedCameraUrls(true).size() > 0)
         {
-            std::cout << "\nNo calibration information could be found in the configuration directory. "
+            qDebug() << "\n No calibration information could be found in the configuration directory. "
                 "Please use the PST Server and PST Client application to initialize the PST Tracker and create/import a tracking target. "
                 "More information can be found in the Initialization section of the PST SDK manual and the PST Manual.\n\n";
-            std::cout << "Press enter to continue...\n";
-            std::cin.get();
+
             return;
         }
 
         // Print version number of the tracker server being used.
         std::cout << "Running PST Server version " << _pst->GetVersionInfo() << "\n";
 
-        _pst->EnableSharedMemory();
 
-        try
-        {
+        // Register the listener object to the tracker server.
+        _pst->AddTrackerListener(&listener);
 
-            // Register the listener object to the tracker server.
-            _pst->AddTrackerListener(&listener);
+        // Start the tracker server.
+        _pst->Start();
+        std::cout << "Put the Reference card in front of the PST in order to see tracking results.\n\n";
 
-            std::cout << "Put the Reference card in front of the PST in order to see tracking results.\n\n";
 
-            // Start the tracker server.
-            _pst->Start();
-
-            // TODO : Do once if not already imported ?
-            
-
-        }
-        catch (PSTech::TrackerException& e)
-        {
-            std::cout << "Could not add tracker listener" << std::endl;
-        }
 
         // Perform a system check to see if the tracker server is running OK and print the result.
         std::cout << "System check: " << (int)_pst->Systemcheck() << "\n";
@@ -177,17 +135,31 @@ void PSTracker::Connect()
         // Print the new frame rate to see if it was set correctly. Note that for PST HD and Pico
         // trackers the frame rate actually being set can differ from the value provided to SetFramerate().
         std::cout << "Frame rate set to " << _pst->GetFramerate() << "\n";
-#endif
+
+        // Retrieve the list of registered tracking targets and print their names and current status (active or not).
+        PSTech::pstsdk::TargetStatuses allTargets = _pst->GetTargetList(); // Some may be inactive
+        
+        if (allTargets.size() == 0) throw "No Target registered in the tracker. Please add at least one target in the PST Client app.";
+
+        for (PSTech::pstsdk::TargetStatus target : allTargets) {
+            if (target.status) targets.push_back(target);
+        }
+
+        if (targets.size() == 0) throw "No active target. Please activate the desired targets in the PST Client app.";
+        listener.setControlTarget(targets[0].id);
+ 
+
+
     }
     catch (PSTech::TrackerException& e)
     {
         // Catch PSTech::TrackerException exceptions and print error messages.
         std::cout << e.full_description() << "\n";
 
-        // Pause command line to see error message.
-        //std::cout << "Press enter to continue...\n";
-        //std::cin.get();
-        return;
+        Exithandler(0);
+
+        throw e;
+        //return;
     }
     _connected = true;
     qDebug() << "Connected to tracker!";
