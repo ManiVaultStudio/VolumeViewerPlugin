@@ -15,18 +15,20 @@ void VolumeRenderer::setData(std::vector<float>& data)
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(0);
     
     glGenBuffers(1, &cbo);
     glBindBuffer(GL_ARRAY_BUFFER, cbo);
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, 0);
+    glBufferData(GL_ARRAY_BUFFER, data.size() / 3 * sizeof(float), nullptr, GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(1);
 
 
     glGenBuffers(1, &highlightVBO);
     glBindBuffer(GL_ARRAY_BUFFER, highlightVBO);
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 0, 0);
+    glBufferData(GL_ARRAY_BUFFER, data.size() / 3 * sizeof(int), nullptr, GL_STATIC_DRAW);
+    glVertexAttribIPointer(2, 1, GL_INT, 0, nullptr);
     glEnableVertexAttribArray(2);
    
 
@@ -40,7 +42,8 @@ void VolumeRenderer::setColors(std::vector<float>& colors)
     qDebug() << colors.size();
     glBindBuffer(GL_ARRAY_BUFFER, cbo);
     glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), colors.data(), GL_STATIC_DRAW);
-    
+    glEnableVertexAttribArray(1);
+
     _hasColors = true;
 }
 
@@ -164,7 +167,7 @@ void VolumeRenderer::init()
     glGenBuffers(1, &_cursorVbo);
     glBindBuffer(GL_ARRAY_BUFFER, _cursorVbo);
     glBufferData(GL_ARRAY_BUFFER, 0 * sizeof(float), nullptr, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(0);
 
     _cube.create();
@@ -287,6 +290,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
 
     #endif
 
+  
     // Draw the cursor
     _pointsShaderProgram.bind();
     _pointsShaderProgram.uniform1i("isCursor", 1);
@@ -301,6 +305,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
     glDisable(GL_POINT_SMOOTH);
 
 
+
     ///////////////////////////////////////////////////////////////////////
     // Draw the color framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
@@ -313,18 +318,20 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
     _colorAttachment.bind(0);
 
 
+
     _framebufferShaderProgram.uniform1i("tex", 0);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
 #endif
     {
-        GLenum error = glGetError();
+       GLenum error = glGetError();
         if (error != GL_NO_ERROR)
         {
             std::cout << "Error: " << error << std::endl;
         }
     }
+
 }
 
 void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
@@ -348,28 +355,29 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
 void VolumeRenderer::drawVolume(mv::ShaderProgram& shader)
 {
     if (_numPoints > 0) {
+        GLenum error = glGetError();
         glClear(GL_COLOR_BUFFER_BIT);
         shader.uniformMatrix4f("projMatrix", _projMatrix.data());
         shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
         shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
-
+    
         glPointSize(3);
         glBindVertexArray(vao);
         shader.uniform1i("hasColors", false);
         shader.uniform3f("selectionColor", _selectionColor.redF(), _selectionColor.greenF(), _selectionColor.blueF());
-        shader.uniform1i("usesColormap", false);
-
-        if (_hasColors)
+    
+        /*if (_hasColors )
         {
             shader.uniform1i("hasColors", true);
             if (_colormap.isCreated())
             {
-                shader.uniform1i("usesColorMap", true);
                 _colormap.bind(0);
                 shader.uniform1i("colormap", 0);
                 shader.uniform2f("mapSize", cMapSize.width(), cMapSize.height());
             }
-        }
+        }*/
+
         glDrawArrays(GL_POINTS, 0, _numPoints);
+    
     }
 }
