@@ -51,6 +51,8 @@ set(PLUGIN
     src/Tracker.cpp
     src/Controls.h
     src/Controls.cpp
+    src/Interaction.h
+    src/Interaction.cpp
 )
 
 set(RENDERERS
