@@ -15,9 +15,9 @@
 //#define CONTROLS
 
 #ifdef CONTROLS
-#include <Controls.h>
+#include "Controls.h"
 #endif
-
+#include "Interaction.h"
 
 /**
  * OpenGL Volume Renderer Widget
@@ -80,6 +80,7 @@ private:
     #ifdef CONTROLS
         ControlsWidget* _controls;
     #endif
+    Interaction3D* interactionState;
 
     sphericCoords viewPosSpheric;
     /**

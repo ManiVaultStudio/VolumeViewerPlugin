@@ -11,7 +11,8 @@
 
 
 OpenGLRendererWidget::OpenGLRendererWidget() :
-    QOpenGLWidget()
+    QOpenGLWidget(),
+    interactionState(new Interaction3D())
 {
 
     setAcceptDrops(true);
@@ -44,6 +45,7 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
     _controls = new ControlsWidget(nativeParentWidget());
 
     #endif
+
 
     
 }
@@ -152,6 +154,14 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 {
     switch (event->type())
     {
+        case QEvent::KeyPress:
+        {
+            auto keyEvent = static_cast<QKeyEvent*>(event);
+            if (keyEvent->key() == 'c') {
+
+            }
+            break;
+        }
         case QEvent::KeyRelease:
         {
             qDebug() << "Beep";
