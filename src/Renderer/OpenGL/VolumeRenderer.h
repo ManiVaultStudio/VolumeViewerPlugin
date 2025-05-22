@@ -17,61 +17,7 @@
 class Cube : public QOpenGLFunctions_3_3_Core
 {
 public:
-    void create()
-    {
-        initializeOpenGLFunctions();
-
-        std::vector<mv::Vector3f> vertices;
-
-        vertices.emplace_back(-0.5f, -0.5f, 0.5f);
-        vertices.emplace_back(0.5f, -0.5f, 0.5f);
-        vertices.emplace_back(-0.5f, 0.5f, 0.5f);
-        vertices.emplace_back(0.5f, 0.5f, 0.5f);
-        vertices.emplace_back(-0.5f, -0.5f, -0.5f);
-        vertices.emplace_back(0.5f, -0.5f, -0.5f);
-        vertices.emplace_back(-0.5f, 0.5f, -0.5f);
-        vertices.emplace_back(0.5f, 0.5f, -0.5f);
-
-        std::vector<mv::Vector3f> normals;
-
-        normals.emplace_back(0, 0, 1);
-        normals.emplace_back(1, 0, 0);
-        normals.emplace_back(0, 0, -1);
-        normals.emplace_back(-1, 0, 0);
-        normals.emplace_back(0, 1, 0);
-        normals.emplace_back(0, -1, 0);
-
-        std::vector<int> indices;
-
-        indices.push_back(0); indices.push_back(1); indices.push_back(2); indices.push_back(2); indices.push_back(1); indices.push_back(3);
-        indices.push_back(1); indices.push_back(5); indices.push_back(3); indices.push_back(3); indices.push_back(5); indices.push_back(7);
-        indices.push_back(5); indices.push_back(4); indices.push_back(7); indices.push_back(7); indices.push_back(4); indices.push_back(6);
-        indices.push_back(4); indices.push_back(0); indices.push_back(6); indices.push_back(6); indices.push_back(0); indices.push_back(2);
-        indices.push_back(2); indices.push_back(3); indices.push_back(6); indices.push_back(6); indices.push_back(3); indices.push_back(7);
-        indices.push_back(5); indices.push_back(4); indices.push_back(1); indices.push_back(1); indices.push_back(4); indices.push_back(0);
-
-        std::vector<mv::Vector3f> aVertices;
-        std::vector<mv::Vector3f> aNormals;
-        for (int i = 0; i < indices.size(); i++)
-        {
-            aVertices.push_back(vertices[indices[i]]);
-            aNormals.push_back(normals[i / 6]);
-        }
-
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, aVertices.size() * sizeof(mv::Vector3f), aVertices.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-        glEnableVertexAttribArray(0);
-
-        glGenBuffers(1, &nbo);
-        glBindBuffer(GL_ARRAY_BUFFER, nbo);
-        glBufferData(GL_ARRAY_BUFFER, aNormals.size() * sizeof(mv::Vector3f), aNormals.data(), GL_STATIC_DRAW);
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
-        glEnableVertexAttribArray(1);
-    }
+    void create();
 
     GLuint vao;
     GLuint vbo;
@@ -92,17 +38,20 @@ public:
     void setColors(std::vector<float>& colors);
     void setHighlights(std::vector<int>& highlights);
     void setColormap(const QImage& colormap);
-    void setCursorPoint(mv::Vector3f cursorPoint);
     void setEyeOffset(float eyeOffset) { _eyeOffset = eyeOffset; }
     void setInterlacingFlip(const bool & flipped) { _interlacing = flipped ? 1 : 0; }
     void setSelectionColor(const QColor& color) { _selectionColor = color; }
+    //void setCursorPosition(const QVector3D& pos) { _cursorPoint = mv::Vector3f(pos[0], pos[1], pos[2]); }
+    QVector3D getCursor() const;
+    void freezeCursor();
+    void unFreezeCursor();
     void reloadShader();
 
     void init();
     void resize(int w, int h);
 
-    void render(GLuint framebuffer, mv::Vector3f camPos, float aspect, QMatrix4x4 modelMatrix);
-    void drawVolume(mv::ShaderProgram& shader);
+    void render(GLuint framebuffer, mv::Vector3f camPos, float aspect, const bool& , const QMatrix4x4& modelMatrix);
+    void drawVolume(mv::ShaderProgram& shader, const bool& live);
     void drawCube(mv::ShaderProgram& shader);
 
 private:
@@ -118,6 +67,7 @@ private:
 
     mv::ShaderProgram _volumeShaderProgram;
     mv::ShaderProgram _pointsShaderProgram;
+    mv::ShaderProgram _cursorShaderProgram;
     mv::ShaderProgram _cubeShaderProgram;
     mv::ShaderProgram _stereoMergeProgram;
 
@@ -131,7 +81,7 @@ private:
 
     GLuint _cursorVao;
     GLuint _cursorVbo;
-    mv::Vector3f _cursorPoint;
+    //mv::Vector3f _cursorPoint = mv::Vector3f(0.f,0.f,0.f);
     float _eyeOffset = 0.065;
     int _interlacing = 0;
 
@@ -139,7 +89,7 @@ private:
     bool _hasColors = false;
 
     mv::Texture2D _colormap;
-    QSize cMapSize;
+    //QSize cMapSize;
 
     Cube _cube;
 
@@ -148,4 +98,11 @@ private:
     QMatrix4x4 _rightProjMatrix;
     QMatrix4x4 _viewMatrix;
     QMatrix4x4 _modelMatrix;
+
+    bool cursorFrozen = false;
+    QVector4D _cursorPosition = QVector4D(0.f, 0.f, 0.f, 1.f); // In modelMatrix reference
+    QVector4D _frozenCursorPosition; // In world reference
+
+
+    QMatrix4x4 identity = QMatrix4x4();
 };

@@ -71,7 +71,6 @@ public: // Inherited from ViewPlugin
 
     void reInitializeLayout(QHBoxLayout layout);
 
-    void setSelectionPosition(double x, double y, double z);
 
     /** Returns a pointer to the core interface */
     mv::CoreInterface* core() { return _core; }
@@ -167,6 +166,7 @@ public: // Serialization
 
     void highlightSelection(const std::vector<bool>& highlights, const std::int32_t& numSelectedPoints);
 
+
 signals:
     /** Signals that list of point datasets in mv has changed */
     void pointsDatasetsChanged(QStringList pointsDatasets);
@@ -195,7 +195,7 @@ private:
     QString                             _currentDatasetName;        /** Name of the current dataset */
     std::vector<int>                    _planeArray;                /** Array indicating the index+1 of the x,y and z clipping planes in the plane collection*/
     std::vector<double>                 _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/
-    std::vector<double>                 _position;
+
     std::string                         _interpolationOption;       /** String for storing the current color interpolation option*/
     std::string                         _colorMap;                  /** String for storing the current color map*/
 

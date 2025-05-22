@@ -11,8 +11,8 @@
 
 
 OpenGLRendererWidget::OpenGLRendererWidget() :
-    QOpenGLWidget(),
-    interactionState(new Interaction3D())
+    QOpenGLWidget()/*,
+    interactionState(Interaction3D())*/
 {
 
     setAcceptDrops(true);
@@ -77,15 +77,16 @@ void OpenGLRendererWidget::setColormap(const QImage& colormap)
     _volumeRenderer.setColormap(colormap);
 }
 
-void OpenGLRendererWidget::setCursorPoint(mv::Vector3f cursorPoint)
-{
-    _volumeRenderer.setCursorPoint(cursorPoint);
-    update();
-}
 
 void OpenGLRendererWidget::connectToTracker()
 {
     _tracker.Connect();
+    QMatrix4x4 rotation;
+    rotation.setToIdentity();
+    rotation.rotate(-90.f, 0, 1, 0);
+    _tracker.setTrackerReference(rotation, true); // test, replace with proper calibration process
+    _tracker.checkTrackerStatus();
+    setFocus();
 }
 
 void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
@@ -116,6 +117,9 @@ void OpenGLRendererWidget::initializeGL()
     _updateTimer = new QTimer(this);
     connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });
     _updateTimer->start(16);
+
+    qDebug() << "Reference Matrix : ";
+    qDebug() << _tracker.GetReference();
 }
 
 void OpenGLRendererWidget::resizeGL(int w, int h)
@@ -134,9 +138,9 @@ void OpenGLRendererWidget::paintGL()
     float aspect = (float)w / h;
 
     #ifdef CONTROLS
-    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _controls->getControlMatrix());
+    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.getPoseIsNew(), _controls->getControlMatrix());
     #else
-        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.GetTrackerMatrix());
+        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.getPoseIsNew(), _tracker.GetTargetMatrix());
     #endif
 }
 
@@ -147,6 +151,7 @@ void OpenGLRendererWidget::cleanup()
     if(_controls != nullptr) delete _controls;
 #endif
 
+
     makeCurrent();
 }
 
@@ -156,17 +161,40 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
     {
         case QEvent::KeyPress:
         {
-            auto keyEvent = static_cast<QKeyEvent*>(event);
-            if (keyEvent->key() == 'c') {
+            QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+            int key = keyEvent->key();
+            if (key == 'F') {
+                if (keyEvent->isAutoRepeat()) return false;
+                _volumeRenderer.freezeCursor();
 
+                return true;
+                
             }
+      
             break;
         }
         case QEvent::KeyRelease:
         {
-            qDebug() << "Beep";
+            QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+            int key = keyEvent->key();
+            if (key == 'F') {
+                if (keyEvent->isAutoRepeat()) return false;
+                _volumeRenderer.unFreezeCursor();
+                // Selection of closest point performed in parent widget
+                emit cursorChanged();
+
+                return true;
+            }
+            
             makeCurrent();
-            _volumeRenderer.reloadShader();
+            if (key == 'R') {
+                if (keyEvent->isAutoRepeat()) return false;
+                _volumeRenderer.reloadShader();
+                qDebug() << "Shaders reloaded";
+
+                return true;
+            }
+            
             break;
         }
         case QEvent::MouseButtonPress:
@@ -178,7 +206,8 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
             _previousMousePos = mousePos;
 
             _mousePressed = true;
-            break;
+
+            return true;
         }
         case QEvent::Wheel:
         {
@@ -195,13 +224,11 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
             }
             
 
-            scaling = pow(2, -scaling/5.f);
-
+            scaling = pow(2, -scaling / 5.f);
 
             viewPosSpheric.distance *= scaling;
 
-            event->accept();
-            break;
+            return true;
         }
         case QEvent::MouseMove:
         {
@@ -215,6 +242,8 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
             QPointF diff = mousePos - _previousMousePos;
 
 
+          
+
             viewPosSpheric.azimuthal -= diff.x();
             viewPosSpheric.polar -= diff.y();
 
@@ -226,7 +255,8 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
             _previousMousePos = mousePos;
 
-            break;
+            return true;
+     
         }
     }
     return QObject::eventFilter(target, event);
@@ -246,9 +276,11 @@ void OpenGLRendererWidget::updatePixelRatio()
 }
 
 mv::Vector3f OpenGLRendererWidget::getCamPos() const {
+
     QMatrix4x4 transform = QMatrix4x4();
     transform.setToIdentity();
     transform.scale(viewPosSpheric.distance);
+    transform.rotate(90, 0, -1, 0);
     transform.rotate(viewPosSpheric.azimuthal, 0, 1, 0);
     transform.rotate(viewPosSpheric.polar, 0, 0, 1);
     QVector4D position = transform * QVector4D(0, 1, 0, 1);

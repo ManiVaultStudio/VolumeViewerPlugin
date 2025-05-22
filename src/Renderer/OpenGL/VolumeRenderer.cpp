@@ -8,6 +8,65 @@
 
 //#define CUBE
 
+
+void Cube::create()
+{
+    initializeOpenGLFunctions();
+
+    std::vector<mv::Vector3f> vertices;
+
+    vertices.emplace_back(-0.5f, -0.5f, 0.5f);
+    vertices.emplace_back(0.5f, -0.5f, 0.5f);
+    vertices.emplace_back(-0.5f, 0.5f, 0.5f);
+    vertices.emplace_back(0.5f, 0.5f, 0.5f);
+    vertices.emplace_back(-0.5f, -0.5f, -0.5f);
+    vertices.emplace_back(0.5f, -0.5f, -0.5f);
+    vertices.emplace_back(-0.5f, 0.5f, -0.5f);
+    vertices.emplace_back(0.5f, 0.5f, -0.5f);
+
+    std::vector<mv::Vector3f> normals;
+
+    normals.emplace_back(0, 0, 1);
+    normals.emplace_back(1, 0, 0);
+    normals.emplace_back(0, 0, -1);
+    normals.emplace_back(-1, 0, 0);
+    normals.emplace_back(0, 1, 0);
+    normals.emplace_back(0, -1, 0);
+
+    std::vector<int> indices;
+
+    indices.push_back(0); indices.push_back(1); indices.push_back(2); indices.push_back(2); indices.push_back(1); indices.push_back(3);
+    indices.push_back(1); indices.push_back(5); indices.push_back(3); indices.push_back(3); indices.push_back(5); indices.push_back(7);
+    indices.push_back(5); indices.push_back(4); indices.push_back(7); indices.push_back(7); indices.push_back(4); indices.push_back(6);
+    indices.push_back(4); indices.push_back(0); indices.push_back(6); indices.push_back(6); indices.push_back(0); indices.push_back(2);
+    indices.push_back(2); indices.push_back(3); indices.push_back(6); indices.push_back(6); indices.push_back(3); indices.push_back(7);
+    indices.push_back(5); indices.push_back(4); indices.push_back(1); indices.push_back(1); indices.push_back(4); indices.push_back(0);
+
+    std::vector<mv::Vector3f> aVertices;
+    std::vector<mv::Vector3f> aNormals;
+    for (int i = 0; i < indices.size(); i++)
+    {
+        aVertices.push_back(vertices[indices[i]]);
+        aNormals.push_back(normals[i / 6]);
+    }
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, aVertices.size() * sizeof(mv::Vector3f), aVertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+    glEnableVertexAttribArray(0);
+
+    glGenBuffers(1, &nbo);
+    glBindBuffer(GL_ARRAY_BUFFER, nbo);
+    glBufferData(GL_ARRAY_BUFFER, aNormals.size() * sizeof(mv::Vector3f), aNormals.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
+    glEnableVertexAttribArray(1);
+}
+
+
+
 void VolumeRenderer::setData(std::vector<float>& data)
 {
     glBindVertexArray(vao);
@@ -57,15 +116,28 @@ void VolumeRenderer::setHighlights(std::vector<int>& highlights) {
 void VolumeRenderer::setColormap(const QImage& colormap)
 {
     _colormap.loadFromImage(colormap);
-    cMapSize = colormap.size();
+    //cMapSize = colormap.size();
     qDebug() << "Colormap is set!";
 }
 
-void VolumeRenderer::setCursorPoint(mv::Vector3f cursorPoint)
-{
-    _cursorPoint = cursorPoint;
-    qDebug() << _cursorPoint.x << _cursorPoint.y << _cursorPoint.z;
-}
+void VolumeRenderer::freezeCursor() {
+    _frozenCursorPosition = _modelMatrix * _cursorPosition;
+    cursorFrozen = true;
+};
+
+void VolumeRenderer::unFreezeCursor() {
+    _cursorPosition = _modelMatrix.inverted() * _frozenCursorPosition;
+    cursorFrozen = false;
+};
+
+/**
+* Get cursor position in the coordinate system of the data
+*/
+QVector3D VolumeRenderer::getCursor() const {
+    if (cursorFrozen) return (_modelMatrix.inverted() * _frozenCursorPosition).toVector3D();
+    return _cursorPosition.toVector3D();
+};
+
 
 void VolumeRenderer::reloadShader()
 {
@@ -76,6 +148,7 @@ void VolumeRenderer::reloadShader()
 
 void VolumeRenderer::init()
 {
+    identity.setToIdentity();
     initializeOpenGLFunctions();
     
     glClearColor(40.f / 255.0f, 40.f / 255.0f, 40.f / 255.0f, 1.0f);
@@ -194,7 +267,7 @@ void VolumeRenderer::resize(int w, int h)
     glViewport(0, 0, w, h);
 }
 
-void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspect, QMatrix4x4 modelMatrix)
+void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspect, const bool& live, const QMatrix4x4& modelFrameMatrix)
 {
     glEnable(GL_BLEND);
     glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
@@ -224,13 +297,18 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
     _projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
     _projMatrix.data()[15] = 0;
 
-    _modelMatrix = modelMatrix;
+    _modelMatrix = modelFrameMatrix;
 
+    // Exagerrate translations to move more freely
     _modelMatrix.data()[12] *= 10;
     _modelMatrix.data()[13] *= 10;
     _modelMatrix.data()[14] *= 10;
   
     _pointsShaderProgram.bind();
+    _pointsShaderProgram.uniform1i("distanceEffect", cursorFrozen);
+
+    _pointsShaderProgram.uniform3f("cursor", _frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2]);
+
 
     #ifndef STEREO
         _viewMatrix.setToIdentity();
@@ -240,7 +318,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
         #ifdef CUBE
             drawCube(_pointsShaderProgram);
         #else
-            drawVolume(_pointsShaderProgram);
+            drawVolume(_pointsShaderProgram, live);
         #endif
     #else
         QVector3D viewPoint = QVector3D(camPos.x, camPos.y, camPos.z);
@@ -257,7 +335,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
         #ifdef CUBE
             drawCube(_pointsShaderProgram);
         #else
-            drawVolume(_pointsShaderProgram);
+            drawVolume(_pointsShaderProgram, live);
         #endif
 
 
@@ -268,7 +346,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
         #ifdef CUBE
             drawCube(_pointsShaderProgram);
         #else
-            drawVolume(_pointsShaderProgram);
+            drawVolume(_pointsShaderProgram, live);
         #endif
 
 
@@ -290,19 +368,34 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
 
     #endif
 
-  
+
+   
+
+
     // Draw the cursor
+    mv::Vector3f cursorPosition;
     _pointsShaderProgram.bind();
     _pointsShaderProgram.uniform1i("isCursor", 1);
     glBindVertexArray(_cursorVao);
     glBindBuffer(GL_ARRAY_BUFFER, _cursorVbo);
-    glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &_cursorPoint, GL_STATIC_DRAW);
+    if (cursorFrozen) {
+        cursorPosition = mv::Vector3f(_frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2]);
+        _pointsShaderProgram.uniformMatrix4f("modelMatrix", identity.data());
+        glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &cursorPosition, GL_STATIC_DRAW);
+
+    }
+    else {
+        cursorPosition = mv::Vector3f(_cursorPosition[0], _cursorPosition[1], _cursorPosition[2]);
+        _pointsShaderProgram.uniformMatrix4f("modelMatrix", _modelMatrix.data());
+        glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &cursorPosition, GL_STATIC_DRAW);
+    }
 
     glEnable(GL_POINT_SMOOTH);
-    glPointSize(15);
+    glPointSize(10);
     glDrawArrays(GL_POINTS, 0, 1);
     _pointsShaderProgram.uniform1i("isCursor", 0);
     glDisable(GL_POINT_SMOOTH);
+ 
 
 
 
@@ -352,7 +445,7 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
     glDisable(GL_DEPTH_TEST);
 }
 
-void VolumeRenderer::drawVolume(mv::ShaderProgram& shader)
+void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
 {
     if (_numPoints > 0) {
         GLenum error = glGetError();
@@ -365,17 +458,18 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader)
         glBindVertexArray(vao);
         shader.uniform1i("hasColors", false);
         shader.uniform3f("selectionColor", _selectionColor.redF(), _selectionColor.greenF(), _selectionColor.blueF());
-    
-        /*if (_hasColors )
+        shader.uniform1i("live", live);
+
+        if (_hasColors)
         {
             shader.uniform1i("hasColors", true);
             if (_colormap.isCreated())
             {
                 _colormap.bind(0);
                 shader.uniform1i("colormap", 0);
-                shader.uniform2f("mapSize", cMapSize.width(), cMapSize.height());
+                //shader.uniform2f("mapSize", cMapSize.width(), cMapSize.height());
             }
-        }*/
+        }
 
         glDrawArrays(GL_POINTS, 0, _numPoints);
     

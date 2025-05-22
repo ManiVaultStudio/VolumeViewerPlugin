@@ -17,7 +17,6 @@
 #ifdef CONTROLS
 #include "Controls.h"
 #endif
-#include "Interaction.h"
 
 /**
  * OpenGL Volume Renderer Widget
@@ -28,7 +27,7 @@
 
 struct sphericCoords {
     float distance {1}; // Distance to center
-    float polar { 90 }; // Angle with the vertical in deg
+    float polar { 90 }; // Angle with the vertical in deg. Vertical is Y
     float azimuthal{ 0 }; // Angle or rotation around vertical in deg
 };
 
@@ -47,7 +46,6 @@ public:
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
-    void setCursorPoint(mv::Vector3f cursorPoint);
     void connectToTracker();
     void setEyeOffset(float eyeOffset);
     void setCamDist(float camDist);
@@ -55,7 +53,13 @@ public:
 public:
     bool eventFilter(QObject* target, QEvent* event);
 
+    /**
+    * Returns vector of position of the camera in space, calculated from the spherical coordinates
+    */
+    mv::Vector3f getCamPos() const;
+
 protected:
+
     void initializeGL()         Q_DECL_OVERRIDE;
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
     void paintGL()              Q_DECL_OVERRIDE;
@@ -72,6 +76,7 @@ private slots:
 
 signals:
     void created();
+    void cursorChanged();
 
 private:
     VolumeRenderer _volumeRenderer;
@@ -80,21 +85,19 @@ private:
     #ifdef CONTROLS
         ControlsWidget* _controls;
     #endif
-    Interaction3D* interactionState;
 
-    sphericCoords viewPosSpheric;
-    /**
-    * Returns vector of position of the camera in space, calculated from the spherical coordinates
-    */
-    mv::Vector3f getCamPos() const;
     float _camStartDist = 1.0f;
-
-    QPointF _previousMousePos;
-    bool _mousePressed = false;
 
     bool _isInitialized = false;
 
-    QTimer* _updateTimer;
+    // UI Controls
+    sphericCoords viewPosSpheric;
+    QPointF _previousMousePos;
+    bool _mousePressed = false;
+
+
+
+    QTimer* _updateTimer = nullptr;
 
     float _pixelRatio = 1.0f; /** Current pixel ratio */
 };

@@ -3,6 +3,7 @@
 
 
 #include <thread>
+#include <iostream>
 
 
 
@@ -25,7 +26,8 @@ BOOL WINAPI ConsoleHandler(DWORD CEvent)
 /* End of handler functions */
 
 std::mutex mtx;
-QMatrix4x4 trackerMatrix;
+
+
 
 void MyListener::OnTrackerData(const PSTech::pstsdk::TrackerData& td)
 {
@@ -38,17 +40,21 @@ void MyListener::OnTrackerData(const PSTech::pstsdk::TrackerData& td)
 
         if (td.targetlist[d].id == controlTargetId)
         {
+            // Lock the thread to prevent other threads from modifying the ressource
+            // Unlocked automaically when the mutex goes out of scope
             const std::lock_guard<std::mutex> lock(mtx);
 
-            for (int i = 0; i < 16; i++)
-                trackerMatrix.data()[i] = mat[i];
-            trackerMatrix = trackerMatrix.transposed();
+            pstToQtMatrix(mat, targetMatrix);
+            poseReads = 0;
         }
+
     }
 
-
 }
-
+QMatrix4x4 MyListener::readPose() {
+    poseReads++;
+    return targetMatrix;
+}
 
 
 
@@ -89,6 +95,56 @@ PSTracker::~PSTracker() {
     if (_pst != nullptr) delete _pst;
 }
 
+void PSTracker::checkTrackerStatus() const {
+    qDebug() << "PS Tech system check : ";
+    PSTech::pstsdk::StatusMessage msg = _pst->Systemcheck();
+    switch (msg) {
+    case PSTech::pstsdk::StatusMessage::OK: {
+        qDebug() << "PS Tech system is running OK";
+        return;
+    }
+    case PSTech::pstsdk::StatusMessage::NOT_INITIALIZED: {
+        throw "PS Tech system is NOT_INITIALIZED";
+        break;
+    }
+    case PSTech::pstsdk::StatusMessage::DISCONNECTED: {
+        throw "PS Tech system is DISCONNECTED";
+        break;
+    }
+    case PSTech::pstsdk::StatusMessage::ERR_GENERAL: {
+        throw "PS Tech: Unspecified grabber error ";
+        break;
+    }
+    case PSTech::pstsdk::StatusMessage::ERR_TIMEOUT: {
+        throw "PS Tech : Grabber timeout error";
+        break;
+    }
+    case PSTech::pstsdk::StatusMessage::ERR_NOCAMS_FOUND: {
+        throw "PS Tech : Grabber could not detect any cameras ";
+        break;
+    }
+    case PSTech::pstsdk::StatusMessage::ERR_NOTENOUGHTCAMS_FOUND: {
+        throw "PS Tech : Grabber could not detect sufficient cameras ";
+        break;
+    }
+    case PSTech::pstsdk::StatusMessage::ERR_INITERROR: {
+        throw "PS Tech : Grabber did not initialize correctly ";
+        break;
+    }
+    case PSTech::pstsdk::StatusMessage::ERR_CANNOT_START_CAMS: {
+        throw "PS Tech : Grabber could not start cameras ";
+        break;
+    }
+    case PSTech::pstsdk::StatusMessage::ERR_CANNOT_SETUP_CAMS: {
+        throw "PS Tech : Grabber failed setting up cameras ";
+        break;
+    }
+
+    }
+
+    throw "Unknown issue with the PS Tech";
+}
+
 
 void PSTracker::Connect()
 {
@@ -119,18 +175,32 @@ void PSTracker::Connect()
 
         // Start the tracker server.
         _pst->Start();
-        std::cout << "Put the Reference card in front of the PST in order to see tracking results.\n\n";
-
-
 
         // Perform a system check to see if the tracker server is running OK and print the result.
-        std::cout << "System check: " << (int)_pst->Systemcheck() << "\n";
-        if (_pst->Systemcheck() == PSTech::pstsdk::StatusMessage::OK)
-        {
-            std::cout << "System is running OK." << std::endl;
-        }
+        checkTrackerStatus();
+
+        // Set the reference to match OpenGL's axis. Be careful, PST axis names in the api are not the same as OpenGL's
+        // OpenGL X = PST X (Horizontal)
+        // OpenGL Y = PST Z (Away from the tracker)
+        // OpenGL Z = PST Y (Vertical)
+        PSTech::Utils::PstArray<float, 16> reference{  -1.0f, 0.0f, 0.0f, 0.f,
+                                                       0.0f, 0.0f, 1.0f, 0.f,
+                                                       0.0f, 1.0f, 0.0f, 0.f,
+                                                       0.0f, 0.0f, 0.0f, 1.f };
+        _pst->SetReference(reference);
+
+
+        // Activate filtering to reduce movement jitter due to imprecisions in pstech and hand
+        // osition filter is less strong to improve fine positionning when selecting
+        _pst->EnableTremorFilter();
+        _pst->SetPositionFilter(0.08);
+        _pst->SetOrientationFilter(0.1);
+
+
+
+
         // Set the frame rate to 30 Hz.
-        _pst->SetFramerate(60);
+        _pst->SetFramerate(120);
 
         // Print the new frame rate to see if it was set correctly. Note that for PST HD and Pico
         // trackers the frame rate actually being set can differ from the value provided to SetFramerate().
@@ -147,6 +217,7 @@ void PSTracker::Connect()
 
         if (targets.size() == 0) throw "No active target. Please activate the desired targets in the PST Client app.";
         listener.setControlTarget(targets[0].id);
+        if(targets.size() >= 2) listener.setCursorTarget(targets[1].id);
  
 
 
@@ -167,21 +238,49 @@ void PSTracker::Connect()
 
 float t = 0;
 
-QMatrix4x4 PSTracker::GetTrackerMatrix()
+QMatrix4x4 PSTracker::GetTargetMatrix()
 {
+
     if (_connected)
     {
-        // Read tracker matrix
-        const std::lock_guard<std::mutex> lock(mtx);
+        QMatrix4x4 currPose = listener.readPose();
 
-        return trackerMatrix;
+        // Prepare for interpolation for when tracking goes back live
+        if (!getPoseIsNew()) {
+            oldPos = currPose;
+            lerpStep = 0;
+        }
+
+        // When the tracking goes back live, interpolate between the old and the new position
+        if (lerpStep > -1 && getPoseIsNew()) { // Ready to interpolate and is live
+            if (lerpStep == 0) lerpTransform = currPose - oldPos;
+
+            currPose -= lerpTransform / static_cast<float>(maxLerpSteps) * (maxLerpSteps-lerpStep);
+
+            lerpStep = lerpStep < maxLerpSteps ? lerpStep + 1 : -1; // Reset lerpState when reached max strep
+        }
+        
+        return currPose;
+
     }
     else
     {
         t += 0.1f;
         if (t > 360) t = t - 360;
+        QMatrix4x4 _defaultMatrix;
         _defaultMatrix.setToIdentity();
         _defaultMatrix.rotate(t, 0, 1, 0);
         return _defaultMatrix;
     }
+}
+
+QMatrix4x4 PSTracker::GetReference() const {
+    QMatrix4x4 reference;
+    pstToQtMatrix(_pst->GetReference(), reference);
+    return reference;
+}
+
+
+void PSTracker::setTrackerReference(const QMatrix4x4& matrix, const bool& relative = false) {
+    _pst->SetReference(qtToPstMatrix(matrix), relative);
 }

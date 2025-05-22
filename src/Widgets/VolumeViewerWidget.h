@@ -28,8 +28,10 @@ class VolumeViewerWidget : public QWidget
 public:
     VolumeViewerWidget(QObject* parent, const QString& title);
 
+
     void setData(Dataset<Points> points);
-    void setCursorPoint(mv::Vector3f cursorPoint);
+
+    uint32_t getClosestPoint(const QVector3D& cursor) const;
 
 public:
     OpenGLRendererWidget* getOpenGLWidget()
@@ -39,6 +41,7 @@ public:
 
 
 private:
+
     VolumeViewerPlugin*     _plugin;
 
     OpenGLRendererWidget*   _openGLWidget;

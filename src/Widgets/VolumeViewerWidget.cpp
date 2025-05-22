@@ -6,6 +6,7 @@
 
 #include <QEvent>
 #include <QMouseEvent>
+#include <cmath>
 
 VolumeViewerWidget::VolumeViewerWidget(QObject* parent, const QString& title) :
     _plugin(dynamic_cast<VolumeViewerPlugin*>(parent)),
@@ -69,13 +70,48 @@ void VolumeViewerWidget::setData(Dataset<Points> points)
         //Initial render
         getOpenGLWidget()->update();
 
+        
+
         break;
     }
     }
 }
 
-void VolumeViewerWidget::setCursorPoint(mv::Vector3f cursorPoint)
-{
-    QVector3D normCursorPoint = (QVector3D(cursorPoint.x, cursorPoint.y, cursorPoint.z) - _meanCoord) / _maxRange;
-    _openGLWidget->setCursorPoint(Vector3f(normCursorPoint.x(), normCursorPoint.y(), normCursorPoint.z()));
+uint32_t VolumeViewerWidget::getClosestPoint(const QVector3D& cursor) const {
+
+    auto dataset = _plugin->getDataset();
+    int numDimensions = dataset->getNumDimensions();
+
+    // Get reference to the indices of the selection set
+    std::vector<std::uint32_t> localGlobalIndices;
+    dataset->getGlobalIndices(localGlobalIndices);
+
+    uint32_t indiceMin = 0;
+    float distanceMin = FLT_MAX;
+
+
+    for (std::uint32_t localIndex = 0; localIndex < dataset->getNumPoints(); localIndex++) {
+        float x = dataset->getValueAt(localIndex * numDimensions + 0);
+        float y = dataset->getValueAt(localIndex * numDimensions + 1);
+        float z = dataset->getValueAt(localIndex * numDimensions + 2);
+
+        x = (x - _meanCoord.x()) / _maxRange;
+        y = (y - _meanCoord.y()) / _maxRange;
+        z = (z - _meanCoord.z()) / _maxRange;
+
+
+        const float distance = std::sqrt(std::pow(cursor[0] - x, 2)+ std::pow(cursor[1] - y, 2)+ std::pow(cursor[2] - z, 2));
+
+
+        if (distance < distanceMin)
+        {
+            indiceMin = localIndex;
+            distanceMin = distance;
+        }
+
+        
+    }
+
+
+    return localGlobalIndices[indiceMin];
 }

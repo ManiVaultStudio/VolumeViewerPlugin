@@ -66,7 +66,6 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _dropWidget(nullptr),
     // initiate a vector containing the current state and index of the x,y and z slicingplanes. 0 means no plane initiated, 1,2 or 3 indicate the index+1 of the x,y,z slicingplane in the planeCollection
     _planeArray(std::vector<int>(3, 0)),
-    _position(std::vector<double>(3, 0)),
     // boolian to indicate if data is loaded for selection visualization purposes
     _dataLoaded(false),
     // boolian to indicate if data has been selected in a scatterplot
@@ -374,15 +373,6 @@ void VolumeViewerPlugin::init()
                 _dataSelected = false;
             }
 
-            if (selectionSet->indices.size() == 1)
-            {
-                int selectedPoint = selectionSet->indices[0];
-
-                float x = _points->getValueAt(_points->getNumDimensions() * selectedPoint + 0);
-                float y = _points->getValueAt(_points->getNumDimensions() * selectedPoint + 1);
-                float z = _points->getValueAt(_points->getNumDimensions() * selectedPoint + 2);
-                _volumeViewerWidget->setCursorPoint(Vector3f(x, y, z));
-            }
 
 
             std::vector<int> indices;
@@ -412,6 +402,25 @@ void VolumeViewerPlugin::init()
             }
         }
     });// Selection changed connection.
+
+    connect(&getOpenGLRendererWidget(), &OpenGLRendererWidget::cursorChanged, this, [this]() {
+     
+        // Perform selection of closest point
+        const QVector3D cursor = getVolumeRenderer().getCursor();
+
+        if (_points.isValid()) {
+
+            uint32_t minIndex = _volumeViewerWidget->getClosestPoint(cursor);
+
+
+            std::vector<std::uint32_t> targetSelectionIndices = { minIndex };
+            _points->setSelectionIndices(targetSelectionIndices);
+            events().notifyDatasetDataSelectionChanged(_points->getSourceDataset<Points>());
+
+
+        }
+     
+    });
 
 }
 
@@ -584,12 +593,6 @@ mv::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActions
     return pluginTriggerActions;
 }
 
-void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {
-    _position[0] = x;
-    _position[1] = y;
-    _position[2] = z;
-
-}
 
 /******************************************************************************
  * Serialization
@@ -624,3 +627,6 @@ void VolumeViewerPlugin::highlightSelection(const std::vector<bool>& highlights,
 
     _volumeViewerWidget->getOpenGLWidget()->getVolumeRenderer().setHighlights(intHighlights);
 }
+
+
+
