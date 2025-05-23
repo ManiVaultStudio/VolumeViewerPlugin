@@ -10,6 +10,7 @@
 #include <QMatrix4x4>
 #include <iostream>
 #include <mutex>
+#include <QElapsedTimer>
 
 
 #include "pstsdk_cpp.h"
@@ -49,23 +50,46 @@ static PSTech::Utils::PstArray<float, 16> qtToPstMatrix(QMatrix4x4 inMatrix) {
 
 
 
+
+
+
+
+
+
+
+
 class MyListener : public PSTech::pstsdk::Listener
 {
     QMatrix4x4 targetMatrix;
     int controlTargetId = -1;
     int cursorTargetId = -1;
-    /** Number of times this exact pose has been read */
-    int poseReads = 0;
-    /** Maximum number of times the pose is read before being considered "not live" */
-    const int poseIsOldThreshold = 5;
+
+    /** Time elapsed since last pose */
+    QElapsedTimer timer;
+    /** Maximum amount of time for the last pose to be considered "not current", in milliseconds */
+    const qint64 poseIsOldThreshold = 200;
+
     virtual void OnTrackerData(const PSTech::pstsdk::TrackerData& td);
 public:
+    bool poseIsLive() const;
 
-    bool getPoseIsNew() const { return poseReads < poseIsOldThreshold; };
-    QMatrix4x4 readPose();
+    QMatrix4x4 getTragetMatrix() const;
     void setControlTarget(const int& id) { controlTargetId = id; }
     void setCursorTarget(const int& id) { cursorTargetId = id; }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class PSTracker
 {
@@ -77,12 +101,12 @@ public:
     QMatrix4x4 GetTargetMatrix();
     QMatrix4x4 GetReference() const;
 
-    void checkTrackerStatus() const;
+    void checkTrackerStatus();
     void setTrackerReference(const QMatrix4x4& matrix, const bool& relative);
 
-    bool getPoseIsNew() const {
-        return listener.getPoseIsNew();
-    };
+    bool poseIsLive() const { return poseAcurate && listener.poseIsLive(); }
+
+    bool getTrackerConnected() const;
 
 
 private:
@@ -91,11 +115,14 @@ private:
     MyListener listener;
     PSTech::pstsdk::Tracker* _pst;
 
-    int lerpStep = -1;
-    int maxLerpSteps = 10;
-
-    QMatrix4x4 lerpTransform;
-    QMatrix4x4 oldPos;
-
     bool _connected = false;
+
+    /** Timing of the animation after there has been a tracking lost */
+    QElapsedTimer lerpTimer;
+    /** Time to animate the target between the last live position to the new one, after there has been a tracking lost */
+    const qint64 lerpDuraton = 300;
+    bool poseAcurate = true;
+
+    QMatrix4x4 lerpTrajectory;
+    QMatrix4x4 oldPos;
 };

@@ -40,21 +40,26 @@ void MyListener::OnTrackerData(const PSTech::pstsdk::TrackerData& td)
 
         if (td.targetlist[d].id == controlTargetId)
         {
+            if (timer.isValid()) timer.restart();
+            else timer.start();
+
             // Lock the thread to prevent other threads from modifying the ressource
             // Unlocked automaically when the mutex goes out of scope
             const std::lock_guard<std::mutex> lock(mtx);
 
             pstToQtMatrix(mat, targetMatrix);
-            poseReads = 0;
         }
 
     }
 
 }
-QMatrix4x4 MyListener::readPose() {
-    poseReads++;
+QMatrix4x4 MyListener::getTragetMatrix() const {
     return targetMatrix;
 }
+
+bool MyListener::poseIsLive() const {
+    return timer.isValid() ? timer.elapsed() < poseIsOldThreshold : false;
+};
 
 
 
@@ -95,12 +100,13 @@ PSTracker::~PSTracker() {
     if (_pst != nullptr) delete _pst;
 }
 
-void PSTracker::checkTrackerStatus() const {
+void PSTracker::checkTrackerStatus() {
     qDebug() << "PS Tech system check : ";
     PSTech::pstsdk::StatusMessage msg = _pst->Systemcheck();
     switch (msg) {
     case PSTech::pstsdk::StatusMessage::OK: {
         qDebug() << "PS Tech system is running OK";
+        _connected = true;
         return;
     }
     case PSTech::pstsdk::StatusMessage::NOT_INITIALIZED: {
@@ -142,8 +148,14 @@ void PSTracker::checkTrackerStatus() const {
 
     }
 
+    _connected = false;
+
     throw "Unknown issue with the PS Tech";
 }
+
+bool PSTracker::getTrackerConnected() const {
+    return _connected;
+};
 
 
 void PSTracker::Connect()
@@ -232,7 +244,7 @@ void PSTracker::Connect()
         throw e;
         //return;
     }
-    _connected = true;
+    
     qDebug() << "Connected to tracker!";
 }
 
@@ -243,21 +255,29 @@ QMatrix4x4 PSTracker::GetTargetMatrix()
 
     if (_connected)
     {
-        QMatrix4x4 currPose = listener.readPose();
+        QMatrix4x4 currPose = listener.getTragetMatrix();
 
         // Prepare for interpolation for when tracking goes back live
-        if (!getPoseIsNew()) {
+        if (!listener.poseIsLive()) {
             oldPos = currPose;
-            lerpStep = 0;
+            lerpTimer.invalidate();
+            poseAcurate = false;
         }
 
         // When the tracking goes back live, interpolate between the old and the new position
-        if (lerpStep > -1 && getPoseIsNew()) { // Ready to interpolate and is live
-            if (lerpStep == 0) lerpTransform = currPose - oldPos;
+        if (!poseAcurate && listener.poseIsLive()) { // Is live and ready to interpolate
+            if (!lerpTimer.isValid()) {
+                lerpTrajectory = currPose - oldPos;
+                lerpTimer.start();
+            }
 
-            currPose -= lerpTransform / static_cast<float>(maxLerpSteps) * (maxLerpSteps-lerpStep);
-
-            lerpStep = lerpStep < maxLerpSteps ? lerpStep + 1 : -1; // Reset lerpState when reached max strep
+            if (lerpTimer.hasExpired(lerpDuraton)) {
+                lerpTimer.invalidate();
+                poseAcurate = true;
+            }
+            else {
+                currPose -= lerpTrajectory / static_cast<float>(lerpDuraton) * (lerpDuraton - lerpTimer.elapsed());
+            }
         }
         
         return currPose;

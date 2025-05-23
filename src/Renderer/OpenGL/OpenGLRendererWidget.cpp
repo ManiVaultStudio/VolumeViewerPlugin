@@ -46,6 +46,7 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
 
     #endif
 
+    refWidget = new ReferenceSetupWidget(this, &_tracker);
 
     
 }
@@ -140,7 +141,7 @@ void OpenGLRendererWidget::paintGL()
     #ifdef CONTROLS
     _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.getPoseIsNew(), _controls->getControlMatrix());
     #else
-        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.getPoseIsNew(), _tracker.GetTargetMatrix());
+        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.poseIsLive(), _tracker.GetTargetMatrix());
     #endif
 }
 
@@ -164,11 +165,18 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
             QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
             int key = keyEvent->key();
             if (key == 'F') {
-                if (keyEvent->isAutoRepeat()) return false;
-                _volumeRenderer.freezeCursor();
+                if (!keyEvent->isAutoRepeat())
+                    _volumeRenderer.freezeCursor();
 
                 return true;
                 
+            }
+
+            if (key == 'S') {
+                if (!keyEvent->isAutoRepeat())
+                    refWidget->show();
+
+                return true;
             }
       
             break;
@@ -178,19 +186,23 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
             QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
             int key = keyEvent->key();
             if (key == 'F') {
-                if (keyEvent->isAutoRepeat()) return false;
-                _volumeRenderer.unFreezeCursor();
-                // Selection of closest point performed in parent widget
-                emit cursorChanged();
+                if (!keyEvent->isAutoRepeat())
+                {
+                    _volumeRenderer.unFreezeCursor();
+                    // Selection of closest point performed in parent widget
+                    emit cursorChanged();
+                }
 
                 return true;
             }
             
-            makeCurrent();
             if (key == 'R') {
-                if (keyEvent->isAutoRepeat()) return false;
-                _volumeRenderer.reloadShader();
-                qDebug() << "Shaders reloaded";
+                if (!keyEvent->isAutoRepeat())
+                {
+                    makeCurrent();
+                    _volumeRenderer.reloadShader();
+                    qDebug() << "Shaders reloaded";
+                }
 
                 return true;
             }

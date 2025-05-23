@@ -18,6 +18,8 @@
 #include "Controls.h"
 #endif
 
+#include "ReferenceSetup.h"
+
 /**
  * OpenGL Volume Renderer Widget
  * This class provides a widget interface to the OpenGL Volume Renderer
@@ -85,6 +87,10 @@ private:
     #ifdef CONTROLS
         ControlsWidget* _controls;
     #endif
+
+    
+    ReferenceSetupWidget* refWidget = nullptr;
+
 
     float _camStartDist = 1.0f;
 
