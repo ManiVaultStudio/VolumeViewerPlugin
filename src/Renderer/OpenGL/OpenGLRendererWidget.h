@@ -12,7 +12,7 @@
 #include <vector>
 
 #include <QTimer>
-#define CONTROLS
+//#define CONTROLS
 
 #ifdef CONTROLS
 #include "Controls.h"

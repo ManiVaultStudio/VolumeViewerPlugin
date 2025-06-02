@@ -24,6 +24,8 @@ ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PSTracker* trackerPt
 
 void ReferenceSetupWidget::createUI() {
 
+    QVBoxLayout* vLayout = new QVBoxLayout(this);
+
     illustrations.push_back(QIcon(":images/Still.svg").pixmap(QSize(300, 300)));
     illustrations.push_back(QIcon(":images/Forward.svg").pixmap(QSize(300, 300)));
     illustrations.push_back(QIcon(":images/Up.svg").pixmap(QSize(300, 300)));
@@ -36,17 +38,20 @@ void ReferenceSetupWidget::createUI() {
     imageLabel->setLayoutDirection(Qt::LayoutDirection::LeftToRight);
     imageLabel->setAlignment(Qt::AlignmentFlag::AlignHCenter | Qt::AlignmentFlag::AlignBottom);
 
+    imageLabel->setPixmap(illustrations[0]);
+    vLayout->addWidget(imageLabel);
 
-    QVBoxLayout* layout = new QVBoxLayout(this);
-    setLayout(layout);
 
 
-    QVBoxLayout* layout = new QVBoxLayout(this);
-    setLayout(layout);
+
 
     instructions = new QLabel(this);
     instructions->setWordWrap(true);
-    layout->addWidget(instructions);
+
+    instructions->setLayoutDirection(Qt::LayoutDirection::LeftToRight);
+    instructions->setAlignment(Qt::AlignmentFlag::AlignTop | Qt::AlignmentFlag::AlignHCenter);
+
+    vLayout->addWidget(instructions);
 
 
     errors = new QLabel(this);
@@ -57,21 +62,13 @@ void ReferenceSetupWidget::createUI() {
     brush.setStyle(Qt::SolidPattern);
     palette.setBrush(QPalette::Active, QPalette::WindowText, brush);
     palette.setBrush(QPalette::Inactive, QPalette::WindowText, brush);
-
     errors->setPalette(palette);
-
-    layout->addWidget(errors);
 
     errors->hide();
 
-
-    instructions->setLayoutDirection(Qt::LayoutDirection::LeftToRight);
-    instructions->setAlignment(Qt::AlignmentFlag::AlignTop | Qt::AlignmentFlag::AlignHCenter);
+    vLayout->addWidget(errors);
 
 
-    QVBoxLayout* vLayout = new QVBoxLayout(this);
-    vLayout->addWidget(imageLabel);
-    vLayout->addWidget(instructions);
 
     setLayout(vLayout);
 }
