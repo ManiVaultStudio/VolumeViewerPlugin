@@ -10,7 +10,8 @@
         <file>images/Still.svg</file>
         <file>images/Up.svg</file>
         <file>images/Forward.svg</file>
-        <file>images/test Anim Still.sifz.9924C651.json</file>
+        <file>images/Connect.svg</file>
+        <file>images/Valid.svg</file>
         <!--<file>matrix/refMatrix.txt</file>-->
     </qresource>
 </RCC>
