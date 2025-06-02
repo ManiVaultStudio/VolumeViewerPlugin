@@ -7,12 +7,16 @@
 #include <QInputEvent>
 #include <optional>
 
+
+
 enum calibState {
     Idle,
+    Stopped, // Needs to restart with R to scan
     Origin,
     Forwards,
     Up
 };
+
 
 class ReferenceSetupWidget : public QWidget {
     Q_OBJECT
@@ -23,17 +27,16 @@ public:
 
     void show();
 
-    void resetMeasures();
+    void resetState();
     
     bool eventFilter(QObject* target, QEvent* event);
     void continueCalib();
     void startMeasurement();
     void stopMeasurement();
-    /*bool isSetup() {
-        return origin != nullptr && forwards != nullptr && up != nullptr;
-    }*/
+
 private:
     QLabel* instructions;
+    QLabel* errors;
     PSTracker* tracker;
 
     std::optional<QVector3D>  bufferVector;
@@ -44,3 +47,4 @@ private:
     std::optional<QVector3D> forwards;
     std::optional<QVector3D> up;
 };
+
