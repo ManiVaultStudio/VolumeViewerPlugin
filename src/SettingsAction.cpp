@@ -11,6 +11,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _plugin(dynamic_cast<VolumeViewerPlugin*>(parent)),
     _renderSettingsAction(this, title),
     _pickRendererAction(this, "Pick Renderer Action"),
+    _selectModeAction(this, "Select Mode Action"),
     _positionDatasetPickerAction(this, "Position"),
     _colorDatasetPickerAction(this, "ColorPoints"),
     _focusSelectionAction(this, "Focus Selection"),
@@ -18,6 +19,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
     _connectToTrackerAction(this, "Connect Tracker"),
+    _startCalibAction(this, "Calibrate tracker"),
     _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.03, 3),
     _camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
     _flipInterlacingAction(this, "Flip interface", false),
@@ -30,6 +32,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _renderSettingsAction.setGroupActions(groupActions);
 
     _pickRendererAction.initialize(_plugin);
+    _selectModeAction.initialize(_plugin);
 
     //connect(&_positionDatasetPickerAction, &DatasetPickerAction::datasetPicked, [this](Dataset<DatasetImpl> pickedDataset) -> void {
     //    _plugin->getDataset() = pickedDataset;
@@ -65,6 +68,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_connectToTrackerAction, &TriggerAction::triggered, this, [this]() { _plugin->connectToTracker(); });
 
+    connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget().openCalib(); });
+
     connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setEyeOffset(value); });
 
     connect(&_camDistAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setCamDist(value); });
@@ -87,6 +92,7 @@ void SettingsAction::fromVariantMap(const QVariantMap& variantMap)
     WidgetAction::fromVariantMap(variantMap);
 
     _pickRendererAction.fromParentVariantMap(variantMap);
+    //_selectModeAction.fromParentVariantMap(variantMap);
 
     _positionDatasetPickerAction.fromParentVariantMap(variantMap);
     _colorDatasetPickerAction.fromParentVariantMap(variantMap);
@@ -110,7 +116,7 @@ QVariantMap SettingsAction::toVariantMap() const
 {
     QVariantMap variantMap = WidgetAction::toVariantMap();
 
-    _pickRendererAction.insertIntoVariantMap(variantMap);
+    _selectModeAction.insertIntoVariantMap(variantMap);
 
     _positionDatasetPickerAction.insertIntoVariantMap(variantMap);
     _colorDatasetPickerAction.insertIntoVariantMap(variantMap);

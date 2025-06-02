@@ -6,6 +6,13 @@
 #include <QLabel>
 #include <QInputEvent>
 #include <optional>
+#include <string>
+
+#include <iostream>
+#include <fstream>
+#include <filesystem>
+
+#include <vector>
 
 
 
@@ -42,9 +49,18 @@ private:
     std::optional<QVector3D>  bufferVector;
     calibState state = calibState::Idle;
 
+    std::vector<QPixmap> illustrations;
+    QLabel* imageLabel;
+
     // Measurements to define the next reference matrix
     std::optional<QVector3D> origin;
     std::optional<QVector3D> forwards;
     std::optional<QVector3D> up;
-};
 
+    std::string fileLoc = ":matrix/refMatrix.txt";
+
+    void createUI();
+
+    void saveReference() const;
+    void setStoredReference() const;
+};

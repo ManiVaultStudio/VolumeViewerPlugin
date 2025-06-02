@@ -95,6 +95,12 @@ void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
     _volumeRenderer.setEyeOffset(eyeOffset);
 }
 
+
+void OpenGLRendererWidget::setSelectionMode(const int32_t& mode) { 
+    selectionMode = static_cast<SelectionMode>(mode); 
+    _volumeRenderer.setSelectionMode(mode);
+}
+
 void OpenGLRendererWidget::setCamDist(float camDist)
 {
     //Reinitialise position and set correct distance
@@ -138,8 +144,24 @@ void OpenGLRendererWidget::paintGL()
 
     float aspect = (float)w / h;
 
+
+    if (_selecting) {
+        emit newSelection(selectionMode, selectionReplaces);
+    }
+
     #ifdef CONTROLS
-    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.getPoseIsNew(), _controls->getControlMatrix());
+    if (_controls->getCursorFrozen()) {
+        if (!_volumeRenderer.getCursorFrozen()) {
+            _volumeRenderer.freezeCursor();
+        }
+    }
+    else
+    { 
+        if (_volumeRenderer.getCursorFrozen()) {
+            _volumeRenderer.unFreezeCursor();
+        }
+    }
+    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, true, _controls->getControlMatrix());
     #else
         _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.poseIsLive(), _tracker.GetTargetMatrix());
     #endif
@@ -163,20 +185,34 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
         case QEvent::KeyPress:
         {
             QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-            int key = keyEvent->key();
-            if (key == 'F') {
-                if (!keyEvent->isAutoRepeat())
-                    _volumeRenderer.freezeCursor();
+            switch (keyEvent->key()) {
+                case Qt::Key_F: {
+                    if (!keyEvent->isAutoRepeat())
+                        _volumeRenderer.freezeCursor();
 
-                return true;
-                
-            }
+                    return true;
 
-            if (key == 'S') {
-                if (!keyEvent->isAutoRepeat())
-                    refWidget->show();
+                }
 
-                return true;
+                case Qt::Key_Space: {
+                    if (!keyEvent->isAutoRepeat())
+                        _selecting = true;
+                        emit newSelection(selectionMode, selectionReplaces);
+
+                    return true;
+
+                }
+
+
+                case Qt::Key_Shift: { // SHIFT (L and R)
+                    if (!keyEvent->isAutoRepeat())
+                        selectionReplaces = false;
+
+                    return true;
+
+                }
+
+
             }
       
             break;
@@ -184,27 +220,41 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
         case QEvent::KeyRelease:
         {
             QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
-            int key = keyEvent->key();
-            if (key == 'F') {
-                if (!keyEvent->isAutoRepeat())
+            switch (keyEvent->key()) {
+                case Qt::Key_F:
                 {
-                    _volumeRenderer.unFreezeCursor();
-                    // Selection of closest point performed in parent widget
-                    emit cursorChanged();
+                    if (!keyEvent->isAutoRepeat())
+                        _volumeRenderer.unFreezeCursor();
+                    
+                    return true;
                 }
 
-                return true;
-            }
-            
-            if (key == 'R') {
-                if (!keyEvent->isAutoRepeat())
-                {
-                    makeCurrent();
-                    _volumeRenderer.reloadShader();
-                    qDebug() << "Shaders reloaded";
+                case Qt::Key_Space: {
+                    if (!keyEvent->isAutoRepeat())
+                        _selecting = false;
+
+                    return true;
+
                 }
 
-                return true;
+                case Qt::Key_Shift: { // SHIFT (L and R)
+                    if (!keyEvent->isAutoRepeat())
+                        selectionReplaces = true;
+
+                    return true;
+
+                }
+
+                case Qt::Key_R: {
+                    if (!keyEvent->isAutoRepeat())
+                    {
+                        makeCurrent();
+                        _volumeRenderer.reloadShader();
+                        qDebug() << "Shaders reloaded";
+                    }
+
+                    return true;
+                }
             }
             
             break;
@@ -227,16 +277,20 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
             QPoint numPixels = wheelEvent->pixelDelta();
             QPoint numDegrees = wheelEvent->angleDelta() / 8;
-            float scaling = 0;
+            float distance = 0.f;
             if (!numPixels.isNull()) {
-                scaling = numPixels.y();
+                distance = numPixels.y();
             }
             else if (!numDegrees.isNull()) {
-                scaling = numDegrees.y() / 15.f;
+                distance = numDegrees.y() / 15.f;
+            }
+
+            if (_volumeRenderer.getCursorFrozen() && selectionMode == SelectionMode::Sphere) {
+                _volumeRenderer.incrementSelectRadius(distance/100.f);
+                return true;
             }
             
-
-            scaling = pow(2, -scaling / 5.f);
+            float scaling = pow(2, -distance / 5.f);
 
             viewPosSpheric.distance *= scaling;
 

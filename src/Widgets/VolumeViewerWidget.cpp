@@ -115,3 +115,39 @@ uint32_t VolumeViewerWidget::getClosestPoint(const QVector3D& cursor) const {
 
     return localGlobalIndices[indiceMin];
 }
+
+std::vector<uint32_t> VolumeViewerWidget::getPointsInSphere(const QVector3D& cursor, const float& radius) const {
+    std::vector<std::uint32_t> result;
+
+    auto dataset = _plugin->getDataset();
+    int numDimensions = dataset->getNumDimensions();
+
+    // Get reference to the indices of the selection set
+    std::vector<std::uint32_t> localGlobalIndices;
+    dataset->getGlobalIndices(localGlobalIndices);
+
+
+    for (std::uint32_t localIndex = 0; localIndex < dataset->getNumPoints(); localIndex++) {
+        float x = dataset->getValueAt(localIndex * numDimensions + 0);
+        float y = dataset->getValueAt(localIndex * numDimensions + 1);
+        float z = dataset->getValueAt(localIndex * numDimensions + 2);
+
+        x = (x - _meanCoord.x()) / _maxRange;
+        y = (y - _meanCoord.y()) / _maxRange;
+        z = (z - _meanCoord.z()) / _maxRange;
+
+
+        const float distance = std::sqrt(std::pow(cursor[0] - x, 2) + std::pow(cursor[1] - y, 2) + std::pow(cursor[2] - z, 2));
+
+
+        if (distance < radius)
+        {
+            result.push_back(localGlobalIndices[localIndex]);
+        }
+
+
+    }
+
+
+    return result;
+}

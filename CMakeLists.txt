@@ -20,7 +20,7 @@ endif(MSVC)
 # Check if the directory to the ManiVault installation has been provided
 if(NOT DEFINED PS_TECH_INSTALL_DIR)
     set(PS_TECH_INSTALL_DIR "" CACHE PATH "Directory where PSTech is installed")
-    message(FATAL_ERROR "Please set PS_TECH_INSTALL_DIR to the directory where ManiVault is installed")
+    message(FATAL_ERROR "Please set PS_TECH_INSTALL_DIR to the directory where the PS tech SDK is installed")
 endif()
 file(TO_CMAKE_PATH ${PS_TECH_INSTALL_DIR} PS_TECH_INSTALL_DIR)
 
@@ -63,8 +63,8 @@ set(RENDERERS
 )
 
 set(ACTIONS
-    src/ColoringAction.h
-    src/ColoringAction.cpp
+    src/Actions/ColoringAction.h
+    src/Actions/ColoringAction.cpp
     src/DimensionAction.h
     src/DimensionAction.cpp
     src/PositionAction.h
@@ -81,6 +81,8 @@ set(ACTIONS
     src/ThresholdAction.cpp
     src/Actions/PickRendererAction.h
     src/Actions/PickRendererAction.cpp
+    src/Actions/SelectModeAction.h
+    src/Actions/SelectModeAction.cpp
 )
 
 set(WIDGETS

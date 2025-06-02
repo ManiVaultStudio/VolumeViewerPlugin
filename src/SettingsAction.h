@@ -2,6 +2,7 @@
 
 #include "RendererSettingsAction.h"
 #include "Actions/PickRendererAction.h"
+#include "Actions/SelectModeAction.h"
 #include "actions/DatasetPickerAction.h"
 
 #include <actions/GroupAction.h>
@@ -53,11 +54,13 @@ public: // Action getters
 
     RendererSettingsAction& getRendererSettingsAction() { return _renderSettingsAction; }
     PickRendererAction& getPickRendererAction() { return _pickRendererAction; }
+    SelectModeAction& getSelectModeAction() { return _selectModeAction; }
     ToggleAction& getFocusSelectionAction() { return _focusSelectionAction; }
     ToggleAction& getFocusFloodfillAction() { return _focusFloodfillAction; }
     ToggleAction& getFocusSelectionNormAction() { return _focusSelectionNormAction; }
     ToggleAction& getFocusFloodfillNormAction() { return _focusFloodfillNormAction; }
     TriggerAction& getConnectToTrackerAction() { return _connectToTrackerAction; }
+    TriggerAction& getStartCalibAction() { return _startCalibAction; }
     DecimalAction& getEyeOffsetAction() { return _eyeOffsetAction; }
     DecimalAction& getCamDistAction() { return _camDistAction; }
     ToggleAction& getFlipInterlacingAction() { return _flipInterlacingAction; }
@@ -67,6 +70,7 @@ protected:
     VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
     RendererSettingsAction  _renderSettingsAction;
     PickRendererAction      _pickRendererAction;
+    SelectModeAction        _selectModeAction;
     DatasetPickerAction     _positionDatasetPickerAction;
     DatasetPickerAction     _colorDatasetPickerAction;
     ToggleAction            _focusSelectionAction;
@@ -74,6 +78,7 @@ protected:
     ToggleAction            _focusSelectionNormAction;
     ToggleAction            _focusFloodfillNormAction;
     TriggerAction           _connectToTrackerAction;
+    TriggerAction           _startCalibAction;
     DecimalAction           _eyeOffsetAction;
     DecimalAction           _camDistAction;
     ToggleAction            _flipInterlacingAction;

@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QMimeData>
 #include <QLayout>
+#include <unordered_set>
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
 #include <widgets/DropWidget.h>
@@ -95,15 +96,17 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
 
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getStartCalibAction());
+    /*_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());*/
     _secondaryToolbarAction.addAction(&_settingsAction->getConnectToTrackerAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getEyeOffsetAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getCamDistAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getFlipInterlacingAction());
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFlipInterlacingAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getSelectionColorPicker());
+    _secondaryToolbarAction.addAction(&_settingsAction->getSelectModeAction());
 
     getVolumeRenderer().setSelectionColor(_settingsAction->getSelectionColorPicker().getColor());
 }
@@ -403,23 +406,41 @@ void VolumeViewerPlugin::init()
         }
     });// Selection changed connection.
 
-    connect(&getOpenGLRendererWidget(), &OpenGLRendererWidget::cursorChanged, this, [this]() {
-     
+
+    connect(&getOpenGLRendererWidget(), &OpenGLRendererWidget::newSelection, this, [this](const SelectionMode& type, const bool& replace) {
         // Perform selection of closest point
         const QVector3D cursor = getVolumeRenderer().getCursor();
-
         if (_points.isValid()) {
+            std::vector<uint32_t> selection;
 
-            uint32_t minIndex = _volumeViewerWidget->getClosestPoint(cursor);
+            switch (type) {
+            case SelectionMode::Nearest: {
+                selection.push_back(_volumeViewerWidget->getClosestPoint(cursor));
+                break;
+            }
+            case SelectionMode::Sphere: {
+                selection = _volumeViewerWidget->getPointsInSphere(cursor, getVolumeRenderer().getSelectRadius());
+                
+                break;
+            }
+            }
 
+            // If shift is down, we add to the new selection the previous selected points
+            if (!replace) {
+                std::vector<uint32_t> previousSelection = _points->getSelectionIndices();
+                // Concatenate the old selection to the new
+                selection.insert(selection.end(), previousSelection.begin(), previousSelection.end());
+                // Remove duplicates with an efficient method : Convert to unordered_set manually
+                std::unordered_set<int> s;
+                for (int i : selection)
+                    s.insert(i);
+                selection.assign(s.begin(), s.end());
+                std::sort(selection.begin(), selection.end());
+            }
 
-            std::vector<std::uint32_t> targetSelectionIndices = { minIndex };
-            _points->setSelectionIndices(targetSelectionIndices);
+            _points->setSelectionIndices(selection);
             events().notifyDatasetDataSelectionChanged(_points->getSourceDataset<Points>());
-
-
         }
-     
     });
 
 }

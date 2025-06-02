@@ -7,5 +7,10 @@
         <file>shaders/StereoMerge.frag</file>
         <file>shaders/CubeDraw.vert</file>
         <file>shaders/CubeDraw.frag</file>
+        <file>images/Still.svg</file>
+        <file>images/Up.svg</file>
+        <file>images/Forward.svg</file>
+        <file>images/test Anim Still.sifz.9924C651.json</file>
+        <!--<file>matrix/refMatrix.txt</file>-->
     </qresource>
 </RCC>

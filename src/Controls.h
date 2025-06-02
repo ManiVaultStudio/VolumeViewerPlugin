@@ -2,6 +2,7 @@
 
 #include <QWidget>
 #include <QLabel>
+#include <QCheckBox>
 #include <QMatrix4x4>
 
 
@@ -17,12 +18,16 @@ public:
     void rotateX(const float& amount);
     void rotateY(const float& amount);
     void setImageColorMap(const QImage& image);
+    bool getCursorFrozen() const;
+
+    bool eventFilter(QObject* target, QEvent* event);
 	
 private:
     QLabel* labels[16];
     int values[6];
     QMatrix4x4 transformation; // Matrix of reference of the tracked object
     QLabel* imageColorMap;
+    QCheckBox* freezeBox;
 
 signals:
     void valuesChanged();

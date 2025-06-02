@@ -42,6 +42,7 @@ namespace mv {
     }
 }
 
+
 /**
  * 3D viewer plugin class
  * This mv view plugin class provides functionality to view high-dimensional Points Data loaded by the HDVOL loader plugin

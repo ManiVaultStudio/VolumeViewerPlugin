@@ -121,13 +121,17 @@ void VolumeRenderer::setColormap(const QImage& colormap)
 }
 
 void VolumeRenderer::freezeCursor() {
-    _frozenCursorPosition = _modelMatrix * _cursorPosition;
-    cursorFrozen = true;
+    if (!cursorFrozen) {
+        _frozenCursorPosition = _modelMatrix * _cursorPosition;
+        cursorFrozen = true;
+    }
 };
 
 void VolumeRenderer::unFreezeCursor() {
-    _cursorPosition = _modelMatrix.inverted() * _frozenCursorPosition;
-    cursorFrozen = false;
+    if (cursorFrozen) {
+        _cursorPosition = _modelMatrix.inverted() * _frozenCursorPosition;
+        cursorFrozen = false;
+    }
 };
 
 /**
@@ -137,6 +141,12 @@ QVector3D VolumeRenderer::getCursor() const {
     if (cursorFrozen) return (_modelMatrix.inverted() * _frozenCursorPosition).toVector3D();
     return _cursorPosition.toVector3D();
 };
+
+void VolumeRenderer::incrementSelectRadius(const float& increment) 
+{ 
+    sphereSelectRadius += increment; 
+    sphereSelectRadius = std::max(sphereSelectRadius, 0.0f);
+}
 
 
 void VolumeRenderer::reloadShader()
@@ -269,6 +279,7 @@ void VolumeRenderer::resize(int w, int h)
 
 void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspect, const bool& live, const QMatrix4x4& modelFrameMatrix)
 {
+
     glEnable(GL_BLEND);
     glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
@@ -305,7 +316,6 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
     _modelMatrix.data()[14] *= 10;
   
     _pointsShaderProgram.bind();
-    _pointsShaderProgram.uniform1i("distanceEffect", cursorFrozen);
 
     _pointsShaderProgram.uniform3f("cursor", _frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2]);
 
@@ -456,9 +466,13 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
     
         glPointSize(3);
         glBindVertexArray(vao);
+
+        shader.uniform1i("selecting", cursorFrozen);
         shader.uniform1i("hasColors", false);
         shader.uniform3f("selectionColor", _selectionColor.redF(), _selectionColor.greenF(), _selectionColor.blueF());
         shader.uniform1i("live", live);
+        shader.uniform1i("selectMode", selectionMode);
+        shader.uniform1f("selectRadius", sphereSelectRadius);
 
         if (_hasColors)
         {
@@ -467,7 +481,6 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
             {
                 _colormap.bind(0);
                 shader.uniform1i("colormap", 0);
-                //shader.uniform2f("mapSize", cMapSize.width(), cMapSize.height());
             }
         }
 
