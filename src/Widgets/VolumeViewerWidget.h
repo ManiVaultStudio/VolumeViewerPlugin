@@ -32,6 +32,7 @@ public:
     void setData(Dataset<Points> points);
 
     uint32_t getClosestPoint(const QVector3D& cursor) const;
+    std::vector<uint32_t> getPointsInSphere(const QVector3D& cursor, const float& radius) const;
 
 public:
     OpenGLRendererWidget* getOpenGLWidget()

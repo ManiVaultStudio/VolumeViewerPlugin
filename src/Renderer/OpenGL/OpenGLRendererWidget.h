@@ -12,7 +12,7 @@
 #include <vector>
 
 #include <QTimer>
-//#define CONTROLS
+#define CONTROLS
 
 #ifdef CONTROLS
 #include "Controls.h"
@@ -33,6 +33,11 @@ struct sphericCoords {
     float azimuthal{ 0 }; // Angle or rotation around vertical in deg
 };
 
+enum class SelectionMode {
+    Nearest, Sphere
+};
+
+
 class OpenGLRendererWidget : public QOpenGLWidget, QOpenGLFunctions_4_2_Core
 {
     Q_OBJECT
@@ -51,6 +56,8 @@ public:
     void connectToTracker();
     void setEyeOffset(float eyeOffset);
     void setCamDist(float camDist);
+    void setSelectionMode(const int32_t& mode);
+    void openCalib() const { refWidget->show(); };
 
 public:
     bool eventFilter(QObject* target, QEvent* event);
@@ -78,7 +85,7 @@ private slots:
 
 signals:
     void created();
-    void cursorChanged();
+    void newSelection(const SelectionMode& type, const bool& replace);
 
 private:
     VolumeRenderer _volumeRenderer;
@@ -100,6 +107,11 @@ private:
     sphericCoords viewPosSpheric;
     QPointF _previousMousePos;
     bool _mousePressed = false;
+
+    bool _selecting = false;
+    bool selectionReplaces = true;
+
+    SelectionMode selectionMode;
 
 
 

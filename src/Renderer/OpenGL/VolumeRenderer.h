@@ -43,6 +43,10 @@ public:
     void setSelectionColor(const QColor& color) { _selectionColor = color; }
     //void setCursorPosition(const QVector3D& pos) { _cursorPoint = mv::Vector3f(pos[0], pos[1], pos[2]); }
     QVector3D getCursor() const;
+    bool getCursorFrozen() const { return cursorFrozen; }
+    float getSelectRadius() const { return sphereSelectRadius; }
+    void setSelectionMode(const int& mode) { selectionMode = mode; }
+    void incrementSelectRadius(const float& increment);
     void freezeCursor();
     void unFreezeCursor();
     void reloadShader();
@@ -102,6 +106,9 @@ private:
     bool cursorFrozen = false;
     QVector4D _cursorPosition = QVector4D(0.f, 0.f, 0.f, 1.f); // In modelMatrix reference
     QVector4D _frozenCursorPosition; // In world reference
+
+    int selectionMode = 0;
+    float sphereSelectRadius = 0.05f;
 
 
     QMatrix4x4 identity = QMatrix4x4();

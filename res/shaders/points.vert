@@ -7,7 +7,7 @@ layout(location = 2) in int highlight;
 uniform mat4 projMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 modelMatrix;
-uniform bool distanceEffect;
+uniform bool selecting;
 uniform vec3 cursor; // In world space coordinates
 
 out float v_Color;
@@ -21,7 +21,7 @@ void main() {
     v_Color = color;
     vHighlight = highlight;
 
-    if(distanceEffect){
+    if(selecting){
         cursorDistance = sqrt(
             pow(cursor.x - world_position.x, 2)
             + pow(cursor.y - world_position.y, 2)

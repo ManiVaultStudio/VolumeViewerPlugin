@@ -5,6 +5,8 @@
 #include <QLayoutItem>
 #include <QSlider>
 #include <iostream>
+#include <QEvent>
+#include <QKeyEvent>
 
 #include <string>
 #include <sstream>
@@ -25,6 +27,10 @@ transformation(QMatrix4x4())
     show();
 
     connect(this, &ControlsWidget::valuesChanged, this, [this]() {updateTransformationLabels();});
+
+
+    setFocusPolicy(Qt::FocusPolicy::ClickFocus);
+    installEventFilter(this);
 }
 
 void ControlsWidget::updateTransformationLabels() {
@@ -79,7 +85,7 @@ void ControlsWidget::setupUI() {
         vLayout->addWidget(slider);
 
         connect(slider, &QSlider::valueChanged, this, [this, i](const int &value) {
-            float amount = static_cast<float>(value - values[i])/100.0f;
+            float amount = static_cast<float>(value - values[i])/500.0f;
             transformation.translate(
                 i == 0 ? amount : 0,
                 i == 1 ? amount : 0,
@@ -124,7 +130,11 @@ void ControlsWidget::setupUI() {
     }
 
     imageColorMap = new QLabel(this);
-    
+
+    freezeBox = new QCheckBox();
+    freezeBox->setObjectName("freeze cursor");
+    freezeBox->setEnabled(true);
+    vLayout->addWidget(freezeBox);
 
 
     setLayout(vLayout);
@@ -154,4 +164,45 @@ void ControlsWidget::setImageColorMap(const QImage& image) {
     imageColorMap->setPixmap(QPixmap::fromImage(image));
     imageColorMap->resize(image.width(), image.height());
 
+}
+
+bool ControlsWidget::getCursorFrozen() const {
+    return freezeBox->isChecked();
+}
+
+
+bool ControlsWidget::eventFilter(QObject* target, QEvent* event) {
+    switch (event->type())
+    {
+    case QEvent::KeyPress:
+    {
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        int key = keyEvent->key();
+        if (key == 'F') {
+            if (!keyEvent->isAutoRepeat())
+                freezeBox->setChecked(true);
+
+            return true;
+
+        }
+
+        break;
+    }
+    case QEvent::KeyRelease:
+    {
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        int key = keyEvent->key();
+        if (key == 'F') {
+            if (!keyEvent->isAutoRepeat())
+            {
+                freezeBox->setChecked(false);
+            }
+
+            return true;
+        }
+
+        break;
+    }
+    }
+    return QObject::eventFilter(target, event);
 }
