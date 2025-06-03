@@ -102,8 +102,8 @@ void VolumeRenderer::init()
 
     bool loaded = true;
     //loaded &= _volumeShaderProgram.loadShaderFromFile("volume.vert", "volume.frag");
-    loaded &= _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/points.frag");
-    loaded &= _framebufferShaderProgram.loadShaderFromFile(":shaders/Quad.vert", ":shaders/Texture.frag");
+    loaded &= _pointsShaderProgram.loadShaderFromFile(":/volumeviewer/shaders/points.vert", ":/volumeviewer/shaders/points.frag");
+    loaded &= _framebufferShaderProgram.loadShaderFromFile(":/volumeviewer/shaders/VQuad.vert", ":/volumeviewer/shaders/VTexture.frag");
 
     if (!loaded) {
         qCritical() << "Failed to load one of the Volume Renderer shaders";
