@@ -191,15 +191,6 @@ void PSTracker::Connect()
         // Perform a system check to see if the tracker server is running OK and print the result.
         checkTrackerStatus();
 
-        // Set the reference to match OpenGL's axis. Be careful, PST axis names in the api are not the same as OpenGL's
-        // OpenGL X = PST X (Horizontal)
-        // OpenGL Y = PST Z (Away from the tracker)
-        // OpenGL Z = PST Y (Vertical)
-        PSTech::Utils::PstArray<float, 16> reference{  -1.0f, 0.0f, 0.0f, 0.f,
-                                                       0.0f, 0.0f, 1.0f, 0.f,
-                                                       0.0f, 1.0f, 0.0f, 0.f,
-                                                       0.0f, 0.0f, 0.0f, 1.f };
-        _pst->SetReference(reference);
 
 
         // Activate filtering to reduce movement jitter due to imprecisions in pstech and hand

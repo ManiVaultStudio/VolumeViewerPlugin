@@ -14,12 +14,16 @@
 
 #include <vector>
 
+
+
 enum calibState {
     Idle,
+    Stopped, // Needs to restart with R to scan
     Origin,
     Forwards,
     Up
 };
+
 
 class ReferenceSetupWidget : public QWidget {
     Q_OBJECT
@@ -30,7 +34,7 @@ public:
 
     void show();
 
-    void resetMeasures();
+    void resetState();
     
     bool eventFilter(QObject* target, QEvent* event);
     void continueCalib();
@@ -39,6 +43,7 @@ public:
 
 private:
     QLabel* instructions;
+    QLabel* errors;
     PSTracker* tracker;
 
     std::optional<QVector3D>  bufferVector;

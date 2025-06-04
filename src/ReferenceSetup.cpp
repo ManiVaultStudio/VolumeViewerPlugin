@@ -1,7 +1,7 @@
 #include "ReferenceSetup.h"
 
 #include <QVBoxLayout>
-#include <QWebEngineView>
+
 
 ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PSTracker* trackerPtr) : QWidget(parent, Qt::Window)
 {
@@ -24,6 +24,8 @@ ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PSTracker* trackerPt
 
 void ReferenceSetupWidget::createUI() {
 
+    QVBoxLayout* vLayout = new QVBoxLayout(this);
+
     illustrations.push_back(QIcon(":images/Still.svg").pixmap(QSize(300, 300)));
     illustrations.push_back(QIcon(":images/Forward.svg").pixmap(QSize(300, 300)));
     illustrations.push_back(QIcon(":images/Up.svg").pixmap(QSize(300, 300)));
@@ -36,15 +38,37 @@ void ReferenceSetupWidget::createUI() {
     imageLabel->setLayoutDirection(Qt::LayoutDirection::LeftToRight);
     imageLabel->setAlignment(Qt::AlignmentFlag::AlignHCenter | Qt::AlignmentFlag::AlignBottom);
 
+    imageLabel->setPixmap(illustrations[0]);
+    vLayout->addWidget(imageLabel);
+
+
+
+
+
     instructions = new QLabel(this);
+    instructions->setWordWrap(true);
 
     instructions->setLayoutDirection(Qt::LayoutDirection::LeftToRight);
     instructions->setAlignment(Qt::AlignmentFlag::AlignTop | Qt::AlignmentFlag::AlignHCenter);
 
-
-    QVBoxLayout* vLayout = new QVBoxLayout(this);
-    vLayout->addWidget(imageLabel);
     vLayout->addWidget(instructions);
+
+
+    errors = new QLabel(this);
+    errors->setWordWrap(true);
+    // Set text color fo error
+    QPalette palette;
+    QBrush brush(QColor(100, 0, 0, 255));
+    brush.setStyle(Qt::SolidPattern);
+    palette.setBrush(QPalette::Active, QPalette::WindowText, brush);
+    palette.setBrush(QPalette::Inactive, QPalette::WindowText, brush);
+    errors->setPalette(palette);
+
+    errors->hide();
+
+    vLayout->addWidget(errors);
+
+
 
     setLayout(vLayout);
 }
@@ -56,15 +80,14 @@ void ReferenceSetupWidget::show(){
         continueCalib();
     
     QWidget::show();
+    setFocus();
 };
 
-void ReferenceSetupWidget::resetMeasures(){
+void ReferenceSetupWidget::resetState(){
     origin.reset();
     forwards.reset();
     up.reset();
     state = calibState::Idle;
-
-    continueCalib();
 }
 
 
@@ -74,6 +97,7 @@ bool ReferenceSetupWidget::eventFilter(QObject* target, QEvent* event) {
     {
     case QEvent::FocusOut: {
         hide();
+        break;
     }
     case QEvent::KeyPress:
     {
@@ -84,13 +108,16 @@ bool ReferenceSetupWidget::eventFilter(QObject* target, QEvent* event) {
             hide();
         }
         if (key == 'R') {
-            resetMeasures();
+            resetState();
+            continueCalib();
         }
         else if (key == ' ')
         {
-            if (!keyEvent->isAutoRepeat())
-            qDebug() << "space down";
-            if (!keyEvent->isAutoRepeat())
+            if (state == calibState::Stopped) {
+                resetState();
+                hide();
+            }
+            else if (!keyEvent->isAutoRepeat())
                 startMeasurement();
 
             return true;
@@ -105,8 +132,6 @@ bool ReferenceSetupWidget::eventFilter(QObject* target, QEvent* event) {
 
         if (key == ' ')
         {
-            if (!keyEvent->isAutoRepeat())
-            qDebug() << "space up";
             if (!keyEvent->isAutoRepeat())
                 stopMeasurement();
             
@@ -132,37 +157,52 @@ void ReferenceSetupWidget::continueCalib()
     if (!forwards) {
         qDebug() << "Suggesting forwards";
         state = calibState::Forwards;
-        instructions->setText(R""""(Place your tracker in the center of the area, hold space, and move the tracker in a straight, 
-        forward direction, perpendicular to the screen at the end of the trajectory, 
-        release the spacebar and move on to the next step.)"""");
+        instructions->setText("Place your tracker in the center of the area, hold space,"
+            "and move the tracker in a straight, forward direction, perpendicular to the screen. \n"
+            "Then, at the end of the trajectory, release the spacebar and move on to the next step.");
         imageLabel->setPixmap(illustrations[1]);
         return;
     }
     if (!up) {
         qDebug() << "Suggesting up";
         state = calibState::Up; 
-        instructions->setText(R""""(Place your tracker in the center of the area, hold space, 
-        and move the tracker in a straight, upward direction, parallel to the screen at the end of the trajectory, 
-        release the spacebar and move on to the next step.)"""");
+        instructions->setText("Place your tracker in the center of the area, hold space,"
+            "and move the tracker in a straight, upward direction, parallel to the screen. \n"
+            "Then, at the end of the trajectory, release the spacebar and move on to the next step.");
         imageLabel->setPixmap(illustrations[2]);
         return;
     }
+
+    state = calibState::Stopped;
 
     // We can now calculate the reference matrix
     QMatrix4x4 ref;
     ref.translate(*origin);
     ref.rotate(QQuaternion::fromDirection(*forwards, *up)); // minus quaternion ?
 
-    tracker->setTrackerReference(ref, true);
+    try {
+        tracker->setTrackerReference(ref, true);
     saveReference();
+        instructions->setText("The reference was set correctly ! \nYou can go back to the VolumViewer with space,"
+            "or you can start again by pressing the R key.");
+    }
+    catch (PSTech::TrackerException err) {
+        show();
 
-    instructions->setText(R""""(The reference was set correctly ! You can go back to the VolumViewer,
-       or you can start agaion by pressing the R key.)"""");
+        instructions->setText("Error, Press R to try angain.");
+        errors->setText("The data that was collected was invalid and the calibration failed.");
+    }
+
+
 }
 
 
 void ReferenceSetupWidget::startMeasurement()
 {
+
+    if (state == calibState::Stopped) return;
+
+    errors->hide();
     switch (state)
     {
     case calibState::Origin:
@@ -174,8 +214,12 @@ void ReferenceSetupWidget::startMeasurement()
             state = calibState::Idle;
             continueCalib();
         }
-        else instructions->setText(R""""(The target is not detected. Make sure it is in view of the tracker and try again.
-            Place the tracker in the middle of the are and press space to define the origin.)"""");
+        else
+        {
+            errors->show();
+            errors->setText("The target is not detected.Make sure it is in view of the tracker and try again. \n"
+                "Place the tracker in the middle of the area and press space to define the origin.");
+        }
 
         break;
     }
@@ -185,7 +229,11 @@ void ReferenceSetupWidget::startMeasurement()
             qDebug() << "starting forward";
             bufferVector = tracker->GetTargetMatrix().column(3).toVector3D();
         }
-        else instructions->setText("The target is not detected. Make sure it is in view of the tracker and try again.");
+        else
+        { 
+            errors->show();
+            errors->setText("The target is not detected. Make sure it is in view of the tracker and try again.");
+        }
         break;
     }
     case calibState::Up:
@@ -194,7 +242,11 @@ void ReferenceSetupWidget::startMeasurement()
             qDebug() << "Starting up";
             bufferVector = tracker->GetTargetMatrix().column(3).toVector3D();
         }
-        else instructions->setText("The target is not detected. Make sure it is in view of the tracker and try again.");
+        else 
+        {
+            errors->show();
+            errors->setText("The target is not detected. Make sure it is in view of the tracker and try again.");
+        }
         break;
     }
     }

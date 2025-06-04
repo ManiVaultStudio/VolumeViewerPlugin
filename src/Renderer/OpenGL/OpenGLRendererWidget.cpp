@@ -196,8 +196,10 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
                 case Qt::Key_Space: {
                     if (!keyEvent->isAutoRepeat())
-                        _selecting = true;
-                        emit newSelection(selectionMode, selectionReplaces);
+                        if (_volumeRenderer.getCursorFrozen()) {
+                            _selecting = true;
+                            emit newSelection(selectionMode, selectionReplaces);
+                        }
 
                     return true;
 
