@@ -1,8 +1,8 @@
 #pragma once
 
-#include "actions/GroupAction.h"
-#include "actions/ColorMap1DAction.h"
-#include "actions/OptionAction.h"
+#include "Actions/GroupAction.h"
+#include "Actions/ColorMap1DAction.h"
+#include "Actions/OptionAction.h"
 
 
 using namespace mv::gui;

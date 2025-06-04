@@ -182,7 +182,7 @@ void ReferenceSetupWidget::continueCalib()
 
     try {
         tracker->setTrackerReference(ref, true);
-    saveReference();
+        saveReference();
         instructions->setText("The reference was set correctly ! \nYou can go back to the VolumViewer with space,"
             "or you can start again by pressing the R key.");
     }

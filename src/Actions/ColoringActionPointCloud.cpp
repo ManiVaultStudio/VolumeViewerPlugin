@@ -3,7 +3,7 @@
 #include <QtDebug>
 #include <QFileDialog>
 #include <qmessagebox.h>
-#include "RendererSettingsAction.h"
+#include "Actions/RendererSettingsAction.h"
 #include <QGraphicsScene>
 
 using namespace hdps;

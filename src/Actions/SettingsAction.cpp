@@ -1,4 +1,4 @@
-#include "SettingsAction.h"
+#include "Actions/SettingsAction.h"
 #include "VolumeViewerPlugin.h"
 
 

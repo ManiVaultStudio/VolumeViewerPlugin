@@ -4,7 +4,7 @@
 #include <QOpenGLFunctions_4_2_Core>
 
 #include "VolumeRenderer.h"
-#include "Tracker.h"
+#include "Controllers/Tracker.h"
 
 #include "graphics/Vector3f.h"
 #include "graphics/Vector2f.h"
@@ -19,6 +19,7 @@
 #endif
 
 #include "ReferenceSetup.h"
+#include <Controllers/Pedal.h>
 
 /**
  * OpenGL Volume Renderer Widget
@@ -97,6 +98,7 @@ private:
 
     
     ReferenceSetupWidget* refWidget = nullptr;
+    PedalManager* pedal;
 
 
     float _camStartDist = 1.0f;

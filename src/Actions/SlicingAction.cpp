@@ -1,5 +1,5 @@
-#include "SlicingAction.h"
-#include "RendererSettingsAction.h"
+#include "Actions/SlicingAction.h"
+#include "Actions/RendererSettingsAction.h"
 #include "VolumeViewerPlugin.h"
 #include <QtCore>
 #include <QtDebug>

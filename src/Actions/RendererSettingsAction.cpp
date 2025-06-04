@@ -1,4 +1,4 @@
-#include "RendererSettingsAction.h"
+#include "Actions/RendererSettingsAction.h"
 
 using namespace mv;
 using namespace mv::gui;

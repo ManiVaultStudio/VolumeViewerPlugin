@@ -1,5 +1,5 @@
-#include "ThresholdAction.h"
-#include "SelectedPointsAction.h"
+#include "Actions/ThresholdAction.h"
+#include "Actions/SelectedPointsAction.h"
 
 #include <QHBoxLayout>
 

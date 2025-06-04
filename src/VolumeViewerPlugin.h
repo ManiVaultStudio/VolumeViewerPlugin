@@ -10,11 +10,11 @@
 /** mv headers*/
 #include <Dataset.h>
 #include <widgets/DropWidget.h>
-#include <RendererSettingsAction.h>
+#include <actions/RendererSettingsAction.h>
 //#include <Transfer/TransferFunctionControlAction.h>
 #include <PointData/PointData.h>
 #include <ClusterData/ClusterData.h>
-#include "SettingsAction.h"
+#include "Actions/SettingsAction.h"
 #include <actions/HorizontalToolbarAction.h>
 #include <actions/VerticalGroupAction.h>
 //#include <ClusterData/Cluster.h>
