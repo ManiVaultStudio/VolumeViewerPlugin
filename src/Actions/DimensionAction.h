@@ -1,8 +1,8 @@
 #pragma once
 
-#include "actions/GroupAction.h"
-#include "actions/ToggleAction.h"
-#include "actions/DecimalAction.h"
+#include "Actions/GroupAction.h"
+#include "Actions/ToggleAction.h"
+#include "Actions/DecimalAction.h"
 
 #include <PointData/DimensionPickerAction.h>
 

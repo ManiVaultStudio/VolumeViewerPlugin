@@ -1,11 +1,11 @@
 #pragma once
 
-#include "actions/GroupsAction.h"
+#include "Actions/GroupsAction.h"
 
-#include "SlicingAction.h"
-#include "actions/ColoringAction.h"
-#include "DimensionAction.h"
-#include "SelectedPointsAction.h"
+#include "Actions/SlicingAction.h"
+#include "Actions/ColoringAction.h"
+#include "Actions/DimensionAction.h"
+#include "Actions/SelectedPointsAction.h"
 #include "ColoringActionPointCloud.h"
 
 class VolumeViewer;

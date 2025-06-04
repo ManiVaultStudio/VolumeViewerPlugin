@@ -1,12 +1,12 @@
-#include "SelectedPointsAction.h"
+#include "Actions/SelectedPointsAction.h"
 #include <QtCore>
 #include <QtDebug>
 #include <QFileDialog>
 #include <qmessagebox.h>
-#include "RendererSettingsAction.h"
+#include "Actions/RendererSettingsAction.h"
 #include <QGraphicsScene>
-#include <PositionAction.h>
-#include <ThresholdAction.h>
+#include <Actions/PositionAction.h>
+#include <Actions/ThresholdAction.h>
 
 using namespace mv;
 

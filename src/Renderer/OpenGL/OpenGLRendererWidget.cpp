@@ -11,8 +11,7 @@
 
 
 OpenGLRendererWidget::OpenGLRendererWidget() :
-    QOpenGLWidget()/*,
-    interactionState(Interaction3D())*/
+    QOpenGLWidget()
 {
 
     setAcceptDrops(true);
@@ -47,6 +46,21 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
     #endif
 
     refWidget = new ReferenceSetupWidget(this, &_tracker);
+
+    pedal = new PedalManager();
+
+    connect(pedal, &PedalManager::pedalPressed, this, [this](int value) {
+        switch (value) {
+        case 2: {
+            _volumeRenderer.freezeCursor();
+            break;
+        }
+        }
+    });
+
+    connect(pedal, &PedalManager::pedalReleased, this, [this](int value) {
+        _volumeRenderer.unFreezeCursor();
+    });
 
     
 }
@@ -145,9 +159,9 @@ void OpenGLRendererWidget::paintGL()
     float aspect = (float)w / h;
 
 
-    if (_selecting) {
+    /*if (_selecting) {
         emit newSelection(selectionMode, selectionReplaces);
-    }
+    }*/
 
     #ifdef CONTROLS
     if (_controls->getCursorFrozen()) {
@@ -216,6 +230,7 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
 
             }
+
       
             break;
         }
@@ -242,6 +257,7 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
                 case Qt::Key_Shift: { // SHIFT (L and R)
                     if (!keyEvent->isAutoRepeat())
                         selectionReplaces = true;
+                        qDebug() << "No selecting";
 
                     return true;
 
@@ -260,18 +276,6 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
             }
             
             break;
-        }
-        case QEvent::MouseButtonPress:
-        {
-            qDebug() << "Mouse press";
-            auto mouseEvent = static_cast<QMouseEvent*>(event);
-
-            QPointF mousePos = QPointF(mouseEvent->position().x(), mouseEvent->position().y());
-            _previousMousePos = mousePos;
-
-            _mousePressed = true;
-
-            return true;
         }
         case QEvent::Wheel:
         {
@@ -295,6 +299,18 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
             float scaling = pow(2, -distance / 5.f);
 
             viewPosSpheric.distance *= scaling;
+
+            return true;
+        }
+        /*case QEvent::MouseButtonPress:
+        {
+            qDebug() << "Mouse press";
+            auto mouseEvent = static_cast<QMouseEvent*>(event);
+
+            QPointF mousePos = QPointF(mouseEvent->position().x(), mouseEvent->position().y());
+            _previousMousePos = mousePos;
+
+            _mousePressed = true;
 
             return true;
         }
@@ -325,7 +341,7 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
             return true;
      
-        }
+        }*/
     }
     return QObject::eventFilter(target, event);
 }

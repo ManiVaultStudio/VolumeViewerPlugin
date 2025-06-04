@@ -1,9 +1,9 @@
 #pragma once
 
-#include "RendererSettingsAction.h"
+#include "Actions/RendererSettingsAction.h"
 #include "Actions/PickRendererAction.h"
 #include "Actions/SelectModeAction.h"
-#include "actions/DatasetPickerAction.h"
+#include "Actions/DatasetPickerAction.h"
 
 #include <actions/GroupAction.h>
 

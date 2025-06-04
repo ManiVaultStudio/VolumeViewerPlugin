@@ -1,6 +1,6 @@
 #pragma once
 
-#include<Tracker.h>
+#include<Controllers/Tracker.h>
 
 #include <QWidget>
 #include <QLabel>
@@ -57,7 +57,7 @@ private:
     std::optional<QVector3D> forwards;
     std::optional<QVector3D> up;
 
-    std::string fileLoc = ":matrix/refMatrix.txt";
+    std::string fileLoc = "./refMatrix.txt";
 
     void createUI();
 

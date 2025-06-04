@@ -1,5 +1,5 @@
-#include "PositionAction.h"
-#include "SelectedPointsAction.h"
+#include "Actions/PositionAction.h"
+#include "Actions/SelectedPointsAction.h"
 
 #include <QHBoxLayout>
 

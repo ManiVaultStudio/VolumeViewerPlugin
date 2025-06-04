@@ -32,12 +32,21 @@ if(NOT EXISTS ${PST_DEPENDENCIES_BIN})
 endif()
 
 
+if(NOT DEFINED SDL_BUILD_DIR)
+    set(SDL_BUILD_DIR "" CACHE PATH "Directory where SDL is installed")
+    message(FATAL_ERROR "Please set SDL_BUILD_DIR to the directory where the SDL library is installed")
+endif()
+file(TO_CMAKE_PATH ${SDL_BUILD_DIR} SDL_BUILD_DIR)
+
+
+
 # -----------------------------------------------------------------------------
 # Dependencies
 # -----------------------------------------------------------------------------
 find_package(Qt6 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
 
 find_package(ManiVault COMPONENTS Core PointData CONFIG REQUIRED)
+
 
 # -----------------------------------------------------------------------------
 # Source files
@@ -47,8 +56,10 @@ set(PLUGIN
     src/Common.h
     src/VolumeViewerPlugin.h
     src/VolumeViewerPlugin.cpp
-    src/Tracker.h
-    src/Tracker.cpp
+    src/Controllers/Tracker.h
+    src/Controllers/Tracker.cpp
+    src/Controllers/Pedal.h
+    src/Controllers/Pedal.cpp
     src/Controls.h
     src/Controls.cpp
     src/ReferenceSetup.h
@@ -65,20 +76,20 @@ set(RENDERERS
 set(ACTIONS
     src/Actions/ColoringAction.h
     src/Actions/ColoringAction.cpp
-    src/DimensionAction.h
-    src/DimensionAction.cpp
-    src/PositionAction.h
-    src/PositionAction.cpp
-    src/RendererSettingsAction.h
-    src/RendererSettingsAction.cpp
-    src/SelectedPointsAction.h
-    src/SelectedPointsAction.cpp
-    src/SettingsAction.h
-    src/SettingsAction.cpp
-    src/SlicingAction.h
-    src/SlicingAction.cpp
-    src/ThresholdAction.h
-    src/ThresholdAction.cpp
+    src/Actions/DimensionAction.h
+    src/Actions/DimensionAction.cpp
+    src/Actions/PositionAction.h
+    src/Actions/PositionAction.cpp
+    src/Actions/RendererSettingsAction.h
+    src/Actions/RendererSettingsAction.cpp
+    src/Actions/SelectedPointsAction.h
+    src/Actions/SelectedPointsAction.cpp
+    src/Actions/SettingsAction.h
+    src/Actions/SettingsAction.cpp
+    src/Actions/SlicingAction.h
+    src/Actions/SlicingAction.cpp
+    src/Actions/ThresholdAction.h
+    src/Actions/ThresholdAction.cpp
     src/Actions/PickRendererAction.h
     src/Actions/PickRendererAction.cpp
     src/Actions/SelectModeAction.h
@@ -120,6 +131,7 @@ add_library(${PROJECT_NAME} SHARED ${SOURCES} ${AUX} ${QRESOURCES} ${RESOURCE_FI
 target_include_directories(${PROJECT_NAME} PRIVATE "${ManiVault_INCLUDE_DIR}")
 target_include_directories(${PROJECT_NAME} PRIVATE src)
 target_include_directories(${PROJECT_NAME} PRIVATE "${PS_TECH_INSTALL_DIR}/include")
+target_include_directories(${PROJECT_NAME} PRIVATE "${SDL_BUILD_DIR}/include")
 
 # -----------------------------------------------------------------------------
 # Target properties
@@ -136,6 +148,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::WebEngineWidgets)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::OpenGL)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::OpenGLWidgets)
 target_link_libraries(${PROJECT_NAME} PRIVATE "${PS_TECH_INSTALL_DIR}/lib/pstsdk_cpp.lib")
+target_link_libraries(${PROJECT_NAME} PRIVATE "${SDL_BUILD_DIR}/lib/x64/SDL3.lib")
 
 # Link to ManiVault and data plugins
 target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::Core)
@@ -160,6 +173,11 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${PST_DEPENDENCIES_BIN} ${ManiVault_INSTALL_DIR}/$<CONFIGURATION>)
+
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    "${SDL_BUILD_DIR}/lib/x64/SDL3.dll" ${ManiVault_INSTALL_DIR}/$<CONFIGURATION>)
 
 # -----------------------------------------------------------------------------
 # Miscellaneous

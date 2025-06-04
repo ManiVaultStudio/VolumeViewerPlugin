@@ -1,4 +1,4 @@
-#include "SelectModeAction.h"
+#include "Actions/SelectModeAction.h"
 
 #include "VolumeViewerPlugin.h"
 

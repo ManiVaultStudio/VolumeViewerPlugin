@@ -1,4 +1,4 @@
-#include "PickRendererAction.h"
+#include "Actions/PickRendererAction.h"
 
 #include "VolumeViewerPlugin.h"
 

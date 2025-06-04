@@ -43,9 +43,17 @@ void main()
                 break;
             }
             case 1: {
+                fragColor.a = 1;
                 // Make the data outside the selection sphere slightly transparent
                 if(cursorDistance > selectRadius){
-                    fragColor.a = 0.3;
+                    float distanceFade = 0.3;
+                    float minAlphaFade = 0.2;
+                    if(cursorDistance < selectRadius + distanceFade){
+                        fragColor.a = 0.7-(cursorDistance - selectRadius) * (0.7-minAlphaFade) / distanceFade;
+                    }
+                    else {
+                        fragColor.a = minAlphaFade;
+                    }
                 }
                 break;
             }

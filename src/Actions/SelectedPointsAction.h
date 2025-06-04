@@ -1,10 +1,10 @@
 #pragma once
 
-#include "actions/GroupAction.h"
-#include "actions/ColorMapAction.h"
-#include "actions/OptionAction.h"
-#include "PositionAction.h"
-#include "ThresholdAction.h"
+#include "Actions/GroupAction.h"
+#include "Actions/ColorMapAction.h"
+#include "Actions/OptionAction.h"
+#include "Actions/PositionAction.h"
+#include "Actions/ThresholdAction.h"
 
 
 

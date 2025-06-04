@@ -1,5 +1,5 @@
-#include "DimensionAction.h"
-#include "RendererSettingsAction.h"
+#include "Actions/DimensionAction.h"
+#include "Actions/RendererSettingsAction.h"
 #include "VolumeViewerPlugin.h"
 #include <QtCore>
 #include <QtDebug>
