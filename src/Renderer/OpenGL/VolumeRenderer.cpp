@@ -476,6 +476,8 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
 void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
 {
     if (_numPoints > 0) {
+        glEnable(GL_POINT_SMOOTH);
+        glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
         glDisable(GL_BLEND);
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
@@ -508,7 +510,8 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
 
         glEnable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
-    
+        glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
+        glDisable(GL_POINT_SMOOTH);
     }
 }
 
