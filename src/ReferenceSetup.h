@@ -57,10 +57,10 @@ private:
     std::optional<QVector3D> forwards;
     std::optional<QVector3D> up;
 
-    std::string fileLoc = "./refMatrix.txt";
+    //std::string fileLoc = "./tracker_ref_matrix.txt";
 
     void createUI();
 
-    void saveReference() const;
-    void setStoredReference() const;
+    /*void saveReference() const;
+    void setStoredReference() const;*/
 };

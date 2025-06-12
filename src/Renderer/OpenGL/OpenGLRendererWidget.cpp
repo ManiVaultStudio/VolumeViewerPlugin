@@ -51,16 +51,40 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
 
     connect(pedal, &PedalManager::pedalPressed, this, [this](int value) {
         switch (value) {
+		case 0: {
+			_volumeRenderer.freezeCursor();
+			setFocus();
+			break;
+		}
+		case 2: {
+
+			if (_volumeRenderer.getCursorFrozen()) {
+				_selecting = true;
+				emit newSelection(selectionMode, selectionReplaces);
+			}
+			break;
+		}
+        }
+    });
+
+
+    connect(pedal, &PedalManager::pedalReleased, this, [this](int value) {
+        switch (value) {
+        case 0: {
+            _volumeRenderer.unFreezeCursor();
+            break;
+        }
         case 2: {
-            _volumeRenderer.freezeCursor();
+
+            if (_volumeRenderer.getCursorFrozen()) {
+                _selecting = false;
+            }
             break;
         }
         }
     });
 
-    connect(pedal, &PedalManager::pedalReleased, this, [this](int value) {
-        _volumeRenderer.unFreezeCursor();
-    });
+    connectToTracker();
 
     
 }
@@ -96,11 +120,6 @@ void OpenGLRendererWidget::setColormap(const QImage& colormap)
 void OpenGLRendererWidget::connectToTracker()
 {
     _tracker.Connect();
-    QMatrix4x4 rotation;
-    rotation.setToIdentity();
-    rotation.rotate(-90.f, 0, 1, 0);
-    _tracker.setTrackerReference(rotation, true); // test, replace with proper calibration process
-    _tracker.checkTrackerStatus();
     setFocus();
 }
 
@@ -135,12 +154,12 @@ void OpenGLRendererWidget::initializeGL()
 
     setCamDist(_camStartDist);
 
+    selectionInterval.start();
+
     _updateTimer = new QTimer(this);
     connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });
     _updateTimer->start(16);
 
-    qDebug() << "Reference Matrix : ";
-    qDebug() << _tracker.GetReference();
 }
 
 void OpenGLRendererWidget::resizeGL(int w, int h)
@@ -153,32 +172,37 @@ void OpenGLRendererWidget::resizeGL(int w, int h)
 
 void OpenGLRendererWidget::paintGL()
 {
+
     int w = width();
     int h = height();
 
     float aspect = (float)w / h;
 
 
-    /*if (_selecting) {
+    if (_selecting && selectionInterval.elapsed() > 1.f) {
+        selectionInterval.restart();
         emit newSelection(selectionMode, selectionReplaces);
-    }*/
+    }
 
-    #ifdef CONTROLS
+#ifdef CONTROLS
     if (_controls->getCursorFrozen()) {
         if (!_volumeRenderer.getCursorFrozen()) {
             _volumeRenderer.freezeCursor();
         }
     }
     else
-    { 
+    {
         if (_volumeRenderer.getCursorFrozen()) {
             _volumeRenderer.unFreezeCursor();
         }
     }
     _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, true, _controls->getControlMatrix());
-    #else
-        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.poseIsLive(), _tracker.GetTargetMatrix());
-    #endif
+#else
+    QMatrix4x4 pose;
+    if (_tracker.GetTargetMatrix(pose)) {
+        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.poseIsLive(), pose);
+    }
+#endif
 }
 
 void OpenGLRendererWidget::cleanup()

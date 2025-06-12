@@ -12,7 +12,6 @@
 
 #include <vector>
 
-//#define STEREO
 
 class Cube : public QOpenGLFunctions_3_3_Core
 {
@@ -58,11 +57,14 @@ public:
     void drawVolume(mv::ShaderProgram& shader, const bool& live);
     void drawCube(mv::ShaderProgram& shader);
 
+
+
 private:
     mv::Framebuffer _framebuffer;
     mv::Framebuffer _leftRenderFBO;
     mv::Framebuffer _rightRenderFBO;
     mv::Texture2D _colorAttachment;
+    mv::Texture2D _depthAttachment;
     mv::Texture2D _leftColorAttachment;
     mv::Texture2D _rightColorAttachment;
 

@@ -59,7 +59,7 @@ public: // Action getters
     ToggleAction& getFocusFloodfillAction() { return _focusFloodfillAction; }
     ToggleAction& getFocusSelectionNormAction() { return _focusSelectionNormAction; }
     ToggleAction& getFocusFloodfillNormAction() { return _focusFloodfillNormAction; }
-    TriggerAction& getConnectToTrackerAction() { return _connectToTrackerAction; }
+    //TriggerAction& getConnectToTrackerAction() { return _connectToTrackerAction; }
     TriggerAction& getStartCalibAction() { return _startCalibAction; }
     DecimalAction& getEyeOffsetAction() { return _eyeOffsetAction; }
     DecimalAction& getCamDistAction() { return _camDistAction; }
@@ -77,7 +77,7 @@ protected:
     ToggleAction            _focusFloodfillAction;
     ToggleAction            _focusSelectionNormAction;
     ToggleAction            _focusFloodfillNormAction;
-    TriggerAction           _connectToTrackerAction;
+    //TriggerAction           _connectToTrackerAction;
     TriggerAction           _startCalibAction;
     DecimalAction           _eyeOffsetAction;
     DecimalAction           _camDistAction;

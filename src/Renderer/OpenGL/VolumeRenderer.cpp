@@ -8,6 +8,7 @@
 
 //#define CUBE
 
+//#define STEREO
 
 void Cube::create()
 {
@@ -172,9 +173,17 @@ void VolumeRenderer::init()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
+    // Add depth texture to enable z buffering and testing
+    _depthAttachment.create();
+    _depthAttachment.bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, 1, 1, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
     _framebuffer.create();
     _framebuffer.bind();
     _framebuffer.addColorTexture(0, &_colorAttachment);
+    _framebuffer.setTexture(GL_DEPTH_ATTACHMENT, _depthAttachment);
     _framebuffer.validate();
 
     // Make float buffer to support low alpha blending
@@ -262,6 +271,9 @@ void VolumeRenderer::resize(int w, int h)
     _colorAttachment.bind();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, nullptr);
 
+    _depthAttachment.bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
     _leftColorAttachment.bind();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, w, h, 0, GL_RGBA, GL_FLOAT, nullptr);
 
@@ -279,6 +291,7 @@ void VolumeRenderer::resize(int w, int h)
 
 void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspect, const bool& live, const QMatrix4x4& modelFrameMatrix)
 {
+ 
 
     glEnable(GL_BLEND);
     glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
@@ -383,6 +396,9 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
 
 
     // Draw the cursor
+
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
     mv::Vector3f cursorPosition;
     _pointsShaderProgram.bind();
     _pointsShaderProgram.uniform1i("isCursor", 1);
@@ -405,7 +421,9 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
     glDrawArrays(GL_POINTS, 0, 1);
     _pointsShaderProgram.uniform1i("isCursor", 0);
     glDisable(GL_POINT_SMOOTH);
- 
+
+    glEnable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
 
 
 
@@ -458,8 +476,10 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
 void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
 {
     if (_numPoints > 0) {
-        GLenum error = glGetError();
-        glClear(GL_COLOR_BUFFER_BIT);
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shader.uniformMatrix4f("projMatrix", _projMatrix.data());
         shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
         shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
@@ -485,6 +505,10 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
         }
 
         glDrawArrays(GL_POINTS, 0, _numPoints);
+
+        glEnable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
     
     }
 }
+

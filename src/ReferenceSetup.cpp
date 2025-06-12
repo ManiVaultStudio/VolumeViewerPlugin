@@ -15,7 +15,7 @@ ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PSTracker* trackerPt
 
     // When the object is instanciated (VolumeViewer is opened)
     // Load back the reference systemn used in the previosu session
-    setStoredReference();
+    //connect(tracker, &PSTracker::connected, this, [this]() {setStoredReference(); });
 
     createUI();
 
@@ -25,10 +25,16 @@ ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PSTracker* trackerPt
 void ReferenceSetupWidget::createUI() {
 
     QVBoxLayout* vLayout = new QVBoxLayout(this);
+    vLayout->setSpacing(10);
 
-    illustrations.push_back(QIcon(":images/Still.svg").pixmap(QSize(300, 300)));
-    illustrations.push_back(QIcon(":images/Forward.svg").pixmap(QSize(300, 300)));
-    illustrations.push_back(QIcon(":images/Up.svg").pixmap(QSize(300, 300)));
+    QSpacerItem* verticalSpacer = new QSpacerItem(20, 40, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
+    vLayout->addItem(verticalSpacer);
+
+    illustrations.push_back(QIcon(":images/Still.svg").pixmap(QSize(300, 200)));
+    illustrations.push_back(QIcon(":images/Forward.svg").pixmap(QSize(300, 200)));
+    illustrations.push_back(QIcon(":images/Up.svg").pixmap(QSize(300, 200)));
+    illustrations.push_back(QIcon(":images/Connect.svg").pixmap(QSize(100, 100)));
+    illustrations.push_back(QIcon(":images/Valid.svg").pixmap(QSize(100, 100)));
 
     imageLabel = new QLabel(this);
     QSizePolicy sizePolicy(QSizePolicy::Policy::Preferred, QSizePolicy::Policy::Maximum);
@@ -36,8 +42,8 @@ void ReferenceSetupWidget::createUI() {
     imageLabel->setSizePolicy(sizePolicy);
 
     imageLabel->setLayoutDirection(Qt::LayoutDirection::LeftToRight);
-    imageLabel->setAlignment(Qt::AlignmentFlag::AlignHCenter | Qt::AlignmentFlag::AlignBottom);
-
+    imageLabel->setAlignment(Qt::AlignmentFlag::AlignHCenter);
+    //imageLabel->setStyleSheet(QString::fromUtf8("background-color: rgb(85, 255, 0);"));
     imageLabel->setPixmap(illustrations[0]);
     vLayout->addWidget(imageLabel);
 
@@ -49,7 +55,9 @@ void ReferenceSetupWidget::createUI() {
     instructions->setWordWrap(true);
 
     instructions->setLayoutDirection(Qt::LayoutDirection::LeftToRight);
-    instructions->setAlignment(Qt::AlignmentFlag::AlignTop | Qt::AlignmentFlag::AlignHCenter);
+    instructions->setAlignment(Qt::AlignmentFlag::AlignHCenter);
+    instructions->setSizePolicy(sizePolicy);
+    instructions->setMinimumSize(QSize(0, 40));
 
     vLayout->addWidget(instructions);
 
@@ -63,10 +71,15 @@ void ReferenceSetupWidget::createUI() {
     palette.setBrush(QPalette::Active, QPalette::WindowText, brush);
     palette.setBrush(QPalette::Inactive, QPalette::WindowText, brush);
     errors->setPalette(palette);
+    errors->setSizePolicy(sizePolicy);
 
     errors->hide();
 
     vLayout->addWidget(errors);
+
+
+    QSpacerItem* verticalSpacer2 = new QSpacerItem(100, 40, QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding);
+    vLayout->addItem(verticalSpacer2);
 
 
 
@@ -75,7 +88,10 @@ void ReferenceSetupWidget::createUI() {
 
 void ReferenceSetupWidget::show(){
     if (!tracker->getTrackerConnected())
-        instructions->setText("Please connect the tracker and try again.");
+    {
+        instructions->setText("Please click \"connect tracker\" and try again.");
+        imageLabel->setPixmap(illustrations[3]);
+    }
     else
         continueCalib();
     
@@ -97,6 +113,7 @@ bool ReferenceSetupWidget::eventFilter(QObject* target, QEvent* event) {
     {
     case QEvent::FocusOut: {
         hide();
+        resetState();
         break;
     }
     case QEvent::KeyPress:
@@ -104,18 +121,12 @@ bool ReferenceSetupWidget::eventFilter(QObject* target, QEvent* event) {
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         int key = keyEvent->key();
 
-        if (key == 'Q') {
-            hide();
-        }
-        if (key == 'R') {
-            resetState();
-            continueCalib();
-        }
-        else if (key == ' ')
+        if (key == Qt::Key_Space)
         {
             if (state == calibState::Stopped) {
                 resetState();
                 hide();
+                parentWidget()->setFocus();
             }
             else if (!keyEvent->isAutoRepeat())
                 startMeasurement();
@@ -130,7 +141,7 @@ bool ReferenceSetupWidget::eventFilter(QObject* target, QEvent* event) {
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         int key = keyEvent->key();
 
-        if (key == ' ')
+        if (key == Qt::Key_Space)
         {
             if (!keyEvent->isAutoRepeat())
                 stopMeasurement();
@@ -180,11 +191,12 @@ void ReferenceSetupWidget::continueCalib()
     ref.translate(*origin);
     ref.rotate(QQuaternion::fromDirection(*forwards, *up)); // minus quaternion ?
 
+
+
     try {
         tracker->setTrackerReference(ref, true);
-        saveReference();
-        instructions->setText("The reference was set correctly ! \nYou can go back to the VolumViewer with space,"
-            "or you can start again by pressing the R key.");
+        instructions->setText("The reference was set correctly ! \nYou can go back to the VolumViewer with space.");
+        imageLabel->setPixmap(illustrations[4]);
     }
     catch (PSTech::TrackerException err) {
         show();
@@ -202,6 +214,9 @@ void ReferenceSetupWidget::startMeasurement()
 
     if (state == calibState::Stopped) return;
 
+    QMatrix4x4 pose;
+    tracker->GetTargetMatrix(pose);
+
     errors->hide();
     switch (state)
     {
@@ -209,7 +224,7 @@ void ReferenceSetupWidget::startMeasurement()
     {
         if (tracker->poseIsLive()) {
             qDebug() << "Reading origin";
-            origin = tracker->GetTargetMatrix().column(3).toVector3D();
+            origin = pose.column(3).toVector3D();
 
             state = calibState::Idle;
             continueCalib();
@@ -227,7 +242,7 @@ void ReferenceSetupWidget::startMeasurement()
     {
         if (tracker->poseIsLive()) {
             qDebug() << "starting forward";
-            bufferVector = tracker->GetTargetMatrix().column(3).toVector3D();
+            bufferVector = pose.column(3).toVector3D();
         }
         else
         { 
@@ -240,7 +255,7 @@ void ReferenceSetupWidget::startMeasurement()
     {
         if (tracker->poseIsLive()) {
             qDebug() << "Starting up";
-            bufferVector = tracker->GetTargetMatrix().column(3).toVector3D();
+            bufferVector = pose.column(3).toVector3D();
         }
         else 
         {
@@ -258,13 +273,16 @@ void ReferenceSetupWidget::stopMeasurement()
     // Proceed if a starting measurement was made
     if (!bufferVector) return;
 
+    QMatrix4x4 pose;
+    tracker->GetTargetMatrix(pose);
+
     switch (state)
     {
     case calibState::Forwards:
     {
         qDebug() << "Reading forwards";
         // Just taking the last position, whether live or not
-        forwards = tracker->GetTargetMatrix().column(3).toVector3D() - *bufferVector;
+        forwards = pose.column(3).toVector3D() - *bufferVector;
         bufferVector.reset();
         break;
     }
@@ -272,7 +290,7 @@ void ReferenceSetupWidget::stopMeasurement()
     {
         qDebug() << "Reading up";
         // Just taking the last position, whether live or not
-        up = tracker->GetTargetMatrix().column(3).toVector3D() - *bufferVector;
+        up = pose.column(3).toVector3D() - *bufferVector;
         bufferVector.reset();
         break;
     }
@@ -286,37 +304,42 @@ void ReferenceSetupWidget::stopMeasurement()
 /**
 * Stores the absolute reference that's contained in the tracker
 */
-void ReferenceSetupWidget::saveReference() const {
-    QMatrix4x4 matrixRef;
+//void ReferenceSetupWidget::saveReference() const {
+//    QMatrix4x4 matrixRef;
+//
+//    matrixRef = tracker->GetReference();
+//
+//    // Create and open a text file
+//    std::ofstream refFile(fileLoc);
+//
+//    for (int i = 0; i < 4; i++) {
+//        for (int j = 0; j < 4; j++) {
+//            refFile << matrixRef(i,j) << '\n';
+//        }
+//    }
+//
+//
+//    qDebug() << "Saving reference : " << matrixRef;
+//
+//    // Close the file
+//    refFile.close();
+//};
 
-    matrixRef = tracker->GetReference();
-
-    // Create and open a text file
-    std::ofstream refFile(fileLoc);
-
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            refFile << matrixRef(i,j);
-        }
-    }
-
-    // Close the file
-    refFile.close();
-};
-
-void ReferenceSetupWidget::setStoredReference() const {
-    if (std::filesystem::is_regular_file(fileLoc)) {
-        QMatrix4x4 ref;
-        std::string lineText;
-
-        std::ifstream MyReadFile(fileLoc);
-        int i = 0;
-        while (getline(MyReadFile, lineText) && i < 16) {
-            ref(i / 3, i % 3);
-            i++;
-        }
-        qDebug() << ref;
-
-        tracker->setTrackerReference(ref, false);
-    }
-};
+//void ReferenceSetupWidget::setStoredReference() const {
+//    if (std::filesystem::is_regular_file(fileLoc)) {
+//        QMatrix4x4 ref;
+//        std::string lineText;
+//
+//        std::ifstream MyReadFile(fileLoc);
+//        int i = 0;
+//        while (getline(MyReadFile, lineText) && i < 16) {
+//            ref(i / 4, i % 4) = std::stof(lineText);
+//            float stodf = std::stof(lineText);
+//            i++;
+//        }
+//
+//        tracker->setTrackerReference(ref, false);
+//
+//
+//    }
+//};

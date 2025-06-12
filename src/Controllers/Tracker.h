@@ -7,6 +7,7 @@
 #include <csignal>
 #endif
 
+#include <QObject>
 #include <QMatrix4x4>
 #include <iostream>
 #include <mutex>
@@ -91,17 +92,19 @@ public:
 
 
 
-class PSTracker
+class PSTracker : public QObject
 {
+    Q_OBJECT
+
 public:
-    PSTracker();
+    PSTracker(QObject* parent = nullptr);
     ~PSTracker();
     void Connect();
     
-    QMatrix4x4 GetTargetMatrix();
+    bool GetTargetMatrix(QMatrix4x4& pose);
     QMatrix4x4 GetReference() const;
 
-    void checkTrackerStatus();
+    bool checkTrackerStatus();
     void setTrackerReference(const QMatrix4x4& matrix, const bool& relative);
 
     bool poseIsLive() const { return poseAcurate && listener.poseIsLive(); }
@@ -125,4 +128,7 @@ private:
 
     QMatrix4x4 lerpTrajectory;
     QMatrix4x4 oldPos;
+
+signals:
+    void connected() const;
 };

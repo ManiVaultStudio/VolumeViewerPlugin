@@ -76,7 +76,7 @@ static void Exithandler(int sig)
 
 
 
-PSTracker::PSTracker() {
+PSTracker::PSTracker(QObject *parent) : QObject(parent) {
     // Register the exit handler with the application
     #ifdef WIN32
         SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
@@ -100,48 +100,58 @@ PSTracker::~PSTracker() {
     if (_pst != nullptr) delete _pst;
 }
 
-void PSTracker::checkTrackerStatus() {
+
+bool PSTracker::checkTrackerStatus() {
     qDebug() << "PS Tech system check : ";
     PSTech::pstsdk::StatusMessage msg = _pst->Systemcheck();
     switch (msg) {
     case PSTech::pstsdk::StatusMessage::OK: {
         qDebug() << "PS Tech system is running OK";
         _connected = true;
-        return;
+        return true;
     }
     case PSTech::pstsdk::StatusMessage::NOT_INITIALIZED: {
+        qDebug() << "PS Tech system is NOT_INITIALIZED";
         throw "PS Tech system is NOT_INITIALIZED";
         break;
     }
     case PSTech::pstsdk::StatusMessage::DISCONNECTED: {
+        qDebug() << "PS Tech system is DISCONNECTED";
         throw "PS Tech system is DISCONNECTED";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_GENERAL: {
+        qDebug() << "PS Tech: Unspecified grabber error ";
         throw "PS Tech: Unspecified grabber error ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_TIMEOUT: {
+        qDebug() << "PS Tech : Grabber timeout error";
         throw "PS Tech : Grabber timeout error";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_NOCAMS_FOUND: {
+        qDebug() << "PS Tech : Grabber could not detect any cameras";
         throw "PS Tech : Grabber could not detect any cameras ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_NOTENOUGHTCAMS_FOUND: {
+        qDebug() << "PS Tech : Grabber could not detect sufficient cameras";
         throw "PS Tech : Grabber could not detect sufficient cameras ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_INITERROR: {
+        qDebug() << "PS Tech : Grabber did not initialize correctly";
         throw "PS Tech : Grabber did not initialize correctly ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_CANNOT_START_CAMS: {
+        qDebug() << "PS Tech : Grabber could not start cameras";
         throw "PS Tech : Grabber could not start cameras ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_CANNOT_SETUP_CAMS: {
+        qDebug() << "PS Tech : Grabber failed setting up cameras";
         throw "PS Tech : Grabber failed setting up cameras ";
         break;
     }
@@ -150,6 +160,7 @@ void PSTracker::checkTrackerStatus() {
 
     _connected = false;
 
+    qDebug() << "Unknown issue with the PS Tech";
     throw "Unknown issue with the PS Tech";
 }
 
@@ -181,15 +192,21 @@ void PSTracker::Connect()
         // Print version number of the tracker server being used.
         std::cout << "Running PST Server version " << _pst->GetVersionInfo() << "\n";
 
+        qDebug() << "Check pre add listener";
+        checkTrackerStatus();
 
         // Register the listener object to the tracker server.
         _pst->AddTrackerListener(&listener);
+        qDebug() << "Check post add listener";
+
+        checkTrackerStatus();
 
         // Start the tracker server.
         _pst->Start();
 
-        // Perform a system check to see if the tracker server is running OK and print the result.
+        qDebug() << "Check post start";
         checkTrackerStatus();
+
 
 
 
@@ -219,10 +236,15 @@ void PSTracker::Connect()
         }
 
         if (targets.size() == 0) throw "No active target. Please activate the desired targets in the PST Client app.";
-        listener.setControlTarget(targets[0].id);
+        listener.setControlTarget(targets[1].id);
         if(targets.size() >= 2) listener.setCursorTarget(targets[1].id);
  
 
+
+        // Perform a system check to see if the tracker server is running OK and print the result.
+        if (checkTrackerStatus()) {
+            emit connected();
+        }
 
     }
     catch (PSTech::TrackerException& e)
@@ -241,16 +263,22 @@ void PSTracker::Connect()
 
 float t = 0;
 
-QMatrix4x4 PSTracker::GetTargetMatrix()
+bool PSTracker::GetTargetMatrix(QMatrix4x4& pose)
 {
 
     if (_connected)
     {
-        QMatrix4x4 currPose = listener.getTragetMatrix();
+        pose = listener.getTragetMatrix();
+
+     
+        if (pose.column(3).toVector3D().length() < 0.001f) {
+            // Strange bug where jumps to the origin happen here and there, just ignore these positions
+            return false;
+        }
 
         // Prepare for interpolation for when tracking goes back live
         if (!listener.poseIsLive()) {
-            oldPos = currPose;
+            oldPos = pose;
             lerpTimer.invalidate();
             poseAcurate = false;
         }
@@ -258,7 +286,7 @@ QMatrix4x4 PSTracker::GetTargetMatrix()
         // When the tracking goes back live, interpolate between the old and the new position
         if (!poseAcurate && listener.poseIsLive()) { // Is live and ready to interpolate
             if (!lerpTimer.isValid()) {
-                lerpTrajectory = currPose - oldPos;
+                lerpTrajectory = pose - oldPos;
                 lerpTimer.start();
             }
 
@@ -267,21 +295,20 @@ QMatrix4x4 PSTracker::GetTargetMatrix()
                 poseAcurate = true;
             }
             else {
-                currPose -= lerpTrajectory / static_cast<float>(lerpDuraton) * (lerpDuraton - lerpTimer.elapsed());
+                pose -= lerpTrajectory / static_cast<float>(lerpDuraton) * (lerpDuraton - lerpTimer.elapsed());
             }
         }
-        
-        return currPose;
+
+        return true;
 
     }
     else
     {
         t += 0.1f;
         if (t > 360) t = t - 360;
-        QMatrix4x4 _defaultMatrix;
-        _defaultMatrix.setToIdentity();
-        _defaultMatrix.rotate(t, 0, 1, 0);
-        return _defaultMatrix;
+        pose.setToIdentity();
+        pose.rotate(t, 0, 1, 0);
+        return true;
     }
 }
 

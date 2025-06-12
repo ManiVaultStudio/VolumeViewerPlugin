@@ -18,7 +18,6 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusFloodfillAction(this, "Focus Floodfill"),
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
-    _connectToTrackerAction(this, "Connect Tracker"),
     _startCalibAction(this, "Calibrate tracker"),
     _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.03, 3),
     _camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
@@ -66,7 +65,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
             _plugin->setFocusFloodfillNorm(toggled);
     });
 
-    connect(&_connectToTrackerAction, &TriggerAction::triggered, this, [this]() { _plugin->connectToTracker(); });
+
 
     connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget().openCalib(); });
 

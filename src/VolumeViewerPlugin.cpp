@@ -101,7 +101,6 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());*/
-    _secondaryToolbarAction.addAction(&_settingsAction->getConnectToTrackerAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getEyeOffsetAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getCamDistAction());
     //_secondaryToolbarAction.addAction(&_settingsAction->getFlipInterlacingAction());
@@ -408,6 +407,8 @@ void VolumeViewerPlugin::init()
 
 
     connect(&getOpenGLRendererWidget(), &OpenGLRendererWidget::newSelection, this, [this](const SelectionMode& type, const bool& replace) {
+        clock_t start, end;
+        start = clock();
         // Perform selection of closest point
         const QVector3D cursor = getVolumeRenderer().getCursor();
         if (_points.isValid()) {
@@ -441,6 +442,10 @@ void VolumeViewerPlugin::init()
             _points->setSelectionIndices(selection);
             events().notifyDatasetDataSelectionChanged(_points->getSourceDataset<Points>());
         }
+
+        end = clock();
+        int time_taken = int(end - start);
+        std::cout << "Time Selection : " << time_taken;
     });
 
 }

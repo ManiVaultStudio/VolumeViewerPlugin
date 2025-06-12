@@ -112,6 +112,7 @@ private:
 
     bool _selecting = false;
     bool selectionReplaces = true;
+    QElapsedTimer selectionInterval;
 
     SelectionMode selectionMode;
 
