@@ -45,6 +45,7 @@ class OpenGLRendererWidget : public QOpenGLWidget, QOpenGLFunctions_4_2_Core
 
 public:
     OpenGLRendererWidget();
+    ~OpenGLRendererWidget();
 
 
     VolumeRenderer& getVolumeRenderer() { return _volumeRenderer; }
@@ -54,11 +55,13 @@ public:
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
-    void connectToTracker();
+    void connectToTracker(PSTracker* tracker = nullptr);
     void setEyeOffset(float eyeOffset);
     void setCamDist(float camDist);
     void setSelectionMode(const int32_t& mode);
-    void openCalib() const { refWidget->show(); };
+    void openCalib() const { refWidget->show(); }
+
+    PSTracker* getTracker() const { return _tracker; }
 
 public:
     bool eventFilter(QObject* target, QEvent* event);
@@ -88,9 +91,11 @@ signals:
     void created();
     void newSelection(const SelectionMode& type, const bool& replace);
 
+    void trackerAvailable(PSTracker* tracker);
+
 private:
     VolumeRenderer _volumeRenderer;
-    PSTracker _tracker;
+    PSTracker* _tracker;
 
     #ifdef CONTROLS
         ControlsWidget* _controls;
@@ -116,7 +121,7 @@ private:
 
     SelectionMode selectionMode;
 
-
+    QLabel* msgLabel;
 
     QTimer* _updateTimer = nullptr;
 

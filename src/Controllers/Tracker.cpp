@@ -86,22 +86,33 @@ PSTracker::PSTracker(QObject *parent) : QObject(parent) {
         signal(SIGQUIT, Exithandler);
         signal(SIGINT, Exithandler);
     #endif
-    try {
-        _pst = new PSTech::pstsdk::Tracker();
-    } catch (PSTech::TrackerException& e) {
-        std::cout << "Could not connect to tracker." << std::endl;
-       std::cout << e.full_description() << std::endl; // DEV 
-        // throw e;
+}
+
+void PSTracker::initPST() {
+    if (_pst == nullptr) {
+        try {
+            _pst = new PSTech::pstsdk::Tracker();
+            _detected = true;
+        }
+        catch (PSTech::TrackerException& e) {
+            std::cout << "Could not connect to tracker." << std::endl;
+            std::cout << e.full_description() << std::endl; // DEV 
+            throw "The PS-tech tracker is not detected";
+        }
     }
 }
 
 PSTracker::~PSTracker() {
     Exithandler(0);
-    if (_pst != nullptr) delete _pst;
+    delete _pst;
 }
 
 
 bool PSTracker::checkTrackerStatus() {
+    if (!_detected) {
+        throw "The PS-tech tracker is not detected";
+    }
+
     qDebug() << "PS Tech system check : ";
     PSTech::pstsdk::StatusMessage msg = _pst->Systemcheck();
     switch (msg) {
@@ -169,9 +180,16 @@ bool PSTracker::getTrackerConnected() const {
 };
 
 
+bool PSTracker::getTrackerActive() const {
+    return _connected;
+};
+
+
 void PSTracker::Connect()
 {
-
+    if (!_detected) throw "The PS-tech tracker is not detected";
+    
+    if (checkTrackerStatus()) return;
 
     // Implement error handling of PSTech::TrackerException exceptions to prevent 
     // improper PST Tracker shutdown on errors.

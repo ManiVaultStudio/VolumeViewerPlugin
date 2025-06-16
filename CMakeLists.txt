@@ -37,6 +37,9 @@ if(NOT DEFINED SDL_BUILD_DIR)
     message(FATAL_ERROR "Please set SDL_BUILD_DIR to the directory where the SDL library is installed")
 endif()
 file(TO_CMAKE_PATH ${SDL_BUILD_DIR} SDL_BUILD_DIR)
+if(NOT EXISTS ${SDL_BUILD_DIR})
+    message(FATAL_ERROR "There is an issue with the SDL path provided.")
+endif()
 
 
 

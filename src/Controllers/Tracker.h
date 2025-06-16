@@ -110,14 +110,19 @@ public:
     bool poseIsLive() const { return poseAcurate && listener.poseIsLive(); }
 
     bool getTrackerConnected() const;
+    bool getTrackerActive() const;
+    void initPST();
 
 
 private:
     PSTech::pstsdk::TargetStatuses targets;
 
     MyListener listener;
-    PSTech::pstsdk::Tracker* _pst;
+    PSTech::pstsdk::Tracker* _pst = nullptr;
 
+    /* Reflects whether an instance of pst exists, ie if a tracker is plugged in */
+    bool _detected = false;
+    /* Reflects whether the tracker is activated and actively sending information */
     bool _connected = false;
 
     /** Timing of the animation after there has been a tracking lost */
@@ -129,6 +134,4 @@ private:
     QMatrix4x4 lerpTrajectory;
     QMatrix4x4 oldPos;
 
-signals:
-    void connected() const;
 };

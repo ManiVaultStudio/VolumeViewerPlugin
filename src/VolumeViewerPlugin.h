@@ -220,8 +220,7 @@ private:
     HorizontalToolbarAction             _primaryToolbarAction;      /** Horizontal toolbar for primary content */
     HorizontalToolbarAction             _secondaryToolbarAction;    /** Secondary toolbar for secondary content */
 
-    // Martin : widget
-    QWidget* controls;
+
 };
 
 /**

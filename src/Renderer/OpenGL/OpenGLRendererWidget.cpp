@@ -3,6 +3,7 @@
 #include <QEvent>
 #include <QMouseEvent>
 #include <QWindow>
+#include <QVBoxLayout>
 
 #include <QMainWindow>
 #include <algorithm>
@@ -11,8 +12,17 @@
 
 
 OpenGLRendererWidget::OpenGLRendererWidget() :
-    QOpenGLWidget()
+    QOpenGLWidget(),
+    _tracker(nullptr),
+    msgLabel(new QLabel(this))
 {
+    // UI
+    QVBoxLayout* layout = new QVBoxLayout(this);
+    msgLabel->setAlignment(Qt::AlignBottom);
+    msgLabel->setStyleSheet(QString::fromUtf8("color: rgb(235, 235, 235);"));
+    layout->addWidget(msgLabel);
+    setLayout(layout);
+
 
     setAcceptDrops(true);
     setFocusPolicy(Qt::FocusPolicy::ClickFocus);
@@ -45,7 +55,7 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
 
     #endif
 
-    refWidget = new ReferenceSetupWidget(this, &_tracker);
+    refWidget = new ReferenceSetupWidget(this);
 
     pedal = new PedalManager();
 
@@ -83,10 +93,11 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
         }
         }
     });
+        
+}
 
-    connectToTracker();
-
-    
+OpenGLRendererWidget::~OpenGLRendererWidget() {
+    delete _tracker;
 }
 
 //void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
@@ -117,10 +128,20 @@ void OpenGLRendererWidget::setColormap(const QImage& colormap)
 }
 
 
-void OpenGLRendererWidget::connectToTracker()
+void OpenGLRendererWidget::connectToTracker(PSTracker* tracker)
 {
-    _tracker.Connect();
-    setFocus();
+    if (tracker == nullptr) _tracker = new PSTracker();
+    else _tracker = tracker;
+
+    try {
+        _tracker->initPST();
+        _tracker->Connect();
+    }
+    catch (const char* err) {
+        msgLabel->setText(err);
+    }
+
+    emit trackerAvailable(_tracker);
 }
 
 void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
@@ -199,8 +220,8 @@ void OpenGLRendererWidget::paintGL()
     _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, true, _controls->getControlMatrix());
 #else
     QMatrix4x4 pose;
-    if (_tracker.GetTargetMatrix(pose)) {
-        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker.poseIsLive(), pose);
+    if (_tracker != nullptr && _tracker->GetTargetMatrix(pose)) {
+        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker->poseIsLive(), pose);
     }
 #endif
 }
@@ -211,7 +232,7 @@ void OpenGLRendererWidget::cleanup()
 #ifdef CONTROLS
     if(_controls != nullptr) delete _controls;
 #endif
-
+    delete _tracker;
 
     makeCurrent();
 }

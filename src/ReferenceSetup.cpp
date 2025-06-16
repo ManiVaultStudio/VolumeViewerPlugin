@@ -3,7 +3,9 @@
 #include <QVBoxLayout>
 
 
-ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PSTracker* trackerPtr) : QWidget(parent, Qt::Window)
+ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent) : 
+    QWidget(parent, Qt::Window),
+    tracker(nullptr)
 {
     setWindowTitle("PS Tracker Reference Setup");
     resize(400, 350);
@@ -11,11 +13,6 @@ ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PSTracker* trackerPt
     setFocusPolicy(Qt::FocusPolicy::ClickFocus);
     installEventFilter(this);
 
-    tracker = trackerPtr;
-
-    // When the object is instanciated (VolumeViewer is opened)
-    // Load back the reference systemn used in the previosu session
-    //connect(tracker, &PSTracker::connected, this, [this]() {setStoredReference(); });
 
     createUI();
 
@@ -87,7 +84,10 @@ void ReferenceSetupWidget::createUI() {
 }
 
 void ReferenceSetupWidget::show(){
-    if (!tracker->getTrackerConnected())
+    if(tracker == nullptr){
+
+    } 
+    else if (!tracker->getTrackerConnected())
     {
         instructions->setText("Please click \"connect tracker\" and try again.");
         imageLabel->setPixmap(illustrations[3]);

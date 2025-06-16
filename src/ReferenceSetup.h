@@ -30,7 +30,7 @@ class ReferenceSetupWidget : public QWidget {
 
 
 public:
-    ReferenceSetupWidget(QWidget* parent, PSTracker* trackerPtr);
+    ReferenceSetupWidget(QWidget* parent);
 
     void show();
 
@@ -40,6 +40,7 @@ public:
     void continueCalib();
     void startMeasurement();
     void stopMeasurement();
+    void setTracker(PSTracker* trackerPtr) {};
 
 private:
     QLabel* instructions;

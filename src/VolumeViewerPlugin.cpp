@@ -113,6 +113,22 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 void VolumeViewerPlugin::init()
 {    
 
+    // Detect other instances of the plugin and use their tracker
+    const std::vector<Plugin*> instances = plugins().getPluginsByFactory(getFactory());
+    if (instances.size() > 0) {
+        VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
+        connect(&firstInstance->getOpenGLRendererWidget(), &OpenGLRendererWidget::trackerAvailable, this, [this](PSTracker* tracker) {
+            getOpenGLRendererWidget().connectToTracker(tracker);
+        });
+    }
+    else {
+        getOpenGLRendererWidget().connectToTracker();
+    }
+
+
+    qDebug() << "Number of instances " << instances.size();
+
+
     // Create the layout.
     auto layout = new QVBoxLayout();
     layout->setContentsMargins(0, 0, 0, 0);
@@ -123,9 +139,7 @@ void VolumeViewerPlugin::init()
 
     getWidget().setLayout(layout);
 
-    // Martin : Control widget
-    controls = new QWidget();
-    // END Martin : Control widget
+
 
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
     _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
