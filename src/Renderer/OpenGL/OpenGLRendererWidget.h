@@ -3,15 +3,12 @@
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions_4_2_Core>
 
-#include "VolumeRenderer.h"
-#include "Controllers/Tracker.h"
-
-#include "graphics/Vector3f.h"
-#include "graphics/Vector2f.h"
-
 #include <vector>
 
 #include <QTimer>
+#include <QHBoxLayout>
+
+
 //#define CONTROLS
 
 #ifdef CONTROLS
@@ -20,6 +17,13 @@
 
 #include "ReferenceSetup.h"
 #include <Controllers/Pedal.h>
+#include <Widgets/FullScreenWidget.h>
+
+#include "VolumeRenderer.h"
+#include "Controllers/Tracker.h"
+
+#include "graphics/Vector3f.h"
+#include "graphics/Vector2f.h"
 
 /**
  * OpenGL Volume Renderer Widget
@@ -39,6 +43,8 @@ enum class SelectionMode {
 };
 
 
+
+
 class OpenGLRendererWidget : public QOpenGLWidget, QOpenGLFunctions_4_2_Core
 {
     Q_OBJECT
@@ -55,13 +61,24 @@ public:
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
-    void connectToTracker(PSTracker* tracker = nullptr);
+    void setTracker(PSTracker* tracker = nullptr); /** Set tracker to pointer or to a new tracker object if not specified */
     void setEyeOffset(float eyeOffset);
     void setCamDist(float camDist);
     void setSelectionMode(const int32_t& mode);
-    void openCalib() const { refWidget->show(); }
+    void openCalib() const { refWidget->setTargetIndex(pluginInstanceIndex);  refWidget->show(); }
 
+    void requestTracker();
     PSTracker* getTracker() const { return _tracker; }
+
+    void setFullScreenWidget(FullScreenWidget* widget);
+    FullScreenWidget* getFullScreenWidget()const { return fullScreenWidget; };
+
+    void setInstanceIndex(const int& index) { pluginInstanceIndex = index; }
+    //void setNumberInstances(const int& index) { numberInstances = index; }
+    void toggleFullScreen();
+    bool getIsFullScreen() const { return isFullScreen; };
+
+    void adjustInterlacing();
 
 public:
     bool eventFilter(QObject* target, QEvent* event);
@@ -69,7 +86,7 @@ public:
     /**
     * Returns vector of position of the camera in space, calculated from the spherical coordinates
     */
-    mv::Vector3f getCamPos() const;
+    QVector3D getCamPos() const;
 
 protected:
 
@@ -84,6 +101,8 @@ protected:
         QWidget::showEvent(event);
     }
 
+    void connectTracker();
+
 private slots:
     void updatePixelRatio();
 
@@ -91,11 +110,12 @@ signals:
     void created();
     void newSelection(const SelectionMode& type, const bool& replace);
 
-    void trackerAvailable(PSTracker* tracker);
+    void hasTracker(PSTracker* tracker);
+    void exitFullScreen();
 
 private:
     VolumeRenderer _volumeRenderer;
-    PSTracker* _tracker;
+    PSTracker* _tracker = nullptr;
 
     #ifdef CONTROLS
         ControlsWidget* _controls;
@@ -126,4 +146,14 @@ private:
     QTimer* _updateTimer = nullptr;
 
     float _pixelRatio = 1.0f; /** Current pixel ratio */
+
+    int pluginInstanceIndex = -1;
+    //int numberInstances = 0;
+
+    FullScreenWidget* fullScreenWidget = nullptr;
+    bool isFullScreen = false;
+
+    QMatrix4x4 offset;
+
 };
+

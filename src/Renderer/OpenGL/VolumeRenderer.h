@@ -37,9 +37,10 @@ public:
     void setColors(std::vector<float>& colors);
     void setHighlights(std::vector<int>& highlights);
     void setColormap(const QImage& colormap);
-    void setEyeOffset(float eyeOffset) { _eyeOffset = eyeOffset; }
-    void setInterlacingFlip(const bool & flipped) { _interlacing = flipped ? 1 : 0; }
+    void setEyeOffset(float eyeOffset) { _eyeDistance = eyeOffset; }
+    void setInterlacing(const int& interl) { _interlacing = interl; }
     void setSelectionColor(const QColor& color) { _selectionColor = color; }
+    void setStereo(const bool& val){ stereo = val; }
     //void setCursorPosition(const QVector3D& pos) { _cursorPoint = mv::Vector3f(pos[0], pos[1], pos[2]); }
     QVector3D getCursor() const;
     bool getCursorFrozen() const { return cursorFrozen; }
@@ -53,9 +54,10 @@ public:
     void init();
     void resize(int w, int h);
 
-    void render(GLuint framebuffer, mv::Vector3f camPos, float aspect, const bool& , const QMatrix4x4& modelMatrix);
+    void render(GLuint framebuffer, QVector3D camPos, float aspect, const bool& , const QMatrix4x4& modelMatrix);
     void drawVolume(mv::ShaderProgram& shader, const bool& live);
     void drawCube(mv::ShaderProgram& shader);
+    void drawCursor();
 
 
 
@@ -88,8 +90,8 @@ private:
     GLuint _cursorVao;
     GLuint _cursorVbo;
     //mv::Vector3f _cursorPoint = mv::Vector3f(0.f,0.f,0.f);
-    float _eyeOffset = 0.065;
-    int _interlacing = 0;
+    float _eyeDistance = 0.065;
+    int _interlacing = 1;
 
     QColor _selectionColor = QColor(0,0,0);
     bool _hasColors = false;
@@ -98,6 +100,8 @@ private:
     //QSize cMapSize;
 
     Cube _cube;
+
+    bool stereo = false;
 
     QMatrix4x4 _projMatrix;
     QMatrix4x4 _leftProjMatrix;

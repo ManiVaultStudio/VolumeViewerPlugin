@@ -36,30 +36,49 @@ void MyListener::OnTrackerData(const PSTech::pstsdk::TrackerData& td)
     for (int d = 0; d < td.targetlist.size(); ++d)
     {
 
-        auto& mat = td.targetlist[d].pose;
+        int index = idToIndex(td.targetlist[d].id);
+        if (index > -1) {
 
-        if (td.targetlist[d].id == controlTargetId)
-        {
-            if (timer.isValid()) timer.restart();
-            else timer.start();
+            auto& mat = td.targetlist[d].pose;
+
+    
+            if (timers[index].isValid()) timers[index].restart();
+            else timers[index].start();
 
             // Lock the thread to prevent other threads from modifying the ressource
             // Unlocked automaically when the mutex goes out of scope
             const std::lock_guard<std::mutex> lock(mtx);
 
-            pstToQtMatrix(mat, targetMatrix);
+             pstToQtMatrix(mat, targetMatrices[index]);
+        
         }
 
     }
 
 }
-QMatrix4x4 MyListener::getTragetMatrix() const {
-    return targetMatrix;
+QMatrix4x4 MyListener::getTragetMatrix(const int& index) const {
+    // If the viewer instance is greater than the number of targets, just use the last target
+    return targetMatrices[(index) % targetMatrices.size()];
 }
 
-bool MyListener::poseIsLive() const {
-    return timer.isValid() ? timer.elapsed() < poseIsOldThreshold : false;
+bool MyListener::poseIsLive(const int& index) const {
+    return timers[index].isValid() ? timers[index].elapsed() < poseIsOldThreshold : false;
 };
+
+int MyListener::idToIndex(const int& id) const { 
+  
+    for (int i = 0; i < targetIdList.size(); i++) {
+        if (targetIdList[i] == id) return i;
+    }
+    return -1;
+};
+
+
+void MyListener::addTarget(const int& id) {
+    targetIdList.push_back(id);
+    targetMatrices.push_back(QMatrix4x4());
+    timers.push_back(QElapsedTimer());
+}
 
 
 
@@ -118,7 +137,6 @@ bool PSTracker::checkTrackerStatus() {
     switch (msg) {
     case PSTech::pstsdk::StatusMessage::OK: {
         qDebug() << "PS Tech system is running OK";
-        _connected = true;
         return true;
     }
     case PSTech::pstsdk::StatusMessage::NOT_INITIALIZED: {
@@ -180,16 +198,9 @@ bool PSTracker::getTrackerConnected() const {
 };
 
 
-bool PSTracker::getTrackerActive() const {
-    return _connected;
-};
-
-
 void PSTracker::Connect()
 {
     if (!_detected) throw "The PS-tech tracker is not detected";
-    
-    if (checkTrackerStatus()) return;
 
     // Implement error handling of PSTech::TrackerException exceptions to prevent 
     // improper PST Tracker shutdown on errors.
@@ -210,20 +221,13 @@ void PSTracker::Connect()
         // Print version number of the tracker server being used.
         std::cout << "Running PST Server version " << _pst->GetVersionInfo() << "\n";
 
-        qDebug() << "Check pre add listener";
-        checkTrackerStatus();
 
         // Register the listener object to the tracker server.
         _pst->AddTrackerListener(&listener);
-        qDebug() << "Check post add listener";
-
-        checkTrackerStatus();
 
         // Start the tracker server.
         _pst->Start();
 
-        qDebug() << "Check post start";
-        checkTrackerStatus();
 
 
 
@@ -250,17 +254,21 @@ void PSTracker::Connect()
         if (allTargets.size() == 0) throw "No Target registered in the tracker. Please add at least one target in the PST Client app.";
 
         for (PSTech::pstsdk::TargetStatus target : allTargets) {
-            if (target.status) targets.push_back(target);
+            if (target.status) {
+                 targets.push_back(target);
+                 listener.addTarget(target.id);
+                 poseAcurate.push_back(true);
+            }
+            //std::cout << target.name << " " << target.status << std::endl;
         }
 
         if (targets.size() == 0) throw "No active target. Please activate the desired targets in the PST Client app.";
-        listener.setControlTarget(targets[1].id);
-        if(targets.size() >= 2) listener.setCursorTarget(targets[1].id);
  
 
 
         // Perform a system check to see if the tracker server is running OK and print the result.
         if (checkTrackerStatus()) {
+            _connected = true;
             emit connected();
         }
 
@@ -281,12 +289,11 @@ void PSTracker::Connect()
 
 float t = 0;
 
-bool PSTracker::GetTargetMatrix(QMatrix4x4& pose)
+bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
 {
-
-    if (_connected)
+    if (_connected && !listener.getIsIdle(index))
     {
-        pose = listener.getTragetMatrix();
+        pose = listener.getTragetMatrix(index);
 
      
         if (pose.column(3).toVector3D().length() < 0.001f) {
@@ -295,14 +302,14 @@ bool PSTracker::GetTargetMatrix(QMatrix4x4& pose)
         }
 
         // Prepare for interpolation for when tracking goes back live
-        if (!listener.poseIsLive()) {
+        if (!listener.poseIsLive(index)) {
             oldPos = pose;
             lerpTimer.invalidate();
-            poseAcurate = false;
+            poseAcurate[index] = false;
         }
 
         // When the tracking goes back live, interpolate between the old and the new position
-        if (!poseAcurate && listener.poseIsLive()) { // Is live and ready to interpolate
+        if (!poseAcurate[index] && listener.poseIsLive(index)) { // Is live and ready to interpolate
             if (!lerpTimer.isValid()) {
                 lerpTrajectory = pose - oldPos;
                 lerpTimer.start();
@@ -310,12 +317,13 @@ bool PSTracker::GetTargetMatrix(QMatrix4x4& pose)
 
             if (lerpTimer.hasExpired(lerpDuraton)) {
                 lerpTimer.invalidate();
-                poseAcurate = true;
+                poseAcurate[index] = true;
             }
             else {
                 pose -= lerpTrajectory / static_cast<float>(lerpDuraton) * (lerpDuraton - lerpTimer.elapsed());
             }
         }
+
 
         return true;
 
@@ -326,6 +334,7 @@ bool PSTracker::GetTargetMatrix(QMatrix4x4& pose)
         if (t > 360) t = t - 360;
         pose.setToIdentity();
         pose.rotate(t, 0, 1, 0);
+
         return true;
     }
 }
@@ -340,3 +349,4 @@ QMatrix4x4 PSTracker::GetReference() const {
 void PSTracker::setTrackerReference(const QMatrix4x4& matrix, const bool& relative = false) {
     _pst->SetReference(qtToPstMatrix(matrix), relative);
 }
+

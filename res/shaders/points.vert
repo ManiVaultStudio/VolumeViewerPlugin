@@ -18,7 +18,7 @@ void main() {
     vec4 world_position = modelMatrix * position;
     gl_Position = projMatrix * viewMatrix * world_position;
 
-    gl_PointSize =  1 + 3 / gl_Position.w;
+    gl_PointSize =  1.5 + 3 / gl_Position.w;
 
     
     v_Color = color;

@@ -118,6 +118,8 @@ public: // Miscellaneous
         return _selectionOpaque;
     }
 
+    VolumeViewerWidget* getVolumeViewerWidget() const { return _volumeViewerWidget; }
+
     Dataset<Points>& getDataset() {
         return _points;
     }
@@ -136,10 +138,7 @@ public: // Miscellaneous
         return _volumeViewerWidget->getOpenGLWidget()->getVolumeRenderer();
     }
 
-    void connectToTracker()
-    {
-        _volumeViewerWidget->getOpenGLWidget()->connectToTracker();
-    }
+    void requestTracker();
 
     void setEyeOffset(float value)
     {

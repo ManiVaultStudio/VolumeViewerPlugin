@@ -17,12 +17,25 @@ VolumeViewerWidget::VolumeViewerWidget(QObject* parent, const QString& title) :
 
     _openGLWidget = new OpenGLRendererWidget();
 
-    auto* layout = new QVBoxLayout();
+    layout = new QVBoxLayout();
     layout->addWidget(_openGLWidget);
 
     setLayout(layout);
+
+    connect(_openGLWidget, &OpenGLRendererWidget::exitFullScreen, this, [this]() {
+        layout->addWidget(_openGLWidget);
+    });
     
 }
+
+//void VolumeViewerWidget::toggleFullScreen() {
+//    if (_openGLWidget->isFullScreen()) {
+//        _openGLWidget->setParent(this);
+//    }
+//    else {
+//    }
+//    _openGLWidget->toggleFullScreen();
+//}
 
 void VolumeViewerWidget::setData(Dataset<Points> points)
 {

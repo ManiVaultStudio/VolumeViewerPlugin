@@ -13,10 +13,14 @@
 #include <mutex>
 #include <QElapsedTimer>
 
+#include <vector>
+#include <string>
+
 
 #include "pstsdk_cpp.h"
 #include "TrackerExceptions.h"
 #include "PstStringIoStream.h"
+
 
 /*
  * Helper function for clear printing of 4x4 matrices.
@@ -52,40 +56,34 @@ static PSTech::Utils::PstArray<float, 16> qtToPstMatrix(QMatrix4x4 inMatrix) {
 
 
 
-
-
-
-
-
-
-
 class MyListener : public PSTech::pstsdk::Listener
 {
-    QMatrix4x4 targetMatrix;
-    int controlTargetId = -1;
-    int cursorTargetId = -1;
+    std::vector<QMatrix4x4> targetMatrices;
+    /*int controlTargetId = -1;
+    int cursorTargetId = -1;*/
 
     /** Time elapsed since last pose */
-    QElapsedTimer timer;
+    std::vector<QElapsedTimer> timers;
     /** Maximum amount of time for the last pose to be considered "not current", in milliseconds */
     const qint64 poseIsOldThreshold = 200;
 
+    std::vector<int> targetIdList;
+
+
     virtual void OnTrackerData(const PSTech::pstsdk::TrackerData& td);
 public:
-    bool poseIsLive() const;
+    bool poseIsLive(const int& index) const;
 
-    QMatrix4x4 getTragetMatrix() const;
-    void setControlTarget(const int& id) { controlTargetId = id; }
-    void setCursorTarget(const int& id) { cursorTargetId = id; }
+    QMatrix4x4 getTragetMatrix(const int& index) const;
+    /*void setControlTarget(const int& id) { controlTargetId = id; }
+    void setCursorTarget(const int& id) { cursorTargetId = id; }*/
+    void addTarget(const int& id);
+
+    /** Returns the index of the tracker with this ID in the targetIdList list */
+    int idToIndex(const int& id) const;
+
+    bool getIsIdle(const int& index) { return (!timers[index].isValid() || timers[index].elapsed() > 4000); }
 };
-
-
-
-
-
-
-
-
 
 
 
@@ -101,17 +99,23 @@ public:
     ~PSTracker();
     void Connect();
     
-    bool GetTargetMatrix(QMatrix4x4& pose);
+    bool GetTargetMatrix(const int& index, QMatrix4x4& pose);
     QMatrix4x4 GetReference() const;
 
     bool checkTrackerStatus();
     void setTrackerReference(const QMatrix4x4& matrix, const bool& relative);
 
-    bool poseIsLive() const { return poseAcurate && listener.poseIsLive(); }
+    bool poseIsLive(const int& index) const {
+        return poseAcurate[index] && listener.poseIsLive(index); 
+    }
 
     bool getTrackerConnected() const;
-    bool getTrackerActive() const;
     void initPST();
+
+
+
+signals:
+    void connected();
 
 
 private:
@@ -129,7 +133,7 @@ private:
     QElapsedTimer lerpTimer;
     /** Time to animate the target between the last live position to the new one, after there has been a tracking lost */
     const qint64 lerpDuraton = 300;
-    bool poseAcurate = true;
+    std::vector<bool> poseAcurate;
 
     QMatrix4x4 lerpTrajectory;
     QMatrix4x4 oldPos;

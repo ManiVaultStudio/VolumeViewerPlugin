@@ -5,6 +5,7 @@
 
 #include <QWidget>
 #include <QVector3D>
+#include <QLayout>
 
 #include "graphics/Vector3f.h"
 
@@ -34,6 +35,7 @@ public:
     uint32_t getClosestPoint(const QVector3D& cursor) const;
     std::vector<uint32_t> getPointsInSphere(const QVector3D& cursor, const float& radius) const;
 
+
 public:
     OpenGLRendererWidget* getOpenGLWidget()
     {
@@ -49,4 +51,6 @@ private:
 
     QVector3D _meanCoord;
     float _maxRange;
+
+    QLayout* layout;
 };

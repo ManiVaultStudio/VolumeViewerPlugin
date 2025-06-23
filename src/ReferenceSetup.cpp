@@ -3,7 +3,7 @@
 #include <QVBoxLayout>
 
 
-ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent) : 
+ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PedalManager* pedalPtr) :
     QWidget(parent, Qt::Window),
     tracker(nullptr)
 {
@@ -15,6 +15,22 @@ ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent) :
 
 
     createUI();
+
+    pedal = pedalPtr;
+    connect(pedal, &PedalManager::pedalPressed, this, [this](int value) {
+        if (hasFocus()) {
+            if (value == 2) {
+                pressAction();
+            }
+        }
+    });
+    connect(pedal, &PedalManager::pedalReleased, this, [this](int value) {
+        if (hasFocus()) {
+            if (value == 2) {
+                releaseAction();
+            }
+        }
+    });
 
 }
 
@@ -85,8 +101,9 @@ void ReferenceSetupWidget::createUI() {
 
 void ReferenceSetupWidget::show(){
     if(tracker == nullptr){
-
-    } 
+        instructions->setText("The ps-tech tracker is not detected");
+        imageLabel->setPixmap(illustrations[3]);
+    }
     else if (!tracker->getTrackerConnected())
     {
         instructions->setText("Please click \"connect tracker\" and try again.");
@@ -106,6 +123,20 @@ void ReferenceSetupWidget::resetState(){
     state = calibState::Idle;
 }
 
+void ReferenceSetupWidget::pressAction() {
+    if (state == calibState::Stopped) {
+        resetState();
+        hide();
+        parentWidget()->setFocus();
+    }
+    else
+        startMeasurement();
+}
+
+void ReferenceSetupWidget::releaseAction() {
+    stopMeasurement();
+}
+
 
 bool ReferenceSetupWidget::eventFilter(QObject* target, QEvent* event) {
 
@@ -123,13 +154,7 @@ bool ReferenceSetupWidget::eventFilter(QObject* target, QEvent* event) {
 
         if (key == Qt::Key_Space)
         {
-            if (state == calibState::Stopped) {
-                resetState();
-                hide();
-                parentWidget()->setFocus();
-            }
-            else if (!keyEvent->isAutoRepeat())
-                startMeasurement();
+            if(!keyEvent->isAutoRepeat()) pressAction();
 
             return true;
         }
@@ -143,8 +168,7 @@ bool ReferenceSetupWidget::eventFilter(QObject* target, QEvent* event) {
 
         if (key == Qt::Key_Space)
         {
-            if (!keyEvent->isAutoRepeat())
-                stopMeasurement();
+            if (!keyEvent->isAutoRepeat()) releaseAction();
             
             return true;
         }
@@ -161,25 +185,25 @@ void ReferenceSetupWidget::continueCalib()
     if (!origin) {
         qDebug() << "Suggesting origin";
         state = calibState::Origin;
-        instructions->setText("Place the tracker in the middle of the are and press space to define the origin.");
+        instructions->setText("Place the target in the middle of the are and press the left pedal to define the origin.");
         imageLabel->setPixmap(illustrations[0]);
         return;
     }
     if (!forwards) {
         qDebug() << "Suggesting forwards";
         state = calibState::Forwards;
-        instructions->setText("Place your tracker in the center of the area, hold space,"
+        instructions->setText("Place your tracker in the center of the area, hold the left pedal,"
             "and move the tracker in a straight, forward direction, perpendicular to the screen. \n"
-            "Then, at the end of the trajectory, release the spacebar and move on to the next step.");
+            "Then, at the end of the trajectory, release the left pedal and move on to the next step.");
         imageLabel->setPixmap(illustrations[1]);
         return;
     }
     if (!up) {
         qDebug() << "Suggesting up";
         state = calibState::Up; 
-        instructions->setText("Place your tracker in the center of the area, hold space,"
+        instructions->setText("Place your tracker in the center of the area, hold the left pedal,"
             "and move the tracker in a straight, upward direction, parallel to the screen. \n"
-            "Then, at the end of the trajectory, release the spacebar and move on to the next step.");
+            "Then, at the end of the trajectory, release the left pedal and move on to the next step.");
         imageLabel->setPixmap(illustrations[2]);
         return;
     }
@@ -195,7 +219,7 @@ void ReferenceSetupWidget::continueCalib()
 
     try {
         tracker->setTrackerReference(ref, true);
-        instructions->setText("The reference was set correctly ! \nYou can go back to the VolumViewer with space.");
+        instructions->setText("The reference was set correctly ! \nYou can go back to the VolumViewer with the left pedal.");
         imageLabel->setPixmap(illustrations[4]);
     }
     catch (PSTech::TrackerException err) {
@@ -215,14 +239,14 @@ void ReferenceSetupWidget::startMeasurement()
     if (state == calibState::Stopped) return;
 
     QMatrix4x4 pose;
-    tracker->GetTargetMatrix(pose);
+    tracker->GetTargetMatrix(targetIndex, pose);
 
     errors->hide();
     switch (state)
     {
     case calibState::Origin:
     {
-        if (tracker->poseIsLive()) {
+        if (tracker->poseIsLive(targetIndex)) {
             qDebug() << "Reading origin";
             origin = pose.column(3).toVector3D();
 
@@ -232,15 +256,14 @@ void ReferenceSetupWidget::startMeasurement()
         else
         {
             errors->show();
-            errors->setText("The target is not detected.Make sure it is in view of the tracker and try again. \n"
-                "Place the tracker in the middle of the area and press space to define the origin.");
+            errors->setText("The target is not detected.Make sure it is in view of the tracker and try again.");
         }
 
         break;
     }
     case calibState::Forwards:
     {
-        if (tracker->poseIsLive()) {
+        if (tracker->poseIsLive(targetIndex)) {
             qDebug() << "starting forward";
             bufferVector = pose.column(3).toVector3D();
         }
@@ -253,7 +276,7 @@ void ReferenceSetupWidget::startMeasurement()
     }
     case calibState::Up:
     {
-        if (tracker->poseIsLive()) {
+        if (tracker->poseIsLive(targetIndex)) {
             qDebug() << "Starting up";
             bufferVector = pose.column(3).toVector3D();
         }
@@ -274,7 +297,7 @@ void ReferenceSetupWidget::stopMeasurement()
     if (!bufferVector) return;
 
     QMatrix4x4 pose;
-    tracker->GetTargetMatrix(pose);
+    tracker->GetTargetMatrix(targetIndex, pose);
 
     switch (state)
     {
@@ -299,47 +322,3 @@ void ReferenceSetupWidget::stopMeasurement()
     state = calibState::Idle;
     continueCalib();
 }
-
-
-/**
-* Stores the absolute reference that's contained in the tracker
-*/
-//void ReferenceSetupWidget::saveReference() const {
-//    QMatrix4x4 matrixRef;
-//
-//    matrixRef = tracker->GetReference();
-//
-//    // Create and open a text file
-//    std::ofstream refFile(fileLoc);
-//
-//    for (int i = 0; i < 4; i++) {
-//        for (int j = 0; j < 4; j++) {
-//            refFile << matrixRef(i,j) << '\n';
-//        }
-//    }
-//
-//
-//    qDebug() << "Saving reference : " << matrixRef;
-//
-//    // Close the file
-//    refFile.close();
-//};
-
-//void ReferenceSetupWidget::setStoredReference() const {
-//    if (std::filesystem::is_regular_file(fileLoc)) {
-//        QMatrix4x4 ref;
-//        std::string lineText;
-//
-//        std::ifstream MyReadFile(fileLoc);
-//        int i = 0;
-//        while (getline(MyReadFile, lineText) && i < 16) {
-//            ref(i / 4, i % 4) = std::stof(lineText);
-//            float stodf = std::stof(lineText);
-//            i++;
-//        }
-//
-//        tracker->setTrackerReference(ref, false);
-//
-//
-//    }
-//};

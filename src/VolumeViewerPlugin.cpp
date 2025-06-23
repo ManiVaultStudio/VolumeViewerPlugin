@@ -95,8 +95,11 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _settingsAction = new SettingsAction(this, "SettingsAction");
 
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
+    _primaryToolbarAction.addAction(&_settingsAction->getToggleFullScreen());
+
 
     _secondaryToolbarAction.addAction(&_settingsAction->getStartCalibAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getConnectToTrackerAction());
     /*_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
@@ -112,21 +115,54 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 
 void VolumeViewerPlugin::init()
 {    
+    connect(&getOpenGLRendererWidget(), &OpenGLRendererWidget::hasTracker, this, [this]() {
+        _secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+    });
 
-    // Detect other instances of the plugin and use their tracker
-    const std::vector<Plugin*> instances = plugins().getPluginsByFactory(getFactory());
-    if (instances.size() > 0) {
-        VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
-        connect(&firstInstance->getOpenGLRendererWidget(), &OpenGLRendererWidget::trackerAvailable, this, [this](PSTracker* tracker) {
-            getOpenGLRendererWidget().connectToTracker(tracker);
-        });
+    
+
+	// Detect other instances of the plugin
+	const std::vector<Plugin*> instances = plugins().getPluginsByFactory(getFactory());
+	getOpenGLRendererWidget().setInstanceIndex(instances.size());
+
+	// Get the tracker object from the first instance.
+	if (instances.size() > 0) {
+		VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
+
+		connect(&firstInstance->getOpenGLRendererWidget(), &OpenGLRendererWidget::hasTracker, this, [this](PSTracker* tracker) {
+			getOpenGLRendererWidget().setTracker(tracker);
+			_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+			});
+
+	}
+	// Request tracker from the first instance
+	requestTracker();
+
+
+    // Create of search for the full screen QWidget ( in other instances )
+    FullScreenWidget* fsWidget = nullptr;
+    for (Plugin* plugin : instances) {
+        VolumeViewerPlugin* instance = static_cast<VolumeViewerPlugin*>(plugin);
+        if (instance->getOpenGLRendererWidget().getFullScreenWidget() != nullptr) {
+            fsWidget = instance->getOpenGLRendererWidget().getFullScreenWidget();
+            break;
+        }
     }
-    else {
-        getOpenGLRendererWidget().connectToTracker();
+
+    // Update the number of instances for all plugins
+    /*getOpenGLRendererWidget().setNumberInstances(instances.size() + 1);
+    for (Plugin* plugin : instances) {
+        VolumeViewerPlugin* instance = static_cast<VolumeViewerPlugin*>(plugin);
+        instance->getOpenGLRendererWidget().setNumberInstances(instances.size() + 1);
+    }*/
+
+    // Create a new full screen widget
+    if (fsWidget == nullptr) {
+        qDebug() << "Creatig FSW";
+        fsWidget = new FullScreenWidget(getVolumeViewerWidget());
+       
     }
-
-
-    qDebug() << "Number of instances " << instances.size();
+    getOpenGLRendererWidget().setFullScreenWidget(fsWidget);
 
 
     // Create the layout.
@@ -631,6 +667,22 @@ mv::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActions
     }
 
     return pluginTriggerActions;
+}
+
+void VolumeViewerPlugin::requestTracker()
+{
+	// Sync tracker object between all instances. It's the job of the first instance to create the tracker
+	
+	// Detect other instances of the plugin
+	const std::vector<Plugin*> instances = plugins().getPluginsByFactory(getFactory());
+
+	if (instances.size() > 0) {
+		VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
+		firstInstance->getOpenGLRendererWidget().requestTracker();
+	}
+	else { // I am the first instance
+		getOpenGLRendererWidget().requestTracker();
+	}
 }
 
 

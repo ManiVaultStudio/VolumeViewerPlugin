@@ -102,6 +102,8 @@ set(ACTIONS
 set(WIDGETS
     src/Widgets/VolumeViewerWidget.h
     src/Widgets/VolumeViewerWidget.cpp
+    src/Widgets/FullScreenWidget.h
+    src/Widgets/FullScreenWidget.cpp
 )
 
 set(QRESOURCES

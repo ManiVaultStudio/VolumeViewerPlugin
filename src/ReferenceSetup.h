@@ -14,6 +14,8 @@
 
 #include <vector>
 
+#include <Controllers/Pedal.h>
+
 
 
 enum calibState {
@@ -30,7 +32,7 @@ class ReferenceSetupWidget : public QWidget {
 
 
 public:
-    ReferenceSetupWidget(QWidget* parent);
+    ReferenceSetupWidget(QWidget* parent, PedalManager* pedal);
 
     void show();
 
@@ -40,12 +42,19 @@ public:
     void continueCalib();
     void startMeasurement();
     void stopMeasurement();
-    void setTracker(PSTracker* trackerPtr) {};
+    void setTracker(PSTracker* trackerPtr) { tracker = trackerPtr; }
+    void setTargetIndex(const int& index) { targetIndex = index; }
 
 private:
+    void pressAction();
+    void releaseAction();
+
     QLabel* instructions;
     QLabel* errors;
     PSTracker* tracker;
+    PedalManager* pedal = nullptr;
+
+    int targetIndex = 0;
 
     std::optional<QVector3D>  bufferVector;
     calibState state = calibState::Idle;
@@ -58,10 +67,6 @@ private:
     std::optional<QVector3D> forwards;
     std::optional<QVector3D> up;
 
-    //std::string fileLoc = "./tracker_ref_matrix.txt";
-
     void createUI();
 
-    /*void saveReference() const;
-    void setStoredReference() const;*/
 };

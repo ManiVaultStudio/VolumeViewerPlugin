@@ -28,6 +28,7 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
     setFocusPolicy(Qt::FocusPolicy::ClickFocus);
     installEventFilter(this);
 
+
     connect(this, &OpenGLRendererWidget::created, this, [this]() {
         [[maybe_unused]] auto windowID = this->window()->winId(); // This is needed to produce a valid windowHandle on some systems
 
@@ -54,45 +55,40 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
     _controls = new ControlsWidget(nativeParentWidget());
 
     #endif
-
-    refWidget = new ReferenceSetupWidget(this);
-
     pedal = new PedalManager();
 
-    connect(pedal, &PedalManager::pedalPressed, this, [this](int value) {
-        switch (value) {
-		case 0: {
-			_volumeRenderer.freezeCursor();
-			setFocus();
-			break;
-		}
-		case 2: {
+    refWidget = new ReferenceSetupWidget(this, pedal);
 
-			if (_volumeRenderer.getCursorFrozen()) {
-				_selecting = true;
-				emit newSelection(selectionMode, selectionReplaces);
-			}
-			break;
-		}
+
+    connect(pedal, &PedalManager::pedalPressed, this, [this](int value) {
+        qDebug() << "Pd " << value;
+        // Last pedal for selecting
+        if (value == 2 && _volumeRenderer.getCursorFrozen()) {
+            _selecting = true;
+            emit newSelection(selectionMode, selectionReplaces);
         }
+        else if (value == pluginInstanceIndex) {
+            _volumeRenderer.freezeCursor();
+            setFocus();
+        }
+
     });
 
 
     connect(pedal, &PedalManager::pedalReleased, this, [this](int value) {
-        switch (value) {
-        case 0: {
+        
+        // Last pedal for selecting
+        if (value == 2) {
+            qDebug() << "Release ";
+            _selecting = false;
+        }
+        else if (value == pluginInstanceIndex) {
             _volumeRenderer.unFreezeCursor();
-            break;
         }
-        case 2: {
 
-            if (_volumeRenderer.getCursorFrozen()) {
-                _selecting = false;
-            }
-            break;
-        }
-        }
     });
+
+
         
 }
 
@@ -127,21 +123,30 @@ void OpenGLRendererWidget::setColormap(const QImage& colormap)
     _volumeRenderer.setColormap(colormap);
 }
 
-
-void OpenGLRendererWidget::connectToTracker(PSTracker* tracker)
+void OpenGLRendererWidget::setTracker(PSTracker* tracker)
 {
-    if (tracker == nullptr) _tracker = new PSTracker();
-    else _tracker = tracker;
+    _tracker = tracker;
+}
 
+void OpenGLRendererWidget::connectTracker()
+{
+    if(_tracker == nullptr) _tracker = new PSTracker();
     try {
         _tracker->initPST();
         _tracker->Connect();
+        refWidget->setTracker(_tracker);
+        msgLabel->setText("Connected to tracker");
+        emit hasTracker(_tracker);
     }
     catch (const char* err) {
         msgLabel->setText(err);
     }
 
-    emit trackerAvailable(_tracker);
+}
+
+void OpenGLRendererWidget::requestTracker() {
+    if (_tracker == nullptr) connectTracker();
+    else emit hasTracker(_tracker);
 }
 
 void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
@@ -161,8 +166,48 @@ void OpenGLRendererWidget::setCamDist(float camDist)
     viewPosSpheric.distance = camDist;
 }
 
+void OpenGLRendererWidget::setFullScreenWidget(FullScreenWidget* widget) { 
+    fullScreenWidget = widget;
+    connect(fullScreenWidget, &FullScreenWidget::numberChildrenChanged, this, [this]() {
+        int index = fullScreenWidget->indexOf(this);
+        if (isFullScreen && index == -1) {
+            // Strangely, indexOf deosn't find the widget when it was just added. This is a hack
+            index = fullScreenWidget->getCount()-1;
+        }
+        // If the widget is not full screen, it's displacement will be 0
+        float displacement = index > -1 ? float(index) - (fullScreenWidget->getCount()-1) / 2.f : 0.f;
+        qDebug() << "instance " << pluginInstanceIndex << ", index " << index << ", dispalcement : " << displacement;
+        offset.setToIdentity();
+        offset.translate(displacement/5.f, 0, 0);
+    });
+}
+
+void OpenGLRendererWidget::toggleFullScreen() {
+    if (isFullScreen) {
+        isFullScreen = false;
+        // Leave fullscreen
+        emit exitFullScreen();
+        msgLabel->setText("");
+        offset.setToIdentity();
+    } else {
+        isFullScreen = true;
+        // Go fullscreen
+        fullScreenWidget->addWidget(this);
+        msgLabel->setText("ESC - Escape full screen");
+    }
+
+    _volumeRenderer.setStereo(screen()->model() == "D2343");
+    
+}
+
+void OpenGLRendererWidget::adjustInterlacing() {
+    const int screenBottomCoordinate = mapToGlobal(QPointF(0, height())).y();
+    getVolumeRenderer().setInterlacing((screenBottomCoordinate+1) % 2);
+}
+
 void OpenGLRendererWidget::initializeGL()
 {
+
     initializeOpenGLFunctions();
 
     connect(context(), &QOpenGLContext::aboutToBeDestroyed, this, &OpenGLRendererWidget::cleanup);
@@ -181,6 +226,12 @@ void OpenGLRendererWidget::initializeGL()
     connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });
     _updateTimer->start(16);
 
+
+    // Every 3 seconds, recalculate the correct interlacing in case the window was moved
+    QTimer* updateTimerLong = new QTimer(this);
+    connect(updateTimerLong, &QTimer::timeout, this, [this]() { adjustInterlacing(); });
+    updateTimerLong->start(3000);
+
 }
 
 void OpenGLRendererWidget::resizeGL(int w, int h)
@@ -189,6 +240,7 @@ void OpenGLRendererWidget::resizeGL(int w, int h)
 
     _volumeRenderer.resize(w * _pixelRatio, h * _pixelRatio);
 
+    adjustInterlacing();
 }
 
 void OpenGLRendererWidget::paintGL()
@@ -217,11 +269,12 @@ void OpenGLRendererWidget::paintGL()
             _volumeRenderer.unFreezeCursor();
         }
     }
-    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, true, _controls->getControlMatrix());
+    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), mf::Vector3f(0.f,0.f,0.f), aspect, true, _controls->getControlMatrix());
 #else
     QMatrix4x4 pose;
-    if (_tracker != nullptr && _tracker->GetTargetMatrix(pose)) {
-        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker->poseIsLive(), pose);
+    if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1 && _tracker->GetTargetMatrix(pluginInstanceIndex, pose)) {
+        pose = offset * pose;
+        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
     }
 #endif
 }
@@ -248,6 +301,13 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
                 case Qt::Key_F: {
                     if (!keyEvent->isAutoRepeat())
                         _volumeRenderer.freezeCursor();
+
+                    return true;
+
+                }
+                case Qt::Key_Escape: {
+                    if (isFullScreen)
+                        toggleFullScreen();
 
                     return true;
 
@@ -404,7 +464,7 @@ void OpenGLRendererWidget::updatePixelRatio()
     }
 }
 
-mv::Vector3f OpenGLRendererWidget::getCamPos() const {
+QVector3D OpenGLRendererWidget::getCamPos() const {
 
     QMatrix4x4 transform = QMatrix4x4();
     transform.setToIdentity();
@@ -412,8 +472,6 @@ mv::Vector3f OpenGLRendererWidget::getCamPos() const {
     transform.rotate(90, 0, -1, 0);
     transform.rotate(viewPosSpheric.azimuthal, 0, 1, 0);
     transform.rotate(viewPosSpheric.polar, 0, 0, 1);
-    QVector4D position = transform * QVector4D(0, 1, 0, 1);
 
-
-    return mv::Vector3f(position[0], position[1], position[2]);
+    return (transform * QVector4D(0, 1, 0, 1)).toVector3D();
 }

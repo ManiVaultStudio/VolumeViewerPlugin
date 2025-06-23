@@ -19,9 +19,10 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
     _startCalibAction(this, "Calibrate tracker"),
+    _connectToTrackerAction(this, "Connect tracker"),
+    _toggleFullScreen(this, "Toggle Full Screen"),
     _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.03, 3),
     _camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
-    _flipInterlacingAction(this, "Flip interface", false),
     _selectionColorPicker(this, "Selection Color", QColor(255,0,0))
 {
     GroupsAction::GroupActions groupActions;
@@ -66,6 +67,10 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     });
 
 
+    connect(&_toggleFullScreen, &TriggerAction::triggered, this, [this]() { 
+        _plugin->getOpenGLRendererWidget().toggleFullScreen(); 
+    });
+
 
     connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget().openCalib(); });
 
@@ -73,9 +78,13 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_camDistAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setCamDist(value); });
 
-    connect(&_flipInterlacingAction, &ToggleAction::toggled, [this](const bool& toggled) { _plugin->getVolumeRenderer().setInterlacingFlip(toggled); });
 
     connect(&_selectionColorPicker, &ColorAction::colorChanged, [this](const QColor& color) { _plugin->getVolumeRenderer().setSelectionColor(color); });
+
+    connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget().openCalib(); });
+
+    // Tracker connect
+    connect(&_connectToTrackerAction, &TriggerAction::triggered, _plugin, &VolumeViewerPlugin::requestTracker);
 
 }
 
@@ -115,7 +124,7 @@ QVariantMap SettingsAction::toVariantMap() const
 {
     QVariantMap variantMap = WidgetAction::toVariantMap();
 
-    _selectModeAction.insertIntoVariantMap(variantMap);
+    //_selectModeAction.insertIntoVariantMap(variantMap);
 
     _positionDatasetPickerAction.insertIntoVariantMap(variantMap);
     _colorDatasetPickerAction.insertIntoVariantMap(variantMap);

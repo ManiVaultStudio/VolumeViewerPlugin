@@ -8,7 +8,6 @@
 
 //#define CUBE
 
-//#define STEREO
 
 void Cube::create()
 {
@@ -289,7 +288,7 @@ void VolumeRenderer::resize(int w, int h)
     glViewport(0, 0, w, h);
 }
 
-void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspect, const bool& live, const QMatrix4x4& modelFrameMatrix)
+void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, const bool& live, const QMatrix4x4& modelFrameMatrix)
 {
  
 
@@ -312,7 +311,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
 
     _projMatrix.setToIdentity();
     float fovyr = 1.0472;// 1.57079633;
-    float zNear = 0.1f;
+    float zNear = 0.4f;
     float zFar = 100;
     _projMatrix.data()[0] = (float)(1 / tan(fovyr / 2)) / aspect;
     _projMatrix.data()[5] = (float)(1 / tan(fovyr / 2));
@@ -333,44 +332,49 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
     _pointsShaderProgram.uniform3f("cursor", _frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2]);
 
 
-    #ifndef STEREO
+    if(!stereo){
         _viewMatrix.setToIdentity();
-        _viewMatrix.lookAt(QVector3D(camPos.x, camPos.y, camPos.z), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        _viewMatrix.lookAt(camPos, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
         _framebuffer.bind();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
         #ifdef CUBE
             drawCube(_pointsShaderProgram);
         #else
             drawVolume(_pointsShaderProgram, live);
+            drawCursor();
         #endif
-    #else
-        QVector3D viewPoint = QVector3D(camPos.x, camPos.y, camPos.z);
+   
+
+    }
+    else {
         QVector3D offsetDir = QVector3D::crossProduct(
-            viewPoint,
-            QVector3D(0,1,0)
+            camPos,
+            QVector3D(0, 1, 0)
         );
 
 
         _viewMatrix.setToIdentity();
-        _viewMatrix.lookAt(viewPoint + offsetDir * _eyeOffset, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        _viewMatrix.lookAt(camPos - offsetDir * _eyeDistance, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
         _leftRenderFBO.bind();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        #ifdef CUBE
-            drawCube(_pointsShaderProgram);
-        #else
-            drawVolume(_pointsShaderProgram, live);
-        #endif
+#ifdef CUBE
+        drawCube(_pointsShaderProgram);
+#else
+        drawVolume(_pointsShaderProgram, live);
+        drawCursor();
+#endif
 
 
         _viewMatrix.setToIdentity();
-        _viewMatrix.lookAt(viewPoint - offsetDir * _eyeOffset, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        _viewMatrix.lookAt(camPos + offsetDir * _eyeDistance, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
         _rightRenderFBO.bind();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        #ifdef CUBE
-            drawCube(_pointsShaderProgram);
-        #else
-            drawVolume(_pointsShaderProgram, live);
-        #endif
+#ifdef CUBE
+        drawCube(_pointsShaderProgram);
+#else
+        drawVolume(_pointsShaderProgram, live);
+        drawCursor();
+#endif
 
 
         // If stereo rendering is on, combine both left and right textures
@@ -389,41 +393,15 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
         _stereoMergeProgram.uniform1i("interlacing", _interlacing);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    #endif
+        glEnable(GL_BLEND);
+
+    }
 
 
    
 
 
-    // Draw the cursor
-
-        glDisable(GL_BLEND);
-        glEnable(GL_DEPTH_TEST);
-    mv::Vector3f cursorPosition;
-    _pointsShaderProgram.bind();
-    _pointsShaderProgram.uniform1i("isCursor", 1);
-    glBindVertexArray(_cursorVao);
-    glBindBuffer(GL_ARRAY_BUFFER, _cursorVbo);
-    if (cursorFrozen) {
-        cursorPosition = mv::Vector3f(_frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2]);
-        _pointsShaderProgram.uniformMatrix4f("modelMatrix", identity.data());
-        glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &cursorPosition, GL_STATIC_DRAW);
-
-    }
-    else {
-        cursorPosition = mv::Vector3f(_cursorPosition[0], _cursorPosition[1], _cursorPosition[2]);
-        _pointsShaderProgram.uniformMatrix4f("modelMatrix", _modelMatrix.data());
-        glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &cursorPosition, GL_STATIC_DRAW);
-    }
-
-    glEnable(GL_POINT_SMOOTH);
-    glPointSize(10);
-    glDrawArrays(GL_POINTS, 0, 1);
-    _pointsShaderProgram.uniform1i("isCursor", 0);
-    glDisable(GL_POINT_SMOOTH);
-
-    glEnable(GL_BLEND);
-    glDisable(GL_DEPTH_TEST);
+    
 
 
 
@@ -453,6 +431,39 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, float aspec
         }
     }
 
+}
+
+void VolumeRenderer::drawCursor()
+{
+    // Draw the cursor
+
+    glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
+    mv::Vector3f cursorPosition;
+    _pointsShaderProgram.bind();
+    _pointsShaderProgram.uniform1i("isCursor", 1);
+    glBindVertexArray(_cursorVao);
+    glBindBuffer(GL_ARRAY_BUFFER, _cursorVbo);
+    if (cursorFrozen) {
+        cursorPosition = mv::Vector3f(_frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2]);
+        _pointsShaderProgram.uniformMatrix4f("modelMatrix", identity.data());
+        glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &cursorPosition, GL_STATIC_DRAW);
+
+    }
+    else {
+        cursorPosition = mv::Vector3f(_cursorPosition[0], _cursorPosition[1], _cursorPosition[2]);
+        _pointsShaderProgram.uniformMatrix4f("modelMatrix", _modelMatrix.data());
+        glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &cursorPosition, GL_STATIC_DRAW);
+    }
+
+    glEnable(GL_POINT_SMOOTH);
+    glPointSize(10);
+    glDrawArrays(GL_POINTS, 0, 1);
+    _pointsShaderProgram.uniform1i("isCursor", 0);
+    glDisable(GL_POINT_SMOOTH);
+
+    glEnable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
 }
 
 void VolumeRenderer::drawCube(mv::ShaderProgram& shader)

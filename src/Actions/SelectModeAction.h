@@ -61,8 +61,8 @@ public: // Action getters
 
 private:
     VolumeViewerPlugin* _plugin;                /** Pointer to plugin */
-    ToggleAction        _nearestAction;          /** Trigger action for activating the OpenGL renderer */
-    ToggleAction        _sphericalAction;          /** Trigger action for activating the OpenGL renderer */
+    ToggleAction        _nearestAction;         
+    ToggleAction        _sphericalAction;         
 
     friend class mv::AbstractActionsManager;
 };
