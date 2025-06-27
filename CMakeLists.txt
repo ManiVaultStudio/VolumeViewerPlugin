@@ -49,6 +49,7 @@ endif()
 find_package(Qt6 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
 
 find_package(ManiVault COMPONENTS Core PointData CONFIG REQUIRED)
+find_package(ManiVault COMPONENTS Core PointData ClusterData CONFIG)
 
 
 # -----------------------------------------------------------------------------
@@ -158,6 +159,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE "${SDL_BUILD_DIR}/lib/x64/SDL3.lib
 # Link to ManiVault and data plugins
 target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::Core)
 target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::PointData)
+target_link_libraries(${PROJECT_NAME} PRIVATE ManiVault::ClusterData)
 
 # -----------------------------------------------------------------------------
 # Target installation

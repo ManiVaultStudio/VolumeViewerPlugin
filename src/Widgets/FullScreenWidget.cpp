@@ -39,5 +39,7 @@ void FullScreenWidget::childEvent(QChildEvent* event) {
 void FullScreenWidget::addWidget(QWidget* widget) {
     layout->addWidget(widget);
     move(screen->geometry().x(), screen->geometry().y());
-    showFullScreen();
+    //showFullScreen(); Stangely, displaying th widget full screen can cause bugs in certain confirurations
+    // Like when selecting with GradientView on the side (graphical glitches)
+    showMaximized();
 }

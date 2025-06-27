@@ -14,6 +14,7 @@
 OpenGLRendererWidget::OpenGLRendererWidget() :
     QOpenGLWidget(),
     _tracker(nullptr),
+    localCamPos(new QVector3D(0,0,0)),
     msgLabel(new QLabel(this))
 {
     // UI
@@ -55,45 +56,15 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
     _controls = new ControlsWidget(nativeParentWidget());
 
     #endif
-    pedal = new PedalManager();
 
-    refWidget = new ReferenceSetupWidget(this, pedal);
-
-
-    connect(pedal, &PedalManager::pedalPressed, this, [this](int value) {
-        qDebug() << "Pd " << value;
-        // Last pedal for selecting
-        if (value == 2 && _volumeRenderer.getCursorFrozen()) {
-            _selecting = true;
-            emit newSelection(selectionMode, selectionReplaces);
-        }
-        else if (value == pluginInstanceIndex) {
-            _volumeRenderer.freezeCursor();
-            setFocus();
-        }
-
-    });
-
-
-    connect(pedal, &PedalManager::pedalReleased, this, [this](int value) {
-        
-        // Last pedal for selecting
-        if (value == 2) {
-            qDebug() << "Release ";
-            _selecting = false;
-        }
-        else if (value == pluginInstanceIndex) {
-            _volumeRenderer.unFreezeCursor();
-        }
-
-    });
-
+    refWidget = new ReferenceSetupWidget(this);
 
         
 }
 
 OpenGLRendererWidget::~OpenGLRendererWidget() {
     delete _tracker;
+    delete localCamPos;
 }
 
 //void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
@@ -106,6 +77,14 @@ void OpenGLRendererWidget::setData(std::vector<float>& data)
 {
     makeCurrent();
     _volumeRenderer.setData(data);
+
+    points = data;
+
+    indices = std::vector<GLuint>(data.size() / 3);
+
+
+    startThreading();
+
     update();
 }
 
@@ -130,7 +109,11 @@ void OpenGLRendererWidget::setTracker(PSTracker* tracker)
 
 void OpenGLRendererWidget::connectTracker()
 {
-    if(_tracker == nullptr) _tracker = new PSTracker();
+   
+    if (_tracker == nullptr) {
+        _tracker = new PSTracker();
+        qDebug() << "Creating tracker in instace " << pluginInstanceIndex;
+    }
     try {
         _tracker->initPST();
         _tracker->Connect();
@@ -200,6 +183,39 @@ void OpenGLRendererWidget::toggleFullScreen() {
     
 }
 
+void OpenGLRendererWidget::setPedalManager(PedalManager* pds)
+{
+    
+    pedal = pds;
+    refWidget->setPedalManager(pedal);
+    connect(pedal, &PedalManager::pedalPressed, this, [this](int value) {
+        // Last pedal for selecting
+        if (value == 2 && _volumeRenderer.getCursorFrozen()) {
+            _selecting = true;
+            emit newSelection(selectionMode, selectionReplaces);
+        }
+        else if (value == pluginInstanceIndex) {
+            _volumeRenderer.freezeCursor();
+            setFocus();
+        }
+
+    });
+
+
+    connect(pedal, &PedalManager::pedalReleased, this, [this](int value) {
+
+        // Last pedal for selecting
+        if (value == 2) {
+            _selecting = false;
+        }
+        else if (value == pluginInstanceIndex) {
+            _volumeRenderer.unFreezeCursor();
+        }
+
+    });
+    
+}
+
 void OpenGLRendererWidget::adjustInterlacing() {
     const int screenBottomCoordinate = mapToGlobal(QPointF(0, height())).y();
     getVolumeRenderer().setInterlacing((screenBottomCoordinate+1) % 2);
@@ -222,17 +238,20 @@ void OpenGLRendererWidget::initializeGL()
 
     selectionInterval.start();
 
-    _updateTimer = new QTimer(this);
-    connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });
-    _updateTimer->start(16);
-
+    
 
     // Every 3 seconds, recalculate the correct interlacing in case the window was moved
     QTimer* updateTimerLong = new QTimer(this);
     connect(updateTimerLong, &QTimer::timeout, this, [this]() { adjustInterlacing(); });
     updateTimerLong->start(3000);
 
+
 }
+
+void OpenGLRendererWidget::setUpdateTimer(QTimer* tmr) {
+    _updateTimer = tmr;
+    connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });
+};
 
 void OpenGLRendererWidget::resizeGL(int w, int h)
 {
@@ -269,12 +288,17 @@ void OpenGLRendererWidget::paintGL()
             _volumeRenderer.unFreezeCursor();
         }
     }
-    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), mf::Vector3f(0.f,0.f,0.f), aspect, true, _controls->getControlMatrix());
+    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, true, _controls->getControlMatrix());
 #else
     QMatrix4x4 pose;
     if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1 && _tracker->GetTargetMatrix(pluginInstanceIndex, pose)) {
         pose = offset * pose;
-        _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
+        QVector3D camPos = getCamPos();
+        QVector4D homogCamPos = camPos.toVector4D();
+        homogCamPos[3] = 1.f;
+        *localCamPos = (homogCamPos * pose).toVector3DAffine();
+
+        _volumeRenderer.render(defaultFramebufferObject(), camPos, aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
     }
 #endif
 }
@@ -473,5 +497,5 @@ QVector3D OpenGLRendererWidget::getCamPos() const {
     transform.rotate(viewPosSpheric.azimuthal, 0, 1, 0);
     transform.rotate(viewPosSpheric.polar, 0, 0, 1);
 
-    return (transform * QVector4D(0, 1, 0, 1)).toVector3D();
+    return (transform * QVector4D(0, 1, 0, 1)).toVector3DAffine();
 }

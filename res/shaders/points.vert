@@ -13,16 +13,19 @@ uniform vec3 cursor; // In world space coordinates
 out float v_Color;
 flat out int vHighlight;
 out float cursorDistance;
+out float depthFromCursorPlane;
 
 void main() {
     vec4 world_position = modelMatrix * position;
-    gl_Position = projMatrix * viewMatrix * world_position;
+    vec4 view_position = viewMatrix * world_position;
+    gl_Position = projMatrix * view_position;
 
-    gl_PointSize =  1.5 + 3 / gl_Position.w;
-
+    gl_PointSize = 1 + 3 / (gl_Position.w+1);
+    //gl_PointSize = 1;
     
     v_Color = color;
     vHighlight = highlight;
+    cursorDistance = 0.0;
 
     if(selecting){
         cursorDistance = sqrt(
@@ -31,4 +34,7 @@ void main() {
             + pow(cursor.z - world_position.z, 2)
         );
     }
+    vec4 cursor4 = vec4(cursor, 1.0);
+
+    depthFromCursorPlane = view_position.z - (viewMatrix*cursor4).z;
 }

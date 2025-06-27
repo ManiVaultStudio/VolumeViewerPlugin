@@ -9,8 +9,12 @@
 #include <QOpenGLFunctions_3_3_Core>
 #include <QMatrix4x4>
 #include <QTimer>
+#include <QThread>
 
 #include <vector>
+
+
+
 
 
 class Cube : public QOpenGLFunctions_3_3_Core
@@ -59,6 +63,11 @@ public:
     void drawCube(mv::ShaderProgram& shader);
     void drawCursor();
 
+    void setRenderOrder(std::vector<GLuint>& indices);
+    void filterPoints(const float& proba);
+    std::vector<GLuint> getRenderedPoints();
+
+
 
 
 private:
@@ -86,6 +95,8 @@ private:
     GLuint cbo;
     GLuint highlightVBO;
     int _numPoints = 0;
+
+    GLuint ebo;
 
     GLuint _cursorVao;
     GLuint _cursorVbo;
@@ -118,4 +129,9 @@ private:
 
 
     QMatrix4x4 identity = QMatrix4x4();
+
+    std::vector<float> points;
+    // Points can be hidden by flipping the corresponding bool to false
+    std::vector<bool> rendered;
+    int numPointsHighlighted = 0;
 };

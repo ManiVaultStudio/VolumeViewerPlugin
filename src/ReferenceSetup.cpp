@@ -3,7 +3,7 @@
 #include <QVBoxLayout>
 
 
-ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PedalManager* pedalPtr) :
+ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent) :
     QWidget(parent, Qt::Window),
     tracker(nullptr)
 {
@@ -16,7 +16,11 @@ ReferenceSetupWidget::ReferenceSetupWidget(QWidget* parent, PedalManager* pedalP
 
     createUI();
 
-    pedal = pedalPtr;
+}
+
+void ReferenceSetupWidget::setPedalManager(PedalManager* pdm) {
+
+    pedal = pdm;
     connect(pedal, &PedalManager::pedalPressed, this, [this](int value) {
         if (hasFocus()) {
             if (value == 2) {

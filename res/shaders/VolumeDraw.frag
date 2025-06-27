@@ -6,6 +6,7 @@ uniform vec3 selectionColor;
 uniform bool live; // false when tracking is lost
 uniform int selectMode;
 uniform float selectRadius;
+uniform bool selectionEmpty;
 
 uniform sampler2D colormap;
 uniform bool selecting;
@@ -13,6 +14,7 @@ uniform bool selecting;
 in float v_Color;
 flat in int vHighlight;
 in float cursorDistance;
+in float depthFromCursorPlane;
 
 out vec4 fragColor;
 
@@ -23,7 +25,11 @@ void main()
 
     if (hasColors) {
         vec3 color = texture(colormap, vec2(v_Color, 1-v_Color)).rgb;
-        fragColor = vec4(color, 1);
+        if(selectionEmpty){
+            fragColor = vec4(color, .02);
+        } else {
+            fragColor = vec4(color, .005);
+        }
     }
 
     if(selecting){
@@ -39,6 +45,9 @@ void main()
                 if(cursorDistance < 0.03){
                     // Add a drop of selection color gradient close to the cursor to highlight proximity
                     fragColor = mix(vec4(antiSelectionColor, 1), fragColor, .5);
+                }
+                if(depthFromCursorPlane > 0){
+                    fragColor.a = max(0.005,1-depthFromCursorPlane*10);
                 }
                 break;
             }
@@ -70,6 +79,5 @@ void main()
     if(!live){
         fragColor = mix(vec4(0.7,0.7,0.7,0.3), fragColor, 0.4);
     }
-
 
 }

@@ -5,6 +5,9 @@
 #include <random>
 
 #include <QMatrix4x4>
+#include <cstdlib>
+
+
 
 //#define CUBE
 
@@ -69,6 +72,8 @@ void Cube::create()
 
 void VolumeRenderer::setData(std::vector<float>& data)
 {
+    points = data;
+
     glBindVertexArray(vao);
 
     glGenBuffers(1, &vbo);
@@ -79,7 +84,7 @@ void VolumeRenderer::setData(std::vector<float>& data)
     
     glGenBuffers(1, &cbo);
     glBindBuffer(GL_ARRAY_BUFFER, cbo);
-    glBufferData(GL_ARRAY_BUFFER, data.size() / 3 * sizeof(float), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, data.size() / 3 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(1);
 
@@ -89,24 +94,55 @@ void VolumeRenderer::setData(std::vector<float>& data)
     glBufferData(GL_ARRAY_BUFFER, data.size() / 3 * sizeof(int), nullptr, GL_STATIC_DRAW);
     glVertexAttribIPointer(2, 1, GL_INT, 0, nullptr);
     glEnableVertexAttribArray(2);
+
+
+
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.size() / 3 * sizeof(int), nullptr, GL_STATIC_DRAW);
+
+    //filterPoints(2.f);
    
 
     _numPoints = data.size() / 3;
 }
 
+
+void VolumeRenderer::filterPoints(const float& proba) {
+    _numPoints = 0;
+    rendered = std::vector<bool>(points.size(), false);
+    std::vector<GLuint> indices;
+    for (int i = 0; i < points.size(); i++) {
+        if (rand() % 100 < proba*100) {
+            rendered[i] = true;
+            indices.push_back(i);
+            _numPoints++;
+        }
+    }
+
+    glBindVertexArray(vao);
+    // 4. Upload sorted indices to EBO:
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
+};
+
 void VolumeRenderer::setColors(std::vector<float>& colors)
 {
 
     glBindVertexArray(vao);
-    qDebug() << colors.size();
+
     glBindBuffer(GL_ARRAY_BUFFER, cbo);
-    glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), colors.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(float), colors.data(), GL_DYNAMIC_DRAW);
     glEnableVertexAttribArray(1);
 
     _hasColors = true;
 }
 
 void VolumeRenderer::setHighlights(std::vector<int>& highlights) {
+    numPointsHighlighted = 0;
+    for (int i : highlights) {
+        if (i > 0) numPointsHighlighted++;
+    }
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, highlightVBO);
     glBufferData(GL_ARRAY_BUFFER, highlights.size() * sizeof(int), highlights.data(), GL_STATIC_DRAW);
@@ -119,6 +155,22 @@ void VolumeRenderer::setColormap(const QImage& colormap)
     //cMapSize = colormap.size();
     qDebug() << "Colormap is set!";
 }
+
+void VolumeRenderer::setRenderOrder(std::vector<GLuint>& indices) {
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
+
+}
+std::vector<GLuint> VolumeRenderer::getRenderedPoints() {
+    std::vector <GLuint> indices;
+    for (int i = 0; i < rendered.size(); i++) {
+        if (rendered[i]) {
+            indices.push_back(i);
+        }
+    }
+    return indices;
+};
 
 void VolumeRenderer::freezeCursor() {
     if (!cursorFrozen) {
@@ -138,8 +190,8 @@ void VolumeRenderer::unFreezeCursor() {
 * Get cursor position in the coordinate system of the data
 */
 QVector3D VolumeRenderer::getCursor() const {
-    if (cursorFrozen) return (_modelMatrix.inverted() * _frozenCursorPosition).toVector3D();
-    return _cursorPosition.toVector3D();
+    if (cursorFrozen) return (_modelMatrix.inverted() * _frozenCursorPosition).toVector3DAffine();
+    return _cursorPosition.toVector3DAffine();
 };
 
 void VolumeRenderer::incrementSelectRadius(const float& increment) 
@@ -262,6 +314,7 @@ void VolumeRenderer::init()
     glEnableVertexAttribArray(0);
 
     _cube.create();
+
 }
 
 void VolumeRenderer::resize(int w, int h)
@@ -331,6 +384,9 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
 
     _pointsShaderProgram.uniform3f("cursor", _frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2]);
 
+
+
+    
 
     if(!stereo){
         _viewMatrix.setToIdentity();
@@ -487,11 +543,15 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
 void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
 {
     if (_numPoints > 0) {
-        glEnable(GL_POINT_SMOOTH);
+
+
+        //glEnable(GL_POINT_SMOOTH);
         glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
-        glDisable(GL_BLEND);
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        //glDisable(GL_BLEND);
+        /*glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);*/
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shader.uniformMatrix4f("projMatrix", _projMatrix.data());
         shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
@@ -506,6 +566,8 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
         shader.uniform1i("live", live);
         shader.uniform1i("selectMode", selectionMode);
         shader.uniform1f("selectRadius", sphereSelectRadius);
+        shader.uniform1i("selectionEmpty", numPointsHighlighted == 0);
+        //shader.uniform3f("cutoff", cutoff[0], cutoff[1], cutoff[2]);
 
         if (_hasColors)
         {
@@ -517,7 +579,8 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
             }
         }
 
-        glDrawArrays(GL_POINTS, 0, _numPoints);
+        //glDrawArrays(GL_POINTS, 0, _numPoints);
+        glDrawElements(GL_POINTS, _numPoints, GL_UNSIGNED_INT, 0);
 
         glEnable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);

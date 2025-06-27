@@ -139,30 +139,49 @@ void VolumeViewerPlugin::init()
 	requestTracker();
 
 
-    // Create of search for the full screen QWidget ( in other instances )
+    // Create of search for shared variables
     FullScreenWidget* fsWidget = nullptr;
+    PedalManager* pedals = nullptr;
+    QTimer* updateTimer = nullptr;
+
     for (Plugin* plugin : instances) {
         VolumeViewerPlugin* instance = static_cast<VolumeViewerPlugin*>(plugin);
         if (instance->getOpenGLRendererWidget().getFullScreenWidget() != nullptr) {
             fsWidget = instance->getOpenGLRendererWidget().getFullScreenWidget();
             break;
         }
+        if (instance->getOpenGLRendererWidget().getPedalManager() != nullptr) {
+            pedals = instance->getOpenGLRendererWidget().getPedalManager();
+            break;
+        }
+        if (instance->getOpenGLRendererWidget().getUpdateTimer() != nullptr) {
+            updateTimer = instance->getOpenGLRendererWidget().getUpdateTimer();
+            break;
+        }
     }
-
-    // Update the number of instances for all plugins
-    /*getOpenGLRendererWidget().setNumberInstances(instances.size() + 1);
-    for (Plugin* plugin : instances) {
-        VolumeViewerPlugin* instance = static_cast<VolumeViewerPlugin*>(plugin);
-        instance->getOpenGLRendererWidget().setNumberInstances(instances.size() + 1);
-    }*/
 
     // Create a new full screen widget
     if (fsWidget == nullptr) {
         qDebug() << "Creatig FSW";
         fsWidget = new FullScreenWidget(getVolumeViewerWidget());
-       
     }
     getOpenGLRendererWidget().setFullScreenWidget(fsWidget);
+
+    // Create a new pedalManager
+    if (pedals == nullptr) {
+        qDebug() << "Creatig Pedal Manager";
+        pedals = new PedalManager(getVolumeViewerWidget());
+    }
+    getOpenGLRendererWidget().setPedalManager(pedals);
+
+    // Create a new update Timer
+    if (updateTimer == nullptr) {
+        qDebug() << "Creatig Update Timer";
+        updateTimer = new QTimer(getVolumeViewerWidget());
+        updateTimer->start(16);
+    }
+    getOpenGLRendererWidget().setUpdateTimer(updateTimer);
+
 
 
     // Create the layout.
@@ -325,6 +344,56 @@ void VolumeViewerPlugin::init()
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this]() {
         _clusterLoaded = true;
+        // Only proceed with valid clusters and position dataset
+        if (!_pointsColorCluster.isValid() || !_points.isValid())
+            return;
+
+        // Create a color map with all the colors from the clusters.
+        // The number of pixels is the number of clusters
+        const QVector<Cluster>& clusterVec = _pointsColorCluster->getClusters();
+        const int bytesPerPixel = 3; // For RGB format
+
+        // Allocate memory for the image data
+        uchar* rgbdata = new uchar[clusterVec.size() * bytesPerPixel];
+
+        // Fill the data array with some values (e.g., a gradient)
+        for (int i = 0; i < clusterVec.size(); ++i) {
+
+            const auto color = clusterVec[i].getColor();
+            rgbdata[bytesPerPixel * i] = static_cast<uchar>(color.redF()*255.0f);
+            rgbdata[bytesPerPixel * i + 1] = static_cast<uchar>(color.greenF()*255.0f);
+            rgbdata[bytesPerPixel * i + 2] = static_cast<uchar>(color.blueF()*255.0f);
+
+            qDebug() << "Color : r " << color.redF() << ", g " << color.greenF() << ", b" << color.blueF();
+        }
+
+        QImage image(rgbdata, clusterVec.size(), 1, QImage::Format_RGB888);
+        _volumeViewerWidget->getOpenGLWidget()->setColormap(image);
+
+
+        // Mapping from local to global indices
+        std::vector<std::uint32_t> globalIndices;
+
+        // Get global indices from the position dataset
+        int totalNumPoints = _points->getNumPoints();
+
+        _points->getGlobalIndices(globalIndices);
+
+        // Generate color buffer for global and local colors
+        std::vector<float> globalUV(totalNumPoints);
+
+        // Loop over all clusters and populate global colors
+        for (int i = 0; i < clusterVec.size(); i++)
+        {
+            for (const auto& index : clusterVec[i].getIndices())
+                globalUV[index] = (float(i) + 0.5f)/ clusterVec.size();
+
+        }
+        
+
+        // Apply colors to scatter plot widget without modification
+        _volumeViewerWidget->getOpenGLWidget()->setColors(globalUV);
+
     });
     
     // Respond when the name of the dataset in the dataset reference changes
@@ -340,7 +409,11 @@ void VolumeViewerPlugin::init()
             auto colorMapImage = colorMapAction.getColorMapImage();
             _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
 
-            updateFocusMode();
+            std::vector<float> colors;
+            _pointsColorPoints->extractDataForDimension(colors, 0);
+            _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
+            _volumeViewerWidget->getOpenGLWidget()->update();
+            // updateFocusMode();
         }
     });
 
@@ -458,7 +531,6 @@ void VolumeViewerPlugin::init()
 
     connect(&getOpenGLRendererWidget(), &OpenGLRendererWidget::newSelection, this, [this](const SelectionMode& type, const bool& replace) {
         clock_t start, end;
-        start = clock();
         // Perform selection of closest point
         const QVector3D cursor = getVolumeRenderer().getCursor();
         if (_points.isValid()) {
@@ -493,9 +565,6 @@ void VolumeViewerPlugin::init()
             events().notifyDatasetDataSelectionChanged(_points->getSourceDataset<Points>());
         }
 
-        end = clock();
-        int time_taken = int(end - start);
-        std::cout << "Time Selection : " << time_taken;
     });
 
 }
@@ -536,11 +605,11 @@ void VolumeViewerPlugin::setFocusFloodfillNorm(bool focusFloodfillNorm) {
 
 void VolumeViewerPlugin::updateFocusMode() {
     qDebug() << "Update focus mode";
-    if (!_focusSelection && !_focusFloodfill && !_focusSelectionNorm && !_focusFloodfillNorm) {
+    if (!_focusSelection && !_focusFloodfill && !_focusSelectionNorm && !_focusFloodfillNorm) {/*
         std::vector<float> colors;
         _pointsColorPoints->extractDataForDimension(colors, 0);
         _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
-        _volumeViewerWidget->getOpenGLWidget()->update();
+        _volumeViewerWidget->getOpenGLWidget()->update();*/
     }
     else if (_focusSelection) {
         std::vector<int> indices;

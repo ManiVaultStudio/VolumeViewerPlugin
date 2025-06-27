@@ -32,7 +32,7 @@ class ReferenceSetupWidget : public QWidget {
 
 
 public:
-    ReferenceSetupWidget(QWidget* parent, PedalManager* pedal);
+    ReferenceSetupWidget(QWidget* parent);
 
     void show();
 
@@ -43,6 +43,7 @@ public:
     void startMeasurement();
     void stopMeasurement();
     void setTracker(PSTracker* trackerPtr) { tracker = trackerPtr; }
+    void setPedalManager(PedalManager* pdm);
     void setTargetIndex(const int& index) { targetIndex = index; }
 
 private:
