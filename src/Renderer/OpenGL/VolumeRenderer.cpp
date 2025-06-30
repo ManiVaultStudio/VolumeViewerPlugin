@@ -382,7 +382,7 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
   
     _pointsShaderProgram.bind();
 
-    _pointsShaderProgram.uniform3f("cursor", _frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2]);
+    _pointsShaderProgram.uniform4f("cursor", _frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2], _frozenCursorPosition[3]);
 
 
 
@@ -396,7 +396,7 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
         #ifdef CUBE
             drawCube(_pointsShaderProgram);
         #else
-            drawVolume(_pointsShaderProgram, live);
+            drawVolume(_pointsShaderProgram, _viewMatrix, live);
             drawCursor();
         #endif
    
@@ -408,6 +408,10 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
             QVector3D(0, 1, 0)
         );
 
+        QMatrix4x4 singleCamRef = QMatrix4x4();
+        singleCamRef.setToIdentity();
+        singleCamRef.lookAt(camPos, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+
 
         _viewMatrix.setToIdentity();
         _viewMatrix.lookAt(camPos - offsetDir * _eyeDistance, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
@@ -416,7 +420,7 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
 #ifdef CUBE
         drawCube(_pointsShaderProgram);
 #else
-        drawVolume(_pointsShaderProgram, live);
+        drawVolume(_pointsShaderProgram, singleCamRef, live);
         drawCursor();
 #endif
 
@@ -428,7 +432,7 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
 #ifdef CUBE
         drawCube(_pointsShaderProgram);
 #else
-        drawVolume(_pointsShaderProgram, live);
+        drawVolume(_pointsShaderProgram, singleCamRef, live);
         drawCursor();
 #endif
 
@@ -492,7 +496,15 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
 void VolumeRenderer::drawCursor()
 {
     // Draw the cursor
+    if (cursorFrozen) {
+        glEnable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+    }
+    else {
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
 
+    }
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     mv::Vector3f cursorPosition;
@@ -540,7 +552,7 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
     glDisable(GL_DEPTH_TEST);
 }
 
-void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
+void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& camRef, const bool& live)
 {
     if (_numPoints > 0) {
 
@@ -550,8 +562,14 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         //glDisable(GL_BLEND);
-        /*glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);*/
+        if (cursorFrozen) {
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS);
+        }
+        else {
+            glDisable(GL_DEPTH_TEST);
+
+        }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shader.uniformMatrix4f("projMatrix", _projMatrix.data());
         shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
@@ -567,7 +585,8 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live)
         shader.uniform1i("selectMode", selectionMode);
         shader.uniform1f("selectRadius", sphereSelectRadius);
         shader.uniform1i("selectionEmpty", numPointsHighlighted == 0);
-        //shader.uniform3f("cutoff", cutoff[0], cutoff[1], cutoff[2]);
+
+        shader.uniformMatrix4f("cameraRef", camRef.data());
 
         if (_hasColors)
         {

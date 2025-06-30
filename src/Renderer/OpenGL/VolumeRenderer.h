@@ -59,7 +59,7 @@ public:
     void resize(int w, int h);
 
     void render(GLuint framebuffer, QVector3D camPos, float aspect, const bool& , const QMatrix4x4& modelMatrix);
-    void drawVolume(mv::ShaderProgram& shader, const bool& live);
+    void drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& camRef, const bool& live);
     void drawCube(mv::ShaderProgram& shader);
     void drawCursor();
 
