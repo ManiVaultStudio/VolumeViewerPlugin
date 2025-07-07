@@ -27,10 +27,12 @@ void main()
         if (hasColors) {
             vec3 color = texture(colormap, vec2(v_Color, 1-v_Color)).rgb;
             if(selectionEmpty){
-                fragColor = vec4(color, .02);
+                fragColor = vec4(color, 1);
             } else {
-                fragColor = vec4(color, .005);
+                fragColor = vec4(color, .01);
             }
+
+            //fragColor = vec4(v_Color, 0, 1-v_Color, 1); // Depth sorting test 
         }
 
         if(selecting){
@@ -48,7 +50,7 @@ void main()
                         fragColor = mix(vec4(antiSelectionColor, 1), fragColor, .5);
                     }
                     if(depthFromCursorPlane > 0){
-                        fragColor.a = max(0.005,1-(depthFromCursorPlane)*20);
+                        fragColor.a = max(0.008,1-(depthFromCursorPlane)*20);
                     }
                     break;
                 }
@@ -73,12 +75,13 @@ void main()
         // Highlight selected points
         if (isCursor || vHighlight != 0)
         {
-            fragColor = vec4(selectionColor, 1);
+            // fragColor = vec4(selectionColor, 1);
+            fragColor.a = 1;
         }
         
         // If the position is not tracked live, display the data in dark gray
         if(!live){
-            fragColor = mix(vec4(0.7,0.7,0.7,0.3), fragColor, 0.4);
+            fragColor = mix(vec4(0.7,0.7,0.7,0.3), fragColor, 0.8);
         }
     
 }

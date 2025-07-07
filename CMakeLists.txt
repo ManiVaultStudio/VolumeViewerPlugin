@@ -75,6 +75,8 @@ set(RENDERERS
     src/Renderer/OpenGL/VolumeRenderer.cpp
     src/Renderer/OpenGL/OpenGLRendererWidget.h
     src/Renderer/OpenGL/OpenGLRendererWidget.cpp
+    src/Renderer/OpenGL/DepthSorter.h
+    src/Renderer/OpenGL/DepthSorter.cpp
 )
 
 set(ACTIONS

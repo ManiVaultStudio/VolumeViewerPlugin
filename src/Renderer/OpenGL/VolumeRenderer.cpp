@@ -97,9 +97,13 @@ void VolumeRenderer::setData(std::vector<float>& data)
 
 
 
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.size() / 3 * sizeof(int), nullptr, GL_STATIC_DRAW);
+    glGenBuffers(1, &ebo[0]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.size() / 3 * sizeof(int), nullptr, GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &ebo[1]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.size() / 3 * sizeof(int), nullptr, GL_DYNAMIC_DRAW);
 
     //filterPoints(2.f);
    
@@ -108,23 +112,23 @@ void VolumeRenderer::setData(std::vector<float>& data)
 }
 
 
-void VolumeRenderer::filterPoints(const float& proba) {
-    _numPoints = 0;
-    rendered = std::vector<bool>(points.size(), false);
-    std::vector<GLuint> indices;
-    for (int i = 0; i < points.size(); i++) {
-        if (rand() % 100 < proba*100) {
-            rendered[i] = true;
-            indices.push_back(i);
-            _numPoints++;
-        }
-    }
-
-    glBindVertexArray(vao);
-    // 4. Upload sorted indices to EBO:
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
-};
+//void VolumeRenderer::filterPoints(const float& proba) {
+//    _numPoints = 0;
+//    rendered = std::vector<bool>(points.size(), false);
+//    std::vector<GLuint> indices;
+//    for (int i = 0; i < points.size(); i++) {
+//        if (rand() % 100 < proba*100) {
+//            rendered[i] = true;
+//            indices.push_back(i);
+//            _numPoints++;
+//        }
+//    }
+//
+//    glBindVertexArray(vao);
+//    // 4. Upload sorted indices to EBO:
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
+//};
 
 void VolumeRenderer::setColors(std::vector<float>& colors)
 {
@@ -156,12 +160,15 @@ void VolumeRenderer::setColormap(const QImage& colormap)
     qDebug() << "Colormap is set!";
 }
 
-void VolumeRenderer::setRenderOrder(std::vector<GLuint>& indices) {
-    glBindVertexArray(vao);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
 
+void VolumeRenderer::setRenderOrder(const int& eye, std::vector<GLuint>& indices) {
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[eye]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
 }
+
+
+
 std::vector<GLuint> VolumeRenderer::getRenderedPoints() {
     std::vector <GLuint> indices;
     for (int i = 0; i < rendered.size(); i++) {
@@ -185,6 +192,22 @@ void VolumeRenderer::unFreezeCursor() {
         cursorFrozen = false;
     }
 };
+
+void VolumeRenderer::setHeadPosition(const QVector3D& headPos) { 
+    headPosition = headPos;
+
+
+    QVector3D offsetDir = QVector3D::crossProduct(headPosition, QVector3D(0, 1, 0));
+
+    stereoCameras[0] = headPosition - offsetDir * _eyeDistance;
+
+    stereoCameras[1] = headPosition + offsetDir * _eyeDistance;
+}
+
+QVector3D VolumeRenderer::getStereoCamera(const int& eye) const
+{
+    return stereoCameras[eye];
+}
 
 /**
 * Get cursor position in the coordinate system of the data
@@ -341,7 +364,7 @@ void VolumeRenderer::resize(int w, int h)
     glViewport(0, 0, w, h);
 }
 
-void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, const bool& live, const QMatrix4x4& modelFrameMatrix)
+void VolumeRenderer::render(GLuint framebuffer, float aspect, const bool& live, const QMatrix4x4& modelFrameMatrix)
 {
  
 
@@ -373,12 +396,13 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
     _projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
     _projMatrix.data()[15] = 0;
 
+    float fovy = 60; // degrees
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    heightOfNearPlane = (float) abs(viewport[3] - viewport[1]) / (2 * tan(fovyr));
+
     _modelMatrix = modelFrameMatrix;
 
-    // Exagerrate translations to move more freely
-    _modelMatrix.data()[12] *= 10;
-    _modelMatrix.data()[13] *= 10;
-    _modelMatrix.data()[14] *= 10;
   
     _pointsShaderProgram.bind();
 
@@ -389,51 +413,59 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
     
 
     if(!stereo){
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
         _viewMatrix.setToIdentity();
-        _viewMatrix.lookAt(camPos, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        _viewMatrix.lookAt(headPosition, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
         _framebuffer.bind();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
         #ifdef CUBE
             drawCube(_pointsShaderProgram);
         #else
-            drawVolume(_pointsShaderProgram, _viewMatrix, live);
+
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             drawCursor();
+            drawVolume(_pointsShaderProgram, _viewMatrix, live);
         #endif
    
 
     }
     else {
-        QVector3D offsetDir = QVector3D::crossProduct(
-            camPos,
-            QVector3D(0, 1, 0)
-        );
 
         QMatrix4x4 singleCamRef = QMatrix4x4();
         singleCamRef.setToIdentity();
-        singleCamRef.lookAt(camPos, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        singleCamRef.lookAt(headPosition, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
 
 
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
         _viewMatrix.setToIdentity();
-        _viewMatrix.lookAt(camPos - offsetDir * _eyeDistance, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        _viewMatrix.lookAt(stereoCameras[0], QVector3D(0, 0, 0), QVector3D(0, 1, 0));
         _leftRenderFBO.bind();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
 #ifdef CUBE
         drawCube(_pointsShaderProgram);
 #else
-        drawVolume(_pointsShaderProgram, singleCamRef, live);
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         drawCursor();
+        drawVolume(_pointsShaderProgram, singleCamRef, live);
 #endif
 
 
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
         _viewMatrix.setToIdentity();
-        _viewMatrix.lookAt(camPos + offsetDir * _eyeDistance, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        _viewMatrix.lookAt(stereoCameras[1], QVector3D(0, 0, 0), QVector3D(0, 1, 0));
         _rightRenderFBO.bind();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
 #ifdef CUBE
         drawCube(_pointsShaderProgram);
 #else
-        drawVolume(_pointsShaderProgram, singleCamRef, live);
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         drawCursor();
+        drawVolume(_pointsShaderProgram, singleCamRef, live);
 #endif
 
 
@@ -495,18 +527,13 @@ void VolumeRenderer::render(GLuint framebuffer, QVector3D camPos, float aspect, 
 
 void VolumeRenderer::drawCursor()
 {
-    // Draw the cursor
-    if (cursorFrozen) {
-        glEnable(GL_BLEND);
-        glDisable(GL_DEPTH_TEST);
-    }
-    else {
-        glDisable(GL_BLEND);
-        glEnable(GL_DEPTH_TEST);
 
-    }
+    _pointsShaderProgram.uniformMatrix4f("projMatrix", _projMatrix.data());
+    _pointsShaderProgram.uniformMatrix4f("viewMatrix", _viewMatrix.data());
+
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+
     mv::Vector3f cursorPosition;
     _pointsShaderProgram.bind();
     _pointsShaderProgram.uniform1i("isCursor", 1);
@@ -538,7 +565,6 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
 {
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     shader.uniformMatrix4f("projMatrix", _projMatrix.data());
     shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
@@ -556,21 +582,12 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
 {
     if (_numPoints > 0) {
 
-
         //glEnable(GL_POINT_SMOOTH);
         glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        //glDisable(GL_BLEND);
-        if (cursorFrozen) {
-            glEnable(GL_DEPTH_TEST);
-            glDepthFunc(GL_LESS);
-        }
-        else {
-            glDisable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST);
 
-        }
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shader.uniformMatrix4f("projMatrix", _projMatrix.data());
         shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
         shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
@@ -579,6 +596,7 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
         glBindVertexArray(vao);
 
         shader.uniform1i("selecting", cursorFrozen);
+        shader.uniform1f("heightOfNearPlane", heightOfNearPlane);
         shader.uniform1i("hasColors", false);
         shader.uniform3f("selectionColor", _selectionColor.redF(), _selectionColor.greenF(), _selectionColor.blueF());
         shader.uniform1i("live", live);

@@ -62,6 +62,8 @@ public: // Action getters
     TriggerAction& getConnectToTrackerAction() { return _connectToTrackerAction; }
     TriggerAction& getStartCalibAction() { return _startCalibAction; }
     TriggerAction& getToggleFullScreen() { return _toggleFullScreen; }
+    TriggerAction& getClearSelectionAction() { return _clearSelectionAction; }
+    DecimalAction& getColorAdjustAction() { return _colorAdjust; }
     DecimalAction& getEyeOffsetAction() { return _eyeOffsetAction; }
     DecimalAction& getCamDistAction() { return _camDistAction; }
     ColorAction& getSelectionColorPicker() { return _selectionColorPicker; }
@@ -79,7 +81,9 @@ protected:
     ToggleAction            _focusFloodfillNormAction;
     TriggerAction           _connectToTrackerAction;
     TriggerAction           _startCalibAction;
+    TriggerAction           _clearSelectionAction;
     TriggerAction           _toggleFullScreen;
+    DecimalAction           _colorAdjust;
     DecimalAction           _eyeOffsetAction;
     DecimalAction           _camDistAction;
     ColorAction             _selectionColorPicker;

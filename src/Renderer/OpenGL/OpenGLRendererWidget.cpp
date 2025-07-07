@@ -14,7 +14,8 @@
 OpenGLRendererWidget::OpenGLRendererWidget() :
     QOpenGLWidget(),
     _tracker(nullptr),
-    localCamPos(new QVector3D(0,0,0)),
+    modelCameraPositions(std::vector<QVector3D>(2)),
+    renderingOrders(std::vector<std::vector<GLuint>>(2)),
     msgLabel(new QLabel(this))
 {
     // UI
@@ -64,7 +65,6 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
 
 OpenGLRendererWidget::~OpenGLRendererWidget() {
     delete _tracker;
-    delete localCamPos;
 }
 
 //void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
@@ -75,24 +75,82 @@ OpenGLRendererWidget::~OpenGLRendererWidget() {
 
 void OpenGLRendererWidget::setData(std::vector<float>& data)
 {
+
+    // Testing : Cube point cloud
+    /*data.clear();
+
+    for (int i = 0; i <= 10; i++) {
+        for (int j = 0; j <= 10; j++) {
+            for (int k = 0; k <= 10; k++) {
+                data.push_back(i / 10.f - 0.5f);
+                data.push_back(j / 10.f - 0.5f);
+                data.push_back(k / 10.f - 0.5f);
+            }
+        }
+    }*/
+    // Testing : Cube point cloud - END
+
+
     makeCurrent();
     _volumeRenderer.setData(data);
 
     points = data;
 
-    indices = std::vector<GLuint>(data.size() / 3);
+    for (int i = 0; i < 2; i++) {
+        renderingOrders[i] = std::vector<GLuint>(data.size() / 3);
 
+    }
+
+    for (GLuint i = 0; i < renderingOrders[0].size(); i++) {
+        renderingOrders[0][i] = i;
+        renderingOrders[1][i] = i;
+    }
 
     startThreading();
 
     update();
 }
 
-void OpenGLRendererWidget::setColors(std::vector<float>& colors)
+void OpenGLRendererWidget::startThreading() {
+
+    workerThread = new WorkerThread(this, &renderingOrders, points, &modelCameraPositions);
+    connect(workerThread, &WorkerThread::resultReady, this, [this](const int& i) {
+        std::mutex mtx;
+        mtx.lock();
+
+        _volumeRenderer.setRenderOrder(i, renderingOrders[i]);
+        // Test : colouring points by drawing order
+        /*std::vector<float> colors = std::vector<float>(points.size() / 3);
+        for (GLuint i : indicesEye1) {
+            colors[indicesEye1[i]] = i / float(indicesEye1.size());
+        }
+        _volumeRenderer.setColors(colors);*/
+        // Test : colouring points by drawing order - END
+
+        mtx.unlock();
+        });
+    workerThread->start();
+
+
+    /*workerThread.push_back(new WorkerThread(this, &indicesEye2, points, localCamPosEye2));
+    connect(workerThread[workerThread.size() - 1], &WorkerThread::resultReady, this, [this]() {
+        std::mutex mtx;
+        mtx.lock();
+
+        _volumeRenderer.setRenderOrderEye2(indicesEye2);
+
+        mtx.unlock();
+        });
+    workerThread[workerThread.size() - 1]->start();*/
+}
+
+
+void OpenGLRendererWidget::setColors(std::vector<float>& colorsScalars)
 {
     makeCurrent(); 
-    _volumeRenderer.setColors(colors);
+    _volumeRenderer.setColors(colorsScalars);
 }
+
 
 void OpenGLRendererWidget::setColormap(const QImage& colormap)
 {
@@ -100,6 +158,8 @@ void OpenGLRendererWidget::setColormap(const QImage& colormap)
     _controls->setImageColorMap(colormap);
 #endif
     _volumeRenderer.setColormap(colormap);
+    qDebug() << "Width : " << colormap.width();
+    qDebug() << "Height : " << colormap.height();
 }
 
 void OpenGLRendererWidget::setTracker(PSTracker* tracker)
@@ -147,6 +207,7 @@ void OpenGLRendererWidget::setCamDist(float camDist)
 {
     //Reinitialise position and set correct distance
     viewPosSpheric.distance = camDist;
+    _volumeRenderer.setHeadPosition(getCamPos());
 }
 
 void OpenGLRendererWidget::setFullScreenWidget(FullScreenWidget* widget) { 
@@ -161,7 +222,7 @@ void OpenGLRendererWidget::setFullScreenWidget(FullScreenWidget* widget) {
         float displacement = index > -1 ? float(index) - (fullScreenWidget->getCount()-1) / 2.f : 0.f;
         qDebug() << "instance " << pluginInstanceIndex << ", index " << index << ", dispalcement : " << displacement;
         offset.setToIdentity();
-        offset.translate(displacement/5.f, 0, 0);
+        offset.translate(displacement/0.5f, 0, 0);
     });
 }
 
@@ -288,17 +349,30 @@ void OpenGLRendererWidget::paintGL()
             _volumeRenderer.unFreezeCursor();
         }
     }
-    _volumeRenderer.render(defaultFramebufferObject(), getCamPos(), aspect, true, _controls->getControlMatrix());
+    _volumeRenderer.render(defaultFramebufferObject(), aspect, true, _controls->getControlMatrix());
 #else
     QMatrix4x4 pose;
     if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1 && _tracker->GetTargetMatrix(pluginInstanceIndex, pose)) {
-        pose = offset * pose;
-        QVector3D camPos = getCamPos();
-        QVector4D homogCamPos = camPos.toVector4D();
-        homogCamPos[3] = 1.f;
-        *localCamPos = (homogCamPos * pose).toVector3DAffine();
 
-        _volumeRenderer.render(defaultFramebufferObject(), camPos, aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
+        pose = offset * pose;
+        QMatrix4x4 invertedPose = pose.inverted();
+        QVector4D homogCamPos0;
+        if (!_volumeRenderer.isStereo()) {
+            homogCamPos0 = _volumeRenderer.getHeadPosition().toVector4D();
+        }
+        else {
+            QVector4D homogCamPos1;
+
+            homogCamPos0 = _volumeRenderer.getStereoCamera(0).toVector4D();
+            homogCamPos1 = _volumeRenderer.getStereoCamera(1).toVector4D();
+
+            homogCamPos1[3] = 1.f;
+            modelCameraPositions[1] = (invertedPose * homogCamPos1).toVector3DAffine();
+        }
+        homogCamPos0[3] = 1.f;
+        modelCameraPositions[0] = (invertedPose * homogCamPos0).toVector3DAffine();
+
+        _volumeRenderer.render(defaultFramebufferObject(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
     }
 #endif
 }

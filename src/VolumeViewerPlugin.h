@@ -145,6 +145,12 @@ public: // Miscellaneous
         _volumeViewerWidget->getOpenGLWidget()->setEyeOffset(value);
     }
 
+    void clearSelection() {
+        std::vector<uint32_t> selection = std::vector<uint32_t>(0);
+        _points->setSelectionIndices(selection);
+        events().notifyDatasetDataSelectionChanged(_points->getSourceDataset<Points>());
+    }
+
 public: // Focus selection
     void setFocusSelection(bool focusSelection);
     void setFocusFloodfill(bool focusFloodfill);

@@ -21,7 +21,9 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _startCalibAction(this, "Calibrate tracker"),
     _connectToTrackerAction(this, "Connect tracker"),
     _toggleFullScreen(this, "Toggle Full Screen"),
+    _clearSelectionAction(this, "Clear selection"),
     _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.03, 3),
+    _colorAdjust(this, "Adjust COlor", 0, 1, 0, 2),
     _camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
     _selectionColorPicker(this, "Selection Color", QColor(255,0,0))
 {
@@ -67,14 +69,23 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     });
 
 
-    connect(&_toggleFullScreen, &TriggerAction::triggered, this, [this]() { 
-        _plugin->getOpenGLRendererWidget().toggleFullScreen(); 
-    });
+    connect(&_toggleFullScreen, &TriggerAction::triggered, this, [this]() {
+        _plugin->getOpenGLRendererWidget().toggleFullScreen();
+        });
+
+    connect(&_clearSelectionAction, &TriggerAction::triggered, this, [this]() {
+        _plugin->clearSelection();
+        });
 
 
     connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget().openCalib(); });
 
     connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setEyeOffset(value); });
+
+    connect(&_colorAdjust, &DecimalAction::valueChanged, [this](const float& value) { 
+        _plugin->getOpenGLRendererWidget().setColorPoints(value); 
+        });
+
 
     connect(&_camDistAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setCamDist(value); });
 

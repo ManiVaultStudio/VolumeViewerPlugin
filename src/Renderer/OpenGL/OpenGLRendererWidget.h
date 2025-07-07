@@ -25,6 +25,8 @@
 #include "graphics/Vector3f.h"
 #include "graphics/Vector2f.h"
 
+#include "DepthSorter.h"
+
 /**
  * OpenGL Volume Renderer Widget
  * This class provides a widget interface to the OpenGL Volume Renderer
@@ -42,56 +44,6 @@ enum class SelectionMode {
     Nearest, Sphere
 };
 
-class WorkerThread : public QThread
-{
-    Q_OBJECT
-public:
-    explicit WorkerThread(
-        QObject* parent = nullptr, 
-        std::vector<GLuint>* inds = nullptr,
-        std::vector<float> pts = std::vector<float>(0), 
-        QVector3D* cam = nullptr
-    ) : QThread(parent) {
-        indices = inds;
-        points = pts;
-        // Camera position relative to the cloud of points
-        camPos = cam;
-    }
-protected:
-    std::vector<float> points;
-    std::vector<GLuint>* indices;
-    QVector3D* camPos;
-    void run() override {
-        QString result;
-        QVector3D camLastPos;
-        for (int i = 0; i < indices->size(); i++) indices->at(i) = i;
-
-        while (true) {
-            if (*camPos != camLastPos) {
-                // 3. Each frame, sort indices based on distance to camera:
-                std::sort(indices->begin(), indices->end(), [&](const int& a, const int& b) {
-                    return (
-                        distance(*camPos, QVector3D(points[a * 3], points[a * 3 + 1], points[a * 3 + 2]))
-                        > distance(*camPos, QVector3D(points[b * 3], points[b * 3 + 1], points[b * 3 + 2]))
-                        );
-                    });
-
-                
-
-                camLastPos = *camPos;
-                emit resultReady();
-            }
-        }
-    }
-    float distance(const QVector3D& a, const QVector3D& b) {
-        float dx = a[0] - b[0];
-        float dy = a[1] - b[1];
-        float dz = a[2] - b[2];
-        return sqrtf(dx * dx + dy * dy + dz * dz);
-    }
-signals:
-    void resultReady();
-};
 
 
 
@@ -135,14 +87,8 @@ public:
 
     void adjustInterlacing();
 
-    void startThreading() {
-        
-        workerThread = new WorkerThread(this, &indices, points, localCamPos);
-        connect(workerThread, &WorkerThread::resultReady, this, [this]() {
-            _volumeRenderer.setRenderOrder(indices);
-        });
-        workerThread->start();
-    }
+    void startThreading();
+
 
 public:
     bool eventFilter(QObject* target, QEvent* event);
@@ -151,6 +97,14 @@ public:
     * Returns vector of position of the camera in space, calculated from the spherical coordinates
     */
     QVector3D getCamPos() const;
+
+    /// <summary>
+    ///  For test during dev
+    /// </summary>
+    void setColorPoints(const float& value) {
+        std::vector<float> colors = std::vector<float>(points.size() / 3, value );
+        setColors(colors);
+    };
 
 protected:
 
@@ -219,11 +173,12 @@ private:
 
     QMatrix4x4 offset;
 
-    std::vector<GLuint> indices;
     std::vector<float> points;
 
+    std::vector<std::vector<GLuint>> renderingOrders; // One for each camera
+    std::vector<QVector3D> modelCameraPositions; // One for each camera
+
     WorkerThread* workerThread;
-    QVector3D* localCamPos;
 
 };
 

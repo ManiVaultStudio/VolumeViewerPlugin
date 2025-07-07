@@ -109,6 +109,8 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     //_secondaryToolbarAction.addAction(&_settingsAction->getFlipInterlacingAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getSelectionColorPicker());
     _secondaryToolbarAction.addAction(&_settingsAction->getSelectModeAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getClearSelectionAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getColorAdjustAction());
 
     getVolumeRenderer().setSelectionColor(_settingsAction->getSelectionColorPicker().getColor());
 }
@@ -351,24 +353,31 @@ void VolumeViewerPlugin::init()
         // Create a color map with all the colors from the clusters.
         // The number of pixels is the number of clusters
         const QVector<Cluster>& clusterVec = _pointsColorCluster->getClusters();
-        const int bytesPerPixel = 3; // For RGB format
+        const int bytesPerPixel = 4; // For RGBA format
 
         // Allocate memory for the image data
-        uchar* rgbdata = new uchar[clusterVec.size() * bytesPerPixel];
+        uchar* rgbadata = new uchar[clusterVec.size() * bytesPerPixel];
 
-        // Fill the data array with some values (e.g., a gradient)
+
         for (int i = 0; i < clusterVec.size(); ++i) {
 
+            /*const auto color = clusterVec[i].getColor();
+            rgbadata[bytesPerPixel * i] = static_cast<uint32_t>(color.redF()*255.0f);
+            rgbadata[bytesPerPixel * i + 1] = static_cast<uint32_t>(color.greenF()*255.0f);
+            rgbadata[bytesPerPixel * i + 2] = static_cast<uint32_t>(color.blueF() * 255.0f);
+            rgbadata[bytesPerPixel * i + 3] = static_cast<uint32_t>(255.0f);*/
             const auto color = clusterVec[i].getColor();
-            rgbdata[bytesPerPixel * i] = static_cast<uchar>(color.redF()*255.0f);
-            rgbdata[bytesPerPixel * i + 1] = static_cast<uchar>(color.greenF()*255.0f);
-            rgbdata[bytesPerPixel * i + 2] = static_cast<uchar>(color.blueF()*255.0f);
+            rgbadata[i * bytesPerPixel + 0] = static_cast<uchar>(color.blueF() * 255.0f);   // Blue
+            rgbadata[i * bytesPerPixel + 1] = static_cast<uchar>(color.greenF() * 255.0f);  // Green
+            rgbadata[i * bytesPerPixel + 2] = static_cast<uchar>(color.redF() * 255.0f);    // Red
+            rgbadata[i * bytesPerPixel + 3] = 255;
 
-            qDebug() << "Color : r " << color.redF() << ", g " << color.greenF() << ", b" << color.blueF();
         }
 
-        QImage image(rgbdata, clusterVec.size(), 1, QImage::Format_RGB888);
+        QImage image(rgbadata, clusterVec.size(), 1, clusterVec.size()* bytesPerPixel, QImage::Format_ARGB32);
         _volumeViewerWidget->getOpenGLWidget()->setColormap(image);
+        delete rgbadata;
+        
 
 
         // Mapping from local to global indices
@@ -381,18 +390,24 @@ void VolumeViewerPlugin::init()
 
         // Generate color buffer for global and local colors
         std::vector<float> globalUV(totalNumPoints);
+        std::vector<float> localUV(totalNumPoints);
 
         // Loop over all clusters and populate global colors
         for (int i = 0; i < clusterVec.size(); i++)
         {
             for (const auto& index : clusterVec[i].getIndices())
-                globalUV[index] = (float(i) + 0.5f)/ clusterVec.size();
+                globalUV[index] = float(i) / float(clusterVec.size() - 1);
 
         }
+
+        // Loop over all global indices and find the corresponding local color
+        int localColorIndex = 0;
+        for (const auto& globalIndex : globalIndices)
+            localUV[localColorIndex++] = globalUV[globalIndex];
         
 
         // Apply colors to scatter plot widget without modification
-        _volumeViewerWidget->getOpenGLWidget()->setColors(globalUV);
+        _volumeViewerWidget->getOpenGLWidget()->setColors(localUV);
 
     });
     

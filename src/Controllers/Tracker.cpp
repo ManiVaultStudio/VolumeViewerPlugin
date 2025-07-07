@@ -32,7 +32,6 @@ std::mutex mtx;
 void MyListener::OnTrackerData(const PSTech::pstsdk::TrackerData& td)
 {
 
-
     for (int d = 0; d < td.targetlist.size(); ++d)
     {
 
@@ -295,8 +294,13 @@ bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
     {
         pose = listener.getTragetMatrix(index);
 
+        // Exagerrate translations to move more freely
+        pose.data()[12] *= 10;
+        pose.data()[13] *= 10;
+        pose.data()[14] *= 10;
+
      
-        if (pose.column(3).toVector3D().length() < 0.001f) {
+        if (pose.column(3).toVector3D().length() < 0.01f) {
             // Strange bug where jumps to the origin happen here and there, just ignore these positions
             return false;
         }

@@ -42,9 +42,13 @@ public:
     void setHighlights(std::vector<int>& highlights);
     void setColormap(const QImage& colormap);
     void setEyeOffset(float eyeOffset) { _eyeDistance = eyeOffset; }
+    void setHeadPosition(const QVector3D& headPos);
+    QVector3D getHeadPosition() const { return headPosition; }
     void setInterlacing(const int& interl) { _interlacing = interl; }
     void setSelectionColor(const QColor& color) { _selectionColor = color; }
-    void setStereo(const bool& val){ stereo = val; }
+    void setStereo(const bool& val) { stereo = val; }
+    bool isStereo() const { return stereo; }
+    QVector3D getStereoCamera(const int& eye) const;
     //void setCursorPosition(const QVector3D& pos) { _cursorPoint = mv::Vector3f(pos[0], pos[1], pos[2]); }
     QVector3D getCursor() const;
     bool getCursorFrozen() const { return cursorFrozen; }
@@ -58,13 +62,13 @@ public:
     void init();
     void resize(int w, int h);
 
-    void render(GLuint framebuffer, QVector3D camPos, float aspect, const bool& , const QMatrix4x4& modelMatrix);
+    void render(GLuint framebuffer, float aspect, const bool& live, const QMatrix4x4& modelMatrix);
     void drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& camRef, const bool& live);
     void drawCube(mv::ShaderProgram& shader);
     void drawCursor();
 
-    void setRenderOrder(std::vector<GLuint>& indices);
-    void filterPoints(const float& proba);
+    void setRenderOrder(const int& eye, std::vector<GLuint>& indices);
+    //void filterPoints(const float& proba);
     std::vector<GLuint> getRenderedPoints();
 
 
@@ -96,7 +100,7 @@ private:
     GLuint highlightVBO;
     int _numPoints = 0;
 
-    GLuint ebo;
+    std::vector<GLuint> ebo = std::vector<GLuint>(2);
 
     GLuint _cursorVao;
     GLuint _cursorVbo;
@@ -113,6 +117,8 @@ private:
     Cube _cube;
 
     bool stereo = false;
+    QVector3D headPosition;
+    std::vector<QVector3D> stereoCameras = std::vector<QVector3D>(2);
 
     QMatrix4x4 _projMatrix;
     QMatrix4x4 _leftProjMatrix;
@@ -134,4 +140,6 @@ private:
     // Points can be hidden by flipping the corresponding bool to false
     std::vector<bool> rendered;
     int numPointsHighlighted = 0;
+
+    float heightOfNearPlane;
 };
