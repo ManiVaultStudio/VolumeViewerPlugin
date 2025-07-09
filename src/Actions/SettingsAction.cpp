@@ -23,7 +23,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _toggleFullScreen(this, "Toggle Full Screen"),
     _clearSelectionAction(this, "Clear selection"),
     _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.03, 3),
-    _colorAdjust(this, "Adjust COlor", 0, 1, 0, 2),
+    _pointOpacityAction(this, "Point opacity", 0, 1, 1.0f, 2),
     _camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
     _selectionColorPicker(this, "Selection Color", QColor(255,0,0))
 {
@@ -75,6 +75,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_clearSelectionAction, &TriggerAction::triggered, this, [this]() {
         _plugin->clearSelection();
+        _pointOpacityAction.setValue(1.f);
         });
 
 
@@ -82,8 +83,10 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setEyeOffset(value); });
 
-    connect(&_colorAdjust, &DecimalAction::valueChanged, [this](const float& value) { 
-        _plugin->getOpenGLRendererWidget().setColorPoints(value); 
+
+    _plugin->getOpenGLRendererWidget().getVolumeRenderer().setPointOpacity(_pointOpacityAction.getValue());
+    connect(&_pointOpacityAction, &DecimalAction::valueChanged, [this](const float& value) {
+        _plugin->getOpenGLRendererWidget().getVolumeRenderer().setPointOpacity(value);
         });
 
 

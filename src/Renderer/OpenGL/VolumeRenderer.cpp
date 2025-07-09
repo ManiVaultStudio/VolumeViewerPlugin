@@ -143,10 +143,6 @@ void VolumeRenderer::setColors(std::vector<float>& colors)
 }
 
 void VolumeRenderer::setHighlights(std::vector<int>& highlights) {
-    numPointsHighlighted = 0;
-    for (int i : highlights) {
-        if (i > 0) numPointsHighlighted++;
-    }
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, highlightVBO);
     glBufferData(GL_ARRAY_BUFFER, highlights.size() * sizeof(int), highlights.data(), GL_STATIC_DRAW);
@@ -161,10 +157,22 @@ void VolumeRenderer::setColormap(const QImage& colormap)
 }
 
 
+void VolumeRenderer::setPointOpacity(const float& value) {
+    pointOpacity = value;
+};
+
+
 void VolumeRenderer::setRenderOrder(const int& eye, std::vector<GLuint>& indices) {
+    qDebug() << "render order chamged";
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[eye]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
+
+    /*std::vector<float> colors = std::vector<float>(indices.size(), 0.f);
+    for (int i = 0; i < indices.size(); i++) {
+        colors[indices[i]] = float(i) / float(indices.size());
+    }
+    setColors(colors);*/
 }
 
 
@@ -602,7 +610,7 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
         shader.uniform1i("live", live);
         shader.uniform1i("selectMode", selectionMode);
         shader.uniform1f("selectRadius", sphereSelectRadius);
-        shader.uniform1i("selectionEmpty", numPointsHighlighted == 0);
+        shader.uniform1f("baseOpacity", pow(pointOpacity,2));
 
         shader.uniformMatrix4f("cameraRef", camRef.data());
 

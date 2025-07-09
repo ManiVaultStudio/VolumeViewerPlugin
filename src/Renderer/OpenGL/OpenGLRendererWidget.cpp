@@ -14,8 +14,8 @@
 OpenGLRendererWidget::OpenGLRendererWidget() :
     QOpenGLWidget(),
     _tracker(nullptr),
-    modelCameraPositions(std::vector<QVector3D>(2)),
     renderingOrders(std::vector<std::vector<GLuint>>(2)),
+    cameraInModelRef(std::vector<QMatrix4x4>(2)),
     msgLabel(new QLabel(this))
 {
     // UI
@@ -113,7 +113,7 @@ void OpenGLRendererWidget::setData(std::vector<float>& data)
 
 void OpenGLRendererWidget::startThreading() {
 
-    workerThread = new WorkerThread(this, &renderingOrders, points, &modelCameraPositions);
+    workerThread = new WorkerThread(this, &renderingOrders, points, &cameraInModelRef);
     connect(workerThread, &WorkerThread::resultReady, this, [this](const int& i) {
         std::mutex mtx;
         mtx.lock();
@@ -161,6 +161,7 @@ void OpenGLRendererWidget::setColormap(const QImage& colormap)
     qDebug() << "Width : " << colormap.width();
     qDebug() << "Height : " << colormap.height();
 }
+
 
 void OpenGLRendererWidget::setTracker(PSTracker* tracker)
 {
@@ -356,21 +357,21 @@ void OpenGLRendererWidget::paintGL()
 
         pose = offset * pose;
         QMatrix4x4 invertedPose = pose.inverted();
-        QVector4D homogCamPos0;
+        cameraInModelRef[0].setToIdentity();
         if (!_volumeRenderer.isStereo()) {
-            homogCamPos0 = _volumeRenderer.getHeadPosition().toVector4D();
+            cameraInModelRef[0].lookAt(_volumeRenderer.getHeadPosition(), QVector3D(0,0,0), QVector3D(0, 1, 0));
         }
         else {
-            QVector4D homogCamPos1;
+            cameraInModelRef[1].setToIdentity();
 
-            homogCamPos0 = _volumeRenderer.getStereoCamera(0).toVector4D();
-            homogCamPos1 = _volumeRenderer.getStereoCamera(1).toVector4D();
 
-            homogCamPos1[3] = 1.f;
-            modelCameraPositions[1] = (invertedPose * homogCamPos1).toVector3DAffine();
+            cameraInModelRef[0].lookAt(_volumeRenderer.getStereoCamera(0), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+            cameraInModelRef[1].lookAt(_volumeRenderer.getStereoCamera(1), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+
+
+            cameraInModelRef[1] = invertedPose * cameraInModelRef[1];
         }
-        homogCamPos0[3] = 1.f;
-        modelCameraPositions[0] = (invertedPose * homogCamPos0).toVector3DAffine();
+        cameraInModelRef[0] = invertedPose * cameraInModelRef[0];
 
         _volumeRenderer.render(defaultFramebufferObject(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
     }

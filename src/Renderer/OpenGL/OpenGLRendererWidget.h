@@ -98,13 +98,6 @@ public:
     */
     QVector3D getCamPos() const;
 
-    /// <summary>
-    ///  For test during dev
-    /// </summary>
-    void setColorPoints(const float& value) {
-        std::vector<float> colors = std::vector<float>(points.size() / 3, value );
-        setColors(colors);
-    };
 
 protected:
 
@@ -175,8 +168,9 @@ private:
 
     std::vector<float> points;
 
-    std::vector<std::vector<GLuint>> renderingOrders; // One for each camera
-    std::vector<QVector3D> modelCameraPositions; // One for each camera
+    std::vector<std::vector<GLuint>> renderingOrders; // One for each eye
+    std::vector<QMatrix4x4> cameraInModelRef; // One for each eye
+
 
     WorkerThread* workerThread;
 

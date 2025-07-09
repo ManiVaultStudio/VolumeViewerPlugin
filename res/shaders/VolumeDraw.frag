@@ -6,7 +6,7 @@ uniform vec3 selectionColor;
 uniform bool live; // false when tracking is lost
 uniform int selectMode;
 uniform float selectRadius;
-uniform bool selectionEmpty;
+uniform float baseOpacity;
 
 uniform sampler2D colormap;
 uniform bool selecting;
@@ -21,18 +21,15 @@ out vec4 fragColor;
 
 void main()
 {
-    
-        fragColor = vec4(.6, .6, .6, 1);
+        fragColor = vec4(.6, .6, .6, baseOpacity);
 
         if (hasColors) {
             vec3 color = texture(colormap, vec2(v_Color, 1-v_Color)).rgb;
-            if(selectionEmpty){
-                fragColor = vec4(color, 1);
-            } else {
-                fragColor = vec4(color, .01);
-            }
+        
+            fragColor = vec4(color, baseOpacity);
+      
 
-            //fragColor = vec4(v_Color, 0, 1-v_Color, 1); // Depth sorting test 
+            //fragColor = vec4(v_Color, 0, 1-v_Color, 1); // Test color for Depth sorting test 
         }
 
         if(selecting){
@@ -72,11 +69,18 @@ void main()
             }
         }
 
+        if (isCursor){
+            fragColor = vec4(selectionColor, 1);
+        }
+
         // Highlight selected points
-        if (isCursor || vHighlight != 0)
+        if (vHighlight != 0)
         {
-            // fragColor = vec4(selectionColor, 1);
-            fragColor.a = 1;
+            if(baseOpacity > 0.4){
+                fragColor = vec4(selectionColor, 1);
+            } else {
+                fragColor.a = 1;
+            }
         }
         
         // If the position is not tracked live, display the data in dark gray

@@ -63,7 +63,7 @@ public: // Action getters
     TriggerAction& getStartCalibAction() { return _startCalibAction; }
     TriggerAction& getToggleFullScreen() { return _toggleFullScreen; }
     TriggerAction& getClearSelectionAction() { return _clearSelectionAction; }
-    DecimalAction& getColorAdjustAction() { return _colorAdjust; }
+    DecimalAction& getPointOpacityAction() { return _pointOpacityAction; }
     DecimalAction& getEyeOffsetAction() { return _eyeOffsetAction; }
     DecimalAction& getCamDistAction() { return _camDistAction; }
     ColorAction& getSelectionColorPicker() { return _selectionColorPicker; }
@@ -83,7 +83,7 @@ protected:
     TriggerAction           _startCalibAction;
     TriggerAction           _clearSelectionAction;
     TriggerAction           _toggleFullScreen;
-    DecimalAction           _colorAdjust;
+    DecimalAction           _pointOpacityAction;
     DecimalAction           _eyeOffsetAction;
     DecimalAction           _camDistAction;
     ColorAction             _selectionColorPicker;

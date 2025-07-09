@@ -40,6 +40,7 @@ public:
     void setData(std::vector<float>& data);
     void setColors(std::vector<float>& colors);
     void setHighlights(std::vector<int>& highlights);
+    void setPointOpacity(const float& value);
     void setColormap(const QImage& colormap);
     void setEyeOffset(float eyeOffset) { _eyeDistance = eyeOffset; }
     void setHeadPosition(const QVector3D& headPos);
@@ -139,7 +140,8 @@ private:
     std::vector<float> points;
     // Points can be hidden by flipping the corresponding bool to false
     std::vector<bool> rendered;
-    int numPointsHighlighted = 0;
+
+    float pointOpacity = 1.0f;
 
     float heightOfNearPlane;
 };

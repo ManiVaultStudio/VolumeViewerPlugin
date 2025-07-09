@@ -110,7 +110,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _secondaryToolbarAction.addAction(&_settingsAction->getSelectionColorPicker());
     _secondaryToolbarAction.addAction(&_settingsAction->getSelectModeAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getClearSelectionAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getColorAdjustAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getPointOpacityAction());
 
     getVolumeRenderer().setSelectionColor(_settingsAction->getSelectionColorPicker().getColor());
 }
