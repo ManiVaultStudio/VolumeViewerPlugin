@@ -4,8 +4,6 @@
 
 
 
-
-
 Octree::Octree(
     std::vector<float>* pts, 
     const std::vector<GLuint>& indices, 
@@ -172,11 +170,11 @@ void Octree::getSortedIndicesUsingCubes(const QVector3D& position, std::vector<G
 
         orderedChildren.push_back(opposite);
 
-        for (int index : getIndexNeigbours(opposite)) {
+        for (const int& index : getIndexNeigbours(opposite)) {
             orderedChildren.push_back(index);
         }
 
-        for (int index : getIndexNeigbours(containing)) {
+        for (const int& index : getIndexNeigbours(containing)) {
             orderedChildren.push_back(index);
         }
 
@@ -184,7 +182,7 @@ void Octree::getSortedIndicesUsingCubes(const QVector3D& position, std::vector<G
         // Geometry based - END
 
 
-        for (int index : orderedChildren) {
+        for (const int& index : orderedChildren) {
             if (children[index] != nullptr) {
                 children[index]->getSortedIndicesUsingCubes(position, indices);
             }
@@ -205,15 +203,19 @@ WorkerThread::WorkerThread(
     QObject* parent = nullptr,
     std::vector<std::vector<GLuint>>* inds = nullptr,
     std::vector<float> pts = std::vector<float>(0),
-    std::vector<QMatrix4x4>* camMatrices = nullptr
+    std::vector<QMatrix4x4>* camMatrices = nullptr,
+    std::mutex* mtex = nullptr
 ) : QThread(parent), 
-    previousCameraSide(std::vector<int>(camMatrices->size(), 0)),
-    sliceSorts(std::vector<std::vector<GLuint>>(3, std::vector<GLuint>(0)))
+    previousCameraMainSliceDir(std::vector<int>(camMatrices->size(), -1)),
+    sliceSorts(std::vector<std::vector<GLuint>>(3, std::vector<GLuint>(0))),
+    previousAxisSides(std::vector<std::vector<bool>>(camMatrices->size()))
 {
     indices = inds;
     points = pts;
+    pointSlices = std::vector<uint8_t>(points.size(), 0);
     // Camera position relative to the cloud of points
     cams = camMatrices;
+    mtx = mtex;
 
     std::vector<GLuint> allIndices = std::vector<GLuint>(points.size() / 3);
 
@@ -232,42 +234,75 @@ WorkerThread::WorkerThread(
     //qDebug() << "Tree size " << treeSize;
     //qDebug() << "Indices size " << indices->size();
 
-    // Create the slice sorts
+    //// Create the slice sorts
+    //for (int side = 0; side < 3; side++) {
+    //    qDebug() << "Cretating slices for side : " << side;
+    //    clock_t start = clock();
+    //    int nSlices = 100;
+    //    float coordmin = -1.f;
+    //    float coordmax = 1.f;
+
+    //    for (int k = 0; k < points.size() / 3; k++) {
+    //        if (points[3 * k + side] < coordmin) {
+    //            coordmin = points[3 * k + side] - 0.1f;
+    //        }
+    //        if (points[3 * k + side] > coordmax) {
+    //            coordmax = points[3 * k + side] + 0.1f;
+    //        }
+    //    }
+    //    for (int slice = 0; slice < nSlices; slice++) {
+    //        for (int k = 0; k < points.size() / 3; k++) {
+    //            
+    //            if (
+    //                points[3 * k + side] >= coordmin + (coordmax - coordmin) * slice / nSlices
+    //                && points[3 * k + side] < coordmin + (coordmax - coordmin) * (slice + 1) / nSlices
+    //                ) {
+    //                sliceSorts[side].push_back(k);
+    //            }
+    //            
+    //        }
+    //    }
+    //    qDebug() << "Cretated slices for side : " << side << ", in " << clock() - start;
+    //}
+
+    // Advanced slice sorting
+    start = clock();
     for (int side = 0; side < 3; side++) {
-        qDebug() << "Cretating slices for side : " << side;
-        clock_t start = clock();
-        int nSlices = 100;
-        float coordmin = -1.f;
-        float coordmax = 1.f;
+        float coordmin = FLT_MAX;
+        float coordmax = FLT_MIN;
 
         for (int k = 0; k < points.size() / 3; k++) {
             if (points[3 * k + side] < coordmin) {
-                coordmin = points[3 * k + dataAxesConversion[side]] - 0.1f;
+                coordmin = points[3 * k + side] - 0.01f;
             }
             if (points[3 * k + side] > coordmax) {
-                coordmax = points[3 * k + dataAxesConversion[side]] + 0.1f;
+                coordmax = points[3 * k + side] + 0.01f;
             }
         }
-        for (int slice = 0; slice < nSlices; slice++) {
-            for (int k = 0; k < points.size() / 3; k++) {
-                
-                if (
-                    points[3 * k + dataAxesConversion[side]] >= coordmin + (coordmax - coordmin) * slice / nSlices
-                    && points[3 * k + dataAxesConversion[side]] < coordmin + (coordmax - coordmin) * (slice + 1) / nSlices
-                    ) {
-                    sliceSorts[side].push_back(k);
-                }
-                
-            }
+
+        for (int i = 0; i < points.size() / 3; i++) {
+            pointSlices[3 * i + side] = static_cast<uint8_t>(numSlices*(points[3 * i + side] - coordmin) / (coordmax - coordmin));
         }
-        qDebug() << "Cretated slices for side : " << side << ", in " << clock() - start;
     }
+    qDebug() << "Prepared slices in " << clock() - start;
+
 }
 
 WorkerThread::~WorkerThread() {
     delete pointTree;
 }
 
+uint8_t WorkerThread::getSliceNumber(const GLuint& pointId, const int& axis) {
+    return pointSlices[3 * pointId + axis];
+}
+QVector3D WorkerThread::getCamPos(const int& eye) {
+    std::lock_guard<std::mutex> lock(*mtx);
+    return (cams->at(eye) * QVector4D(0, 0, 0, 1.0)).toVector3DAffine();
+}
+QVector3D WorkerThread::getCamDir(const int& eye) {
+    std::lock_guard<std::mutex> lock(*mtx);
+    return (cams->at(eye) * QVector4D(0, 0, 1.0, 1.0)).toVector3DAffine();
+}
 
 
 void WorkerThread::run() {
@@ -275,15 +310,16 @@ void WorkerThread::run() {
     std::vector<QVector3D> previousCameras = std::vector<QVector3D>(2, QVector3D(0,0,0));
     std::vector<std::vector<GLuint>> localIndices = std::vector<std::vector<GLuint>>(2);
     std::vector<clock_t> start = std::vector<clock_t>(2,0);
+    std::vector<bool> forceFullRender = std::vector<bool>(2, false);
     while (true) {
-        for (int i = 0; i < 2; i++) {
+        for (int cam = 0; cam < 2; cam++) {
+            QVector3D camPos = getCamPos(cam);
             if (
-                (getCamPos(i) - previousCameras[i]).length() > 0.01f
-                && clock() - start[i] > 0.05f * CLOCKS_PER_SEC
+                (camPos - previousCameras[cam]).length() > 0.01f
+                && clock() - start[cam] > 0.05f * CLOCKS_PER_SEC
             ) {
-                start[i] = clock();
-            
 
+                start[cam] = clock();
                 // Sort indices based on distance to camera
             
                 // Bruteforce method
@@ -294,23 +330,39 @@ void WorkerThread::run() {
                         > distance(*camPos, QVector3D(points[b * 3], points[b * 3 + 1], points[b * 3 + 2]))
                     );
                 });*/
+
+                //std::unique_lock<std::mutex> lock(mtx);
+                //indices->at(i).assign(localIndices[i].begin(), localIndices[i].end());
+                //lock.unlock();
+                //emit resultReady(i);
                 // Bruteforce method - END
 
-                //// Octree based method
-                //localIndices[i].clear();
-                //pointTree->getSortedIndicesUsingCubes(camPos->at(i), localIndices[i]);
-                //// Octree based method - END
 
-                //std::mutex mtx;
-                //mtx.lock();
-                //indices->at(i).assign(localIndices[i].begin(), localIndices[i].end());
-                //mtx.unlock();
-                //emit resultReady(i);
-
-                sliceSort();
+                if ((camPos - previousCameras[cam]).length() > 0.7f) {
+                    // Octree based method
+                    localIndices[cam].clear();
+                    pointTree->getSortedIndicesUsingCubes(getCamPos(cam), localIndices[cam]);
 
 
-                previousCameras[i] = getCamPos(i);
+                    std::unique_lock<std::mutex> lock(*mtx);
+                    indices->at(cam).assign(localIndices[cam].begin(), localIndices[cam].end());
+                    lock.unlock();
+                    emit resultReady(cam);
+                    forceFullRender[cam] = true;
+                    // Octree based method - END
+                }
+                else {
+                    qDebug() << "slice sorting";
+                    // Do slicesort if the movement is not too fast
+                    sliceSort(forceFullRender[cam]);
+                    forceFullRender[cam] = false;
+                    qDebug() << "End Slice sorting, took : " << clock() - start[cam];
+                }
+                
+
+
+
+                previousCameras[cam] = camPos;
 
             }
        
@@ -321,38 +373,173 @@ void WorkerThread::run() {
 }
 
 
+//
+//void WorkerThread::shallowSliceSort() {
+//    std::vector<int> cameraDirMainAxis = std::vector<int>(2, 0); // Reflects new version of previousCameraMainSliceDir
+//    for (int cam = 0; cam < cameraDirMainAxis.size(); cam++) {
+//
+//        //Determine the main axis from the camera direction + on which side of each axis we are
+//        float biggestComponentValue = 0;
+//        for (int i = 0; i < 3; i++) {
+//            QVector3D unitVector = QVector3D(0,0,0);
+//            unitVector[i] = 1.0f;
+//            float componentDir = QVector3D::dotProduct(getCamDir(cam), unitVector);
+//            if (abs(componentDir) >= biggestComponentValue) {
+//                cameraDirMainAxis[cam] = i+1;
+//                if (componentDir < 0) cameraDirMainAxis[cam] *= -1;
+//                biggestComponentValue = abs(componentDir);
+//            }
+//        }
+//
+//        if (previousCameraMainSliceDir[cam] > -1 && cameraDirMainAxis[cam] != previousCameraMainSliceDir[cam]) {
+//            qDebug() << "Cam dir" << getCamDir(cam);
+//            qDebug() << "Detected change in face on camera : " << cam << ", setting new face : " << cameraDirMainAxis[cam];
 
-void WorkerThread::sliceSort() {
-    std::vector<int> cameraSide = std::vector<int>(2, 0);
-    //Determine f the front facing side has changed for each amera
-    for (int cam = 0; cam < cameraSide.size(); cam++) {
+//            std::unique_lock<std::mutex> lock(mtx);
+//            qDebug() << abs(cameraDirMainAxis[cam]) - 1;
+//            indices->at(cam).clear();
+//            indices->at(cam).assign(sliceSorts[abs(cameraDirMainAxis[cam]) - 1].begin(), sliceSorts[abs(cameraDirMainAxis[cam]) - 1].end());
+//            if (cameraDirMainAxis[cam] < 0) {
+//                std::reverse(indices->at(cam).begin(), indices->at(cam).end());
+//            } 
+//            lock.unlock();
+//
+//            emit resultReady(cam);
+//            previousCameraMainSliceDir[cam] = cameraDirMainAxis[cam];
+//        }
+//    }
+//
+//}
+
+
+void WorkerThread::sliceSort(const bool& force) {
+    std::vector<std::vector<int>> cameraSortedAxis = std::vector<std::vector<int>>(2, std::vector<int>(3, -1));
+    std::vector<int> cameraDirMainAxis = std::vector<int>(2, 0); // Reflects new version of previousCameraMainSliceDir
+    std::vector<std::vector<bool>> axisComponentPositive = std::vector<std::vector<bool>>(2, std::vector<bool>(3)); // Reflects new version of previousAxisSides
+    for (int cam = 0; cam < 2; cam++) {
+        bool recalculate = false;
+        //Determine the main axis from the camera direction + on which side of each axis we are
         float biggestComponentValue = 0;
+        float smallestComponentValue = INT_MAX;
+        QVector3D unitVector;
+        QVector3D camDir = getCamDir(cam);
         for (int i = 0; i < 3; i++) {
-            QVector3D unitVector = QVector3D(0,0,0);
+            unitVector = QVector3D(0, 0, 0);
             unitVector[i] = 1.0f;
-            float component = QVector3D::dotProduct(getCamDir(cam), unitVector);
-            if (abs(component) >= biggestComponentValue) {
-                cameraSide[cam] = i+1;
-                if (component < 0) cameraSide[cam] *= -1;
-                biggestComponentValue = abs(component);
+            float componentDir = QVector3D::dotProduct(camDir, unitVector);
+            axisComponentPositive[cam][i] = componentDir > 0;
+            if (abs(componentDir) >= biggestComponentValue) {
+                cameraSortedAxis[cam][0] = i;
+                biggestComponentValue = abs(componentDir);
             }
-        }
-        if (cameraSide[cam] != previousCameraSide[cam]) {
-            qDebug() << "Cam dir" << getCamDir(cam);
-            qDebug() << "Detected change in face on camera : " << cam << ", setting new face : " << cameraSide[cam];
-            std::mutex mtx;
-            mtx.lock();
-            qDebug() << abs(cameraSide[cam]) - 1;
-            indices->at(cam).clear();
-            indices->at(cam).assign(sliceSorts[abs(cameraSide[cam]) - 1].begin(), sliceSorts[abs(cameraSide[cam]) - 1].end());
-            if (cameraSide[cam] < 0) {
-                std::reverse(indices->at(cam).begin(), indices->at(cam).end());
-            } 
-            mtx.unlock();
+            if (abs(componentDir) <= smallestComponentValue) {
+                cameraSortedAxis[cam][2] = i;
+                smallestComponentValue = abs(componentDir);
+            }
 
-            emit resultReady(cam);
-            previousCameraSide[cam] = cameraSide[cam];
         }
+        cameraSortedAxis[cam][1] = 3 - cameraSortedAxis[cam][0] - cameraSortedAxis[cam][2];
+
+        // Perform shallow slice sorting (slice along the main axe with no in slice sorting)
+        if (force || cameraSortedAxis[cam][0] != previousCameraMainSliceDir[cam]) {
+            recalculate = true;
+
+            slicedIndexes.clear();
+            slicedIndexes = std::vector<std::vector<GLuint>>(numSlices);
+            uint8_t sliceId;
+            for (GLuint i = 0; i < points.size() / 3; i++) {
+                sliceId = getSliceNumber(i, cameraSortedAxis[cam][0]); // pointSlices[3 * i + cameraSortedAxis[cam][0]];
+                
+                slicedIndexes[sliceId].push_back(i);
+            }
+            if (!axisComponentPositive[cam][cameraSortedAxis[cam][0]]) {
+                std::reverse(slicedIndexes.begin(), slicedIndexes.end());
+            }
+
+
+            previousCameraMainSliceDir[cam] = cameraSortedAxis[cam][0];
+        }
+        
+        bool changeOneAxisSide = (
+            previousAxisSides[cam].size() == 0 || (
+            axisComponentPositive[cam][0] != previousAxisSides[cam][0]
+            || axisComponentPositive[cam][1] != previousAxisSides[cam][1]
+            || axisComponentPositive[cam][2] != previousAxisSides[cam][2]
+                )
+        );
+
+        // Perform deep slice sorting (sort inside slices), based on the two other main axis
+        if (force || changeOneAxisSide || recalculate) {
+            recalculate = true;
+            for (uint8_t slice = 0; slice < slicedIndexes.size(); slice++) {
+                std::vector<std::vector<GLuint>> subSlicing = std::vector<std::vector<GLuint>>(numSlices);
+                uint8_t subSliceId;
+                for (const GLuint& index : slicedIndexes[slice]) {
+                    subSliceId = getSliceNumber(index, cameraSortedAxis[cam][1]); // pointSlices[3 * i + cameraSortedAxis[cam][0]];
+
+                    subSlicing[subSliceId].push_back(index);
+                }
+                if (!axisComponentPositive[cam][cameraSortedAxis[cam][1]]) {
+                    std::reverse(subSlicing.begin(), subSlicing.end());
+                }
+                slicedIndexes[slice].clear();
+                for (const std::vector<GLuint>& subSlice : subSlicing) {
+                    slicedIndexes[slice].insert(slicedIndexes[slice].end(), subSlice.begin(), subSlice.end());
+                }
+                /*std::sort(slicedIndexes[i].begin(), slicedIndexes[i].end(), [&](const GLuint& a, const GLuint& b) {
+                    bool secondaryAxisCond = axisComponentPositive[cam][cameraSortedAxis[cam][1]]?
+                        getSliceNumber(a, cameraSortedAxis[cam][1]) < getSliceNumber(b, cameraSortedAxis[cam][1])
+                        : getSliceNumber(b, cameraSortedAxis[cam][1]) < getSliceNumber(a, cameraSortedAxis[cam][1]);
+                    if (secondaryAxisCond) return true;
+
+                    return (getSliceNumber(a, cameraSortedAxis[cam][1]) == getSliceNumber(b, cameraSortedAxis[cam][1])
+                        && (
+                            axisComponentPositive[cam][cameraSortedAxis[cam][2]] ?
+                            getSliceNumber(a, cameraSortedAxis[cam][2]) < getSliceNumber(b, cameraSortedAxis[cam][2])
+                            : getSliceNumber(b, cameraSortedAxis[cam][2]) < getSliceNumber(a, cameraSortedAxis[cam][2])
+                        ));
+                });*/
+            }
+            //coalesceOrder(cam);
+            previousAxisSides[cam] = axisComponentPositive[cam];
+        }
+        
+        if (recalculate) {
+            coalesceOrder(cam);
+
+        }
+
+        //if (cameraSortedAxis[cam][0] != previousCameraMainSliceDir[cam]/* || changeOneAxisSide*/) {
+
+        //    std::unique_lock<std::mutex> lock(mtx);
+        //    std::sort(indices->at(cam).begin(), indices->at(cam).end(), [this, &cam, &cameraDirMainAxis](GLuint a, GLuint b) {
+        //        return (
+        //            getSliceNumber(a, abs(cameraDirMainAxis[cam])-1) < getSliceNumber(b, abs(cameraDirMainAxis[cam])-1)
+        //            );
+        //        });
+        //    /*indices->at(cam).clear();
+        //    indices->at(cam).assign(sliceSorts[abs(cameraDirMainAxis[cam]) - 1].begin(), sliceSorts[abs(cameraDirMainAxis[cam]) - 1].end());*/
+        //    if (axisSides[cam][cameraDirMainAxis[cam]] < 0) {
+        //        std::reverse(indices->at(cam).begin(), indices->at(cam).end());
+        //    }
+        //    lock.unlock();
+        //    emit resultReady(cam);
+        //    previousCameraMainSliceDir[cam] = cameraDirMainAxis[cam];
+        //}
     }
 
+}
+
+void WorkerThread::coalesceOrder(const int& cam)
+{
+
+    std::unique_lock<std::mutex> lock(*mtx);
+
+    indices->at(cam).clear();
+    for (const std::vector<GLuint>& slice : slicedIndexes) {
+        indices->at(cam).insert(indices->at(cam).end(), slice.begin(), slice.end());
+    }
+
+    lock.unlock();
+    emit resultReady(cam);
 }

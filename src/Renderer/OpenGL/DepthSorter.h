@@ -5,6 +5,7 @@
 #include <QThread>
 #include <QVector3D>
 #include <QMatrix4x4>
+#include <optional>
 
 #include <cmath>
 
@@ -82,24 +83,33 @@ public:
         QObject* parent,
         std::vector<std::vector<GLuint>>* inds,
         std::vector<float> pts,
-        std::vector<QMatrix4x4>* camMatrices
+        std::vector<QMatrix4x4>* camMatrices,
+        std::mutex* mtex
     );
     ~WorkerThread();
 protected:
     Octree* pointTree = nullptr;
+    const int numSlices = 100;
     std::vector<float> points;
+    std::vector<uint8_t> pointSlices; // The slice id for each coordinate for each point. Between 0 and 255
     std::vector<std::vector<GLuint>>* indices;
 
-    std::vector<std::vector<GLuint>> sliceSorts; // Contains the 3 slice-based sortings
+    std::vector<std::vector<GLuint>> sliceSorts; // Contains the pre 3 slice-based sortings, computed once
+    std::vector<std::vector<GLuint>> slicedIndexes; // Contains the list of indexes split into each slice, computed when the slices changes. For inner slice sorting
     std::vector<QMatrix4x4>* cams = nullptr;
-    std::vector<int> previousCameraSide; // takes valeus -3,..., -1, 0 (means undefined), 1, ...,3. The coordinate 1 means axis x, 2 axis y, 3 axis z
+    std::vector<int> previousCameraMainSliceDir; // Represents the main axis and direction for slicing (Dir based)
+    std::vector<std::vector<bool>> previousAxisSides; // On which side of each axis (position based)
+
+    std::mutex* mtx = nullptr;
     
-    std::vector<int> dataAxesConversion = {0,1,2};//{2,1,0};
     
     void run() override;
-    void sliceSort();
-    QVector3D getCamPos(const int& eye) { return (cams->at(eye) * QVector4D(0, 0, 0, 1.0)).toVector3DAffine(); }
-    QVector3D getCamDir(const int& eye) { return (cams->at(eye) * QVector4D(0, 0, 1.0, 1.0)).toVector3DAffine(); }
+    //void shallowSliceSort();
+    void sliceSort(const bool& force);
+    uint8_t getSliceNumber(const GLuint& pointId, const int& axis);
+    QVector3D getCamPos(const int& eye);
+    QVector3D getCamDir(const int& eye);
+    void coalesceOrder(const int& cam);
     /*float distance(const QVector3D& a, const QVector3D& b) {
         float dx = a[0] - b[0];
         float dy = a[1] - b[1];

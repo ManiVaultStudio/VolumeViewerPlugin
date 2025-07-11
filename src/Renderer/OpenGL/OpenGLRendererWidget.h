@@ -172,6 +172,9 @@ private:
     std::vector<QMatrix4x4> cameraInModelRef; // One for each eye
 
 
+    std::mutex mtx;
+
+
     WorkerThread* workerThread;
 
 };

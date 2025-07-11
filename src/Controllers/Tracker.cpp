@@ -56,6 +56,7 @@ void MyListener::OnTrackerData(const PSTech::pstsdk::TrackerData& td)
 
 }
 QMatrix4x4 MyListener::getTragetMatrix(const int& index) const {
+    const std::lock_guard<std::mutex> lock(mtx);
     // If the viewer instance is greater than the number of targets, just use the last target
     return targetMatrices[(index) % targetMatrices.size()];
 }
@@ -107,6 +108,7 @@ PSTracker::PSTracker(QObject *parent) : QObject(parent) {
 }
 
 void PSTracker::initPST() {
+    PSTech::pstsdk::EnableLogging();
     if (_pst == nullptr) {
         try {
             _pst = new PSTech::pstsdk::Tracker();
@@ -286,8 +288,6 @@ void PSTracker::Connect()
     qDebug() << "Connected to tracker!";
 }
 
-float t = 0;
-
 bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
 {
     if (_connected && !listener.getIsIdle(index))
@@ -334,10 +334,10 @@ bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
     }
     else
     {
-        t += 0.1f;
-        if (t > 360) t = t - 360;
+        idleRotationAngle += 0.1f;
+        if (idleRotationAngle > 360) idleRotationAngle = idleRotationAngle - 360;
         pose.setToIdentity();
-        pose.rotate(t, 0, 1, 0);
+        pose.rotate(idleRotationAngle, 0, 1, 0);
 
         return true;
     }

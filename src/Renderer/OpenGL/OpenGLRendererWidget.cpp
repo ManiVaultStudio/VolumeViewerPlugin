@@ -113,10 +113,9 @@ void OpenGLRendererWidget::setData(std::vector<float>& data)
 
 void OpenGLRendererWidget::startThreading() {
 
-    workerThread = new WorkerThread(this, &renderingOrders, points, &cameraInModelRef);
+    workerThread = new WorkerThread(this, &renderingOrders, points, &cameraInModelRef, &mtx);
     connect(workerThread, &WorkerThread::resultReady, this, [this](const int& i) {
-        std::mutex mtx;
-        mtx.lock();
+        std::lock_guard<std::mutex> lock(mtx);
 
         _volumeRenderer.setRenderOrder(i, renderingOrders[i]);
         // Test : colouring points by drawing order
@@ -127,19 +126,17 @@ void OpenGLRendererWidget::startThreading() {
         _volumeRenderer.setColors(colors);*/
         // Test : colouring points by drawing order - END
 
-        mtx.unlock();
+
         });
     workerThread->start();
 
 
     /*workerThread.push_back(new WorkerThread(this, &indicesEye2, points, localCamPosEye2));
     connect(workerThread[workerThread.size() - 1], &WorkerThread::resultReady, this, [this]() {
-        std::mutex mtx;
-        mtx.lock();
+        std::lock_guard<std::mutex> lock(mtx);
 
         _volumeRenderer.setRenderOrderEye2(indicesEye2);
 
-        mtx.unlock();
         });
     workerThread[workerThread.size() - 1]->start();*/
 }
@@ -354,6 +351,8 @@ void OpenGLRendererWidget::paintGL()
 #else
     QMatrix4x4 pose;
     if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1 && _tracker->GetTargetMatrix(pluginInstanceIndex, pose)) {
+        
+        std::unique_lock<std::mutex> lock(mtx);
 
         pose = offset * pose;
         QMatrix4x4 invertedPose = pose.inverted();
@@ -373,6 +372,8 @@ void OpenGLRendererWidget::paintGL()
         }
         cameraInModelRef[0] = invertedPose * cameraInModelRef[0];
 
+        lock.unlock();
+        
         _volumeRenderer.render(defaultFramebufferObject(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
     }
 #endif

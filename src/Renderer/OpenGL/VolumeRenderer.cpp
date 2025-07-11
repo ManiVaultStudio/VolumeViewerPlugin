@@ -172,7 +172,7 @@ void VolumeRenderer::setRenderOrder(const int& eye, std::vector<GLuint>& indices
     for (int i = 0; i < indices.size(); i++) {
         colors[indices[i]] = float(i) / float(indices.size());
     }
-    setColors(colors);*/
+    setcolors(colors);*/
 }
 
 
@@ -541,6 +541,7 @@ void VolumeRenderer::drawCursor()
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
 
     mv::Vector3f cursorPosition;
     _pointsShaderProgram.bind();
@@ -595,6 +596,7 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_DEPTH_TEST);
+        glDepthMask(pointOpacity < 0.2 ? GL_FALSE : GL_TRUE);
 
         shader.uniformMatrix4f("projMatrix", _projMatrix.data());
         shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
@@ -631,6 +633,7 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
         glDisable(GL_POINT_SMOOTH);
+        glDepthMask(GL_TRUE);
     }
 }
 

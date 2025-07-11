@@ -70,6 +70,7 @@ class MyListener : public PSTech::pstsdk::Listener
     std::vector<int> targetIdList;
 
 
+
     virtual void OnTrackerData(const PSTech::pstsdk::TrackerData& td);
 public:
     bool poseIsLive(const int& index) const;
@@ -137,5 +138,6 @@ private:
 
     QMatrix4x4 lerpTrajectory;
     QMatrix4x4 oldPos;
+    float idleRotationAngle = 0.0f;
 
 };
