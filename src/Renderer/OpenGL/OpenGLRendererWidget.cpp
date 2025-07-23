@@ -106,6 +106,9 @@ void OpenGLRendererWidget::setData(std::vector<float>& data)
         renderingOrders[1][i] = i;
     }
 
+    _volumeRenderer.setRenderOrder(0, renderingOrders[0]);
+    _volumeRenderer.setRenderOrder(1, renderingOrders[1]);
+
     startThreading();
 
     update();

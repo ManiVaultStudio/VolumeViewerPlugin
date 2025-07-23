@@ -56,7 +56,7 @@ void main()
                     // Make the data outside the selection sphere slightly transparent
                     if(cursorDistance > selectRadius){
                         float distanceFade = 0.3;
-                        float minAlphaFade = 0.2;
+                        float minAlphaFade = 0.05;
                         if(cursorDistance < selectRadius + distanceFade){
                             fragColor.a = 0.7-(cursorDistance - selectRadius) * (0.7-minAlphaFade) / distanceFade;
                         }
@@ -85,7 +85,7 @@ void main()
         
         // If the position is not tracked live, display the data in dark gray
         if(!live){
-            fragColor = mix(vec4(0.7,0.7,0.7,0.3), fragColor, 0.8);
+            fragColor.a *= 0.8; // mix(vec4(0.7,0.7,0.7,0.3), fragColor, 0.8);
         }
     
 }
