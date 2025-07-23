@@ -338,6 +338,8 @@ void OpenGLRendererWidget::paintGL()
         emit newSelection(selectionMode, selectionReplaces);
     }
 
+    QMatrix4x4 pose;
+    
 #ifdef CONTROLS
     if (_controls->getCursorFrozen()) {
         if (!_volumeRenderer.getCursorFrozen()) {
@@ -350,35 +352,40 @@ void OpenGLRendererWidget::paintGL()
             _volumeRenderer.unFreezeCursor();
         }
     }
-    _volumeRenderer.render(defaultFramebufferObject(), aspect, true, _controls->getControlMatrix());
+
+    pose = _controls->getControlMatrix();
+
 #else
-    QMatrix4x4 pose;
-    if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1 && _tracker->GetTargetMatrix(pluginInstanceIndex, pose)) {
-        
-        std::unique_lock<std::mutex> lock(mtx);
+    if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1){ 
+        _tracker->GetTargetMatrix(pluginInstanceIndex, pose);
 
-        pose = offset * pose;
-        QMatrix4x4 invertedPose = pose.inverted();
-        cameraInModelRef[0].setToIdentity();
-        if (!_volumeRenderer.isStereo()) {
-            cameraInModelRef[0].lookAt(_volumeRenderer.getHeadPosition(), QVector3D(0,0,0), QVector3D(0, 1, 0));
-        }
-        else {
-            cameraInModelRef[1].setToIdentity();
-
-
-            cameraInModelRef[0].lookAt(_volumeRenderer.getStereoCamera(0), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-            cameraInModelRef[1].lookAt(_volumeRenderer.getStereoCamera(1), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-
-
-            cameraInModelRef[1] = invertedPose * cameraInModelRef[1];
-        }
-        cameraInModelRef[0] = invertedPose * cameraInModelRef[0];
-
-        lock.unlock();
-        
-        _volumeRenderer.render(defaultFramebufferObject(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
     }
+#endif
+
+    std::unique_lock<std::mutex> lock(mtx);
+    pose = offset * pose;
+    QMatrix4x4 invertedPose = pose.inverted();
+    cameraInModelRef[0].setToIdentity();
+    if (!_volumeRenderer.isStereo()) {
+        cameraInModelRef[0].lookAt(_volumeRenderer.getHeadPosition(), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+    }
+    else {
+        cameraInModelRef[1].setToIdentity();
+
+
+        cameraInModelRef[0].lookAt(_volumeRenderer.getStereoCamera(0), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        cameraInModelRef[1].lookAt(_volumeRenderer.getStereoCamera(1), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+
+
+        cameraInModelRef[1] = invertedPose * cameraInModelRef[1];
+    }
+    cameraInModelRef[0] = invertedPose * cameraInModelRef[0];
+
+    lock.unlock();
+#ifdef CONTROLS
+    _volumeRenderer.render(defaultFramebufferObject(), aspect, true, pose);
+#else
+    _volumeRenderer.render(defaultFramebufferObject(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
 #endif
 }
 
