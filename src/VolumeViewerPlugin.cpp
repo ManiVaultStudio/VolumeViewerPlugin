@@ -19,6 +19,8 @@
 
 #include "ColorData/ColorData.h"
 
+#include "cmath"
+
 using namespace mv;
 using namespace mv::gui;
 using namespace mv::util;
@@ -111,78 +113,108 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _secondaryToolbarAction.addAction(&_settingsAction->getSelectModeAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getClearSelectionAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getPointOpacityAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getFlashlightAction());
 
     getVolumeRenderer().setSelectionColor(_settingsAction->getSelectionColorPicker().getColor());
 }
 
 void VolumeViewerPlugin::init()
 {    
-    connect(&getOpenGLRendererWidget(), &OpenGLRendererWidget::hasTracker, this, [this]() {
-        _secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+
+
+    connect(getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, [this](PSTracker* tracker, FullScreenWidget* fsWidget, PedalManager* pedals, QTimer* updateTimer) {
+        //_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
     });
 
     
 
 	// Detect other instances of the plugin
 	const std::vector<Plugin*> instances = plugins().getPluginsByFactory(getFactory());
-	getOpenGLRendererWidget().setInstanceIndex(instances.size());
+	getOpenGLRendererWidget()->setInstanceIndex(instances.size());
 
 	// Get the tracker object from the first instance.
+    qDebug() << "Number of previous instances :" << instances.size();
 	if (instances.size() > 0) {
 		VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
 
-		connect(&firstInstance->getOpenGLRendererWidget(), &OpenGLRendererWidget::hasTracker, this, [this](PSTracker* tracker) {
-			getOpenGLRendererWidget().setTracker(tracker);
-			_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+		connect(firstInstance->getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, [this](PSTracker* tracker, FullScreenWidget* fsWidget, PedalManager* pedals, QTimer* updateTimer) {
+			getOpenGLRendererWidget()->setTracker(tracker);
+            getOpenGLRendererWidget()->setFullScreenWidget(fsWidget);
+            getOpenGLRendererWidget()->setUpdateTimer(updateTimer);
+            getOpenGLRendererWidget()->setPedalManager(pedals);
+
+			//_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
 			});
 
-	}
+    }
+    else {
+        // Create a new full screen widget
+        qDebug() << "Creatig FSW";
+        FullScreenWidget* fsWidget = new FullScreenWidget(getVolumeViewerWidget());
+     
+        // Create a new update Timer
+        qDebug() << "Creatig Update Timer";
+        QTimer* updateTimer = new QTimer(getVolumeViewerWidget());
+        updateTimer->start(16);
+
+        // Create a new pedalManager
+        qDebug() << "Creatig Pedal Manager";
+        PedalManager* pedals = new PedalManager(getVolumeViewerWidget(), updateTimer);
+
+        getOpenGLRendererWidget()->setFullScreenWidget(fsWidget);
+        getOpenGLRendererWidget()->setUpdateTimer(updateTimer);
+        getOpenGLRendererWidget()->setPedalManager(pedals);
+
+    }
 	// Request tracker from the first instance
 	requestTracker();
 
 
-    // Create of search for shared variables
-    FullScreenWidget* fsWidget = nullptr;
-    PedalManager* pedals = nullptr;
-    QTimer* updateTimer = nullptr;
+    //// Create of search for shared variables
+    //FullScreenWidget* fsWidget = nullptr;
+    //PedalManager* pedals = nullptr;
+    //QTimer* updateTimer = nullptr;
 
-    for (Plugin* plugin : instances) {
-        VolumeViewerPlugin* instance = static_cast<VolumeViewerPlugin*>(plugin);
-        if (instance->getOpenGLRendererWidget().getFullScreenWidget() != nullptr) {
-            fsWidget = instance->getOpenGLRendererWidget().getFullScreenWidget();
-            break;
-        }
-        if (instance->getOpenGLRendererWidget().getPedalManager() != nullptr) {
-            pedals = instance->getOpenGLRendererWidget().getPedalManager();
-            break;
-        }
-        if (instance->getOpenGLRendererWidget().getUpdateTimer() != nullptr) {
-            updateTimer = instance->getOpenGLRendererWidget().getUpdateTimer();
-            break;
-        }
-    }
+    //for (Plugin* plugin : instances) {
+    //    VolumeViewerPlugin* instance = static_cast<VolumeViewerPlugin*>(plugin);
+    //    if (instance->getOpenGLRendererWidget()->getFullScreenWidget() != nullptr) {
+    //        fsWidget = instance->getOpenGLRendererWidget()->getFullScreenWidget();
+    //        break;
+    //    }
+    //    if (instance->getOpenGLRendererWidget()->getPedalManager() != nullptr) {
+    //        pedals = instance->getOpenGLRendererWidget()->getPedalManager();
+    //        break;
+    //    }
+    //    if (instance->getOpenGLRendererWidget()->getUpdateTimer() != nullptr) {
+    //        updateTimer = instance->getOpenGLRendererWidget()->getUpdateTimer();
+    //        break;
+    //    }
+    //}
 
-    // Create a new full screen widget
-    if (fsWidget == nullptr) {
-        qDebug() << "Creatig FSW";
-        fsWidget = new FullScreenWidget(getVolumeViewerWidget());
-    }
-    getOpenGLRendererWidget().setFullScreenWidget(fsWidget);
+    //if (fsWidget == nullptr) {
+    //    // Create a new full screen widget
+    //    qDebug() << "Creatig FSW";
+    //    fsWidget = new FullScreenWidget(getVolumeViewerWidget());
+    //}
+    //getOpenGLRendererWidget()->setFullScreenWidget(fsWidget);
 
-    // Create a new pedalManager
-    if (pedals == nullptr) {
-        qDebug() << "Creatig Pedal Manager";
-        pedals = new PedalManager(getVolumeViewerWidget());
-    }
-    getOpenGLRendererWidget().setPedalManager(pedals);
+    //if (updateTimer == nullptr) {
+    //    // Create a new update Timer
+    //    qDebug() << "Creatig Update Timer";
+    //    updateTimer = new QTimer(getVolumeViewerWidget());
+    //    updateTimer->start(16);
+    //}
+    //getOpenGLRendererWidget()->setUpdateTimer(updateTimer);
 
-    // Create a new update Timer
-    if (updateTimer == nullptr) {
-        qDebug() << "Creatig Update Timer";
-        updateTimer = new QTimer(getVolumeViewerWidget());
-        updateTimer->start(16);
-    }
-    getOpenGLRendererWidget().setUpdateTimer(updateTimer);
+    //if (pedals == nullptr) {
+    //    // Create a new pedalManager
+    //    qDebug() << "Creatig Pedal Manager";
+    //    pedals = new PedalManager(getVolumeViewerWidget(), updateTimer);
+    //}
+    //getOpenGLRendererWidget()->setPedalManager(pedals);
+
+    // Old way : update flashlight on every frame : connect(updateTimer, &QTimer::timeout, this, &VolumeViewerPlugin::updateFlashlight);
+    connect(getOpenGLRendererWidget(), &OpenGLRendererWidget::flashlightReady, this, &VolumeViewerPlugin::updateFlashlight);
 
 
 
@@ -339,9 +371,21 @@ void VolumeViewerPlugin::init()
     connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this]() {
         if (_rendererBackend == RendererBackend::OpenGL)
         {
-            updateFocusMode();
+            updatePointColors();
         }
     });
+
+    connect(&_pointsOpacityPoints, &Dataset<Points>::dataChanged, this, [this]() {
+        _pointOpacityLoaded = true;
+
+        if (_rendererBackend == RendererBackend::OpenGL)
+        {
+
+            updatePointOpacity();
+
+        }
+
+        });
 
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this]() {
@@ -376,7 +420,7 @@ void VolumeViewerPlugin::init()
 
         QImage image(rgbadata, clusterVec.size(), 1, clusterVec.size()* bytesPerPixel, QImage::Format_ARGB32);
         _volumeViewerWidget->getOpenGLWidget()->setColormap(image);
-        delete rgbadata;
+        delete[] rgbadata;
         
 
 
@@ -424,11 +468,8 @@ void VolumeViewerPlugin::init()
             auto colorMapImage = colorMapAction.getColorMapImage();
             _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
 
-            std::vector<float> colors;
-            _pointsColorPoints->extractDataForDimension(colors, 0);
-            _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
-            _volumeViewerWidget->getOpenGLWidget()->update();
-            // updateFocusMode();
+            updatePointColors();
+ 
         }
     });
 
@@ -438,6 +479,13 @@ void VolumeViewerPlugin::init()
             _clusterLoaded = false;
         }
         _pointOpacityLoaded = true;
+
+        if (_rendererBackend == RendererBackend::OpenGL)
+        {
+
+            updatePointOpacity();
+
+        }
 
     });
 
@@ -544,7 +592,7 @@ void VolumeViewerPlugin::init()
     });// Selection changed connection.
 
 
-    connect(&getOpenGLRendererWidget(), &OpenGLRendererWidget::newSelection, this, [this](const SelectionMode& type, const bool& replace) {
+    connect(getOpenGLRendererWidget(), &OpenGLRendererWidget::newSelection, this, [this](const SelectionMode& type, const bool& replace) {
         clock_t start, end;
         // Perform selection of closest point
         const QVector3D cursor = getVolumeRenderer().getCursor();
@@ -584,6 +632,44 @@ void VolumeViewerPlugin::init()
 
 }
 
+
+void VolumeViewerPlugin::setFlashlightState(const bool& state) {
+    if (state)
+    {
+        if (!flashlightScalars.isValid()) {
+            flashlightScalars = mv::data().createDataset<Points>("Points", "Flashlight");
+
+            events().notifyDatasetAdded(flashlightScalars);
+
+            getOpenGLRendererWidget()->startFlashlightWorker();
+        }
+        
+    }
+    else {
+        events().notifyDatasetAboutToBeRemoved(flashlightScalars);
+        mv::data().removeDataset(flashlightScalars);
+        getOpenGLRendererWidget()->stopFlashlightWorker();
+    }
+}
+
+
+void VolumeViewerPlugin::updateFlashlight() {
+    if (flashlightScalars.isValid() && _points.isValid()) {
+        // Blocking bruteforce way
+        // std::vector<float> values = getVolumeViewerWidget()->getPointDistances(getVolumeRenderer().getCursor());
+
+        // Non blocking smart way
+        std::vector<float> values = getOpenGLRendererWidget()->getPointDistances();
+     
+        /*for (int i = 0; i < values.size(); i++) {
+            values[i] = (1.f - std::min(1.f, 5*values[i]));
+        }*/
+
+        flashlightScalars->setData<float>(values.data(), values.size(), 1);
+        events().notifyDatasetDataChanged(flashlightScalars);
+    }
+}
+
 void VolumeViewerPlugin::setFocusSelection(bool focusSelection) {
     _focusSelection = focusSelection;
     qDebug() << "Focus selection: " << _focusSelection;
@@ -616,6 +702,31 @@ void VolumeViewerPlugin::setFocusFloodfillNorm(bool focusFloodfillNorm) {
         loadFloodfillDataset();
 
     updateFocusMode();
+}
+
+void VolumeViewerPlugin::updatePointColors() {
+    if (!_pointsColorPoints.isValid()) {
+        // TODO :: Tell volumeRenderer to stop displaying colors (hascolors = fasle)
+        return;
+    }
+    std::vector<float> colors;
+    for (int i = 0; i < _pointsColorPoints->getNumPoints(); i++) {
+        colors.push_back(_pointsColorPoints->getValueAt(i));
+    }
+    _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
+}
+
+void VolumeViewerPlugin::updatePointOpacity() {
+    if (!_pointsOpacityPoints.isValid()) {
+        // TODO :: Tell volumeRenderer to stop displaying alphas (hasalphas = fasle)
+
+        return;
+    }
+    std::vector<float> alphas;
+    for (int i = 0; i < _pointsOpacityPoints->getNumPoints(); i++) {
+        alphas.push_back(_pointsOpacityPoints->getValueAt(i));
+    }
+    _volumeViewerWidget->getOpenGLWidget()->setAlphas(alphas);
 }
 
 void VolumeViewerPlugin::updateFocusMode() {
@@ -762,10 +873,10 @@ void VolumeViewerPlugin::requestTracker()
 
 	if (instances.size() > 0) {
 		VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
-		firstInstance->getOpenGLRendererWidget().requestTracker();
+		firstInstance->getOpenGLRendererWidget()->requestTracker();
 	}
 	else { // I am the first instance
-		getOpenGLRendererWidget().requestTracker();
+		getOpenGLRendererWidget()->requestTracker();
 	}
 }
 

@@ -1,6 +1,7 @@
 #version 330 core
 
 uniform bool hasColors;
+uniform bool hasAlphas;
 uniform bool isCursor;
 uniform vec3 selectionColor;
 uniform bool live; // false when tracking is lost
@@ -16,17 +17,24 @@ flat in int vHighlight;
 in float cursorDistance;
 in float depthFromCursorPlane;
 flat in int shouldClip;
+in float alpha;
 
 out vec4 fragColor;
 
 void main()
 {
-        fragColor = vec4(.6, .6, .6, baseOpacity);
+    float opacity = 0.0;
+    if(hasAlphas) {
+        opacity = alpha;
+    } else {
+        opacity = baseOpacity;
+    }
+        fragColor = vec4(.6, .6, .6, opacity);
 
         if (hasColors) {
             vec3 color = texture(colormap, vec2(v_Color, 1-v_Color)).rgb;
         
-            fragColor = vec4(color, baseOpacity);
+            fragColor = vec4(color, opacity);
       
 
             //fragColor = vec4(v_Color, 0, 1-v_Color, 1); // Test color for Depth sorting test 

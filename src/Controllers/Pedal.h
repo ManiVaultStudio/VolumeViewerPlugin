@@ -9,7 +9,7 @@ class PedalManager : public QObject {
     Q_OBJECT
 
 public:
-    explicit PedalManager(QObject* parent = nullptr);
+    explicit PedalManager(QObject* parent = nullptr, QTimer* timer = nullptr);
     ~PedalManager();
 
 signals:

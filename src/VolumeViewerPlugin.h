@@ -77,6 +77,11 @@ public: // Inherited from ViewPlugin
     mv::CoreInterface* core() { return _core; }
 
 public: // Miscellaneous
+
+    void setFlashlightState(const bool& state);
+
+    void updateFlashlight();
+
     void setRendererBackend(RendererBackend backend)
     {
         _rendererBackend = backend;
@@ -128,9 +133,9 @@ public: // Miscellaneous
         return _pointsColorPoints;
     }
 
-    OpenGLRendererWidget& getOpenGLRendererWidget()
+    OpenGLRendererWidget* getOpenGLRendererWidget()
     {
-        return *_volumeViewerWidget->getOpenGLWidget();
+        return _volumeViewerWidget->getOpenGLWidget();
     }
 
     VolumeRenderer& getVolumeRenderer()
@@ -182,8 +187,12 @@ private: // Focus section or focus floodfill
     void getFloodfillIndices(std::vector<int>& indices);
     void applyMaskToColors(const std::vector<int>& indices, bool norm);
     void updateFocusMode();
+    void updatePointColors();
+    void updatePointOpacity();
 
 private:
+
+    Dataset<Points>                     flashlightScalars;
     RendererBackend                     _rendererBackend;
 
     SettingsAction*                     _settingsAction;            /** The options menu on the side of the viewer*/

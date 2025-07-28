@@ -15,7 +15,7 @@
 #include "Controls.h"
 #endif
 
-#include "ReferenceSetup.h"
+#include "Widgets/ReferenceSetupWidget.h"
 #include <Controllers/Pedal.h>
 #include <Widgets/FullScreenWidget.h>
 
@@ -25,7 +25,8 @@
 #include "graphics/Vector3f.h"
 #include "graphics/Vector2f.h"
 
-#include "DepthSorter.h"
+#include "PointOptimizer.h"
+
 
 /**
  * OpenGL Volume Renderer Widget
@@ -61,8 +62,10 @@ public:
 
 
     //void setTexels(int width, int height, int depth, std::vector<float>& texels);
-    void setData(std::vector<float>& data);
+    void setData(std::vector<float>* data);
     void setColors(std::vector<float>& colors);
+    void setAlphas(std::vector<float>& alphas);
+
     void setColormap(const QImage& colormap);
     void setTracker(PSTracker* tracker = nullptr); /** Set tracker to pointer or to a new tracker object if not specified */
     void setEyeOffset(float eyeOffset);
@@ -80,6 +83,9 @@ public:
     //void setNumberInstances(const int& index) { numberInstances = index; }
     void toggleFullScreen();
     bool getIsFullScreen() const { return isFullScreen; };
+
+    std::vector<float> getPointDistances() const { return pointDistances; };
+
     PedalManager* getPedalManager() const { return pedal; }
     void setPedalManager(PedalManager* pds);
     void setUpdateTimer(QTimer* tmr);
@@ -87,7 +93,10 @@ public:
 
     void adjustInterlacing();
 
-    void startThreading();
+    void startDepthsortWorker();
+
+    void startFlashlightWorker();
+    void stopFlashlightWorker();
 
 
 public:
@@ -114,6 +123,8 @@ protected:
 
     void connectTracker();
 
+    void testReadyness();
+
 private slots:
     void updatePixelRatio();
 
@@ -121,7 +132,9 @@ signals:
     void created();
     void newSelection(const SelectionMode& type, const bool& replace);
 
-    void hasTracker(PSTracker* tracker);
+    void flashlightReady();
+
+    void ready(PSTracker* tracker, FullScreenWidget* fsWidget, PedalManager* pedals, QTimer* updateTimer); // All shared variables are defined
     void exitFullScreen();
 
 private:
@@ -166,16 +179,19 @@ private:
 
     QMatrix4x4 offset;
 
-    std::vector<float> points;
+    std::vector<float>* points;
+    QVector3D cursor;
 
     std::vector<std::vector<GLuint>> renderingOrders; // One for each eye
+    std::vector<float> pointDistances; // vector to store point distances from cusor for flashlight effect
     std::vector<QMatrix4x4> cameraInModelRef; // One for each eye
+
 
 
     std::mutex mtx;
 
 
-    WorkerThread* workerThread;
-
+    DepthWorker* depthWorker = nullptr;
+    FlashlightWorker* flashlightWorker = nullptr;
 };
 

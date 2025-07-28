@@ -1,4 +1,4 @@
-#include "ReferenceSetup.h"
+#include "ReferenceSetupWidget.h"
 
 #include <QVBoxLayout>
 

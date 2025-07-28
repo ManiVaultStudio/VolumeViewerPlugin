@@ -16,6 +16,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _colorDatasetPickerAction(this, "ColorPoints"),
     _focusSelectionAction(this, "Focus Selection"),
     _focusFloodfillAction(this, "Focus Floodfill"),
+    _flashlightAction(this, "Toggle flashlight"),
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
     _startCalibAction(this, "Calibrate tracker"),
@@ -65,12 +66,16 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     });
 
     connect(&_focusFloodfillNormAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
-            _plugin->setFocusFloodfillNorm(toggled);
-    });
+        _plugin->setFocusFloodfillNorm(toggled);
+        });
+
+    connect(&_flashlightAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
+        _plugin->setFlashlightState(toggled);
+        });
 
 
     connect(&_toggleFullScreen, &TriggerAction::triggered, this, [this]() {
-        _plugin->getOpenGLRendererWidget().toggleFullScreen();
+        _plugin->getOpenGLRendererWidget()->toggleFullScreen();
         });
 
     connect(&_clearSelectionAction, &TriggerAction::triggered, this, [this]() {
@@ -79,23 +84,23 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
         });
 
 
-    connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget().openCalib(); });
+    connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget()->openCalib(); });
 
-    connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setEyeOffset(value); });
+    connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget()->setEyeOffset(value); });
 
 
-    _plugin->getOpenGLRendererWidget().getVolumeRenderer().setPointOpacity(_pointOpacityAction.getValue());
+    _plugin->getOpenGLRendererWidget()->getVolumeRenderer().setPointOpacity(_pointOpacityAction.getValue());
     connect(&_pointOpacityAction, &DecimalAction::valueChanged, [this](const float& value) {
-        _plugin->getOpenGLRendererWidget().getVolumeRenderer().setPointOpacity(value);
+        _plugin->getOpenGLRendererWidget()->getVolumeRenderer().setPointOpacity(value);
         });
 
 
-    connect(&_camDistAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget().setCamDist(value); });
+    connect(&_camDistAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget()->setCamDist(value); });
 
 
     connect(&_selectionColorPicker, &ColorAction::colorChanged, [this](const QColor& color) { _plugin->getVolumeRenderer().setSelectionColor(color); });
 
-    connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget().openCalib(); });
+    connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget()->openCalib(); });
 
     // Tracker connect
     connect(&_connectToTrackerAction, &TriggerAction::triggered, _plugin, &VolumeViewerPlugin::requestTracker);

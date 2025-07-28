@@ -59,6 +59,7 @@ public: // Action getters
     ToggleAction& getFocusFloodfillAction() { return _focusFloodfillAction; }
     ToggleAction& getFocusSelectionNormAction() { return _focusSelectionNormAction; }
     ToggleAction& getFocusFloodfillNormAction() { return _focusFloodfillNormAction; }
+    ToggleAction& getFlashlightAction() { return _flashlightAction; }
     TriggerAction& getConnectToTrackerAction() { return _connectToTrackerAction; }
     TriggerAction& getStartCalibAction() { return _startCalibAction; }
     TriggerAction& getToggleFullScreen() { return _toggleFullScreen; }
@@ -79,6 +80,7 @@ protected:
     ToggleAction            _focusFloodfillAction;
     ToggleAction            _focusSelectionNormAction;
     ToggleAction            _focusFloodfillNormAction;
+    ToggleAction            _flashlightAction;
     TriggerAction           _connectToTrackerAction;
     TriggerAction           _startCalibAction;
     TriggerAction           _clearSelectionAction;

@@ -70,28 +70,28 @@ void Cube::create()
 
 
 
-void VolumeRenderer::setData(std::vector<float>& data)
+void VolumeRenderer::setData(std::vector<float>* pointData)
 {
-    points = data;
+    //points = pointData;
 
     glBindVertexArray(vao);
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), data.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, pointData->size() * sizeof(float), pointData->data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(0);
-    
+
     glGenBuffers(1, &cbo);
     glBindBuffer(GL_ARRAY_BUFFER, cbo);
-    glBufferData(GL_ARRAY_BUFFER, data.size() / 3 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, pointData->size() / 3 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 0, nullptr);
     glEnableVertexAttribArray(1);
 
 
     glGenBuffers(1, &highlightVBO);
     glBindBuffer(GL_ARRAY_BUFFER, highlightVBO);
-    glBufferData(GL_ARRAY_BUFFER, data.size() / 3 * sizeof(int), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, pointData->size() / 3 * sizeof(int), nullptr, GL_STATIC_DRAW);
     glVertexAttribIPointer(2, 1, GL_INT, 0, nullptr);
     glEnableVertexAttribArray(2);
 
@@ -99,16 +99,22 @@ void VolumeRenderer::setData(std::vector<float>& data)
 
     glGenBuffers(1, &ebo[0]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.size() / 3 * sizeof(int), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, pointData->size() / 3 * sizeof(int), nullptr, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &ebo[1]);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.size() / 3 * sizeof(int), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, pointData->size() / 3 * sizeof(int), nullptr, GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &alpha_cbo);
+    glBindBuffer(GL_ARRAY_BUFFER, alpha_cbo);
+    glBufferData(GL_ARRAY_BUFFER, pointData->size() / 3 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray(3);
 
     //filterPoints(2.f);
    
 
-    _numPoints = data.size() / 3;
+    _numPoints = pointData->size() / 3;
 }
 
 
@@ -142,6 +148,17 @@ void VolumeRenderer::setColors(std::vector<float>& colors)
     _hasColors = true;
 }
 
+void VolumeRenderer::setAlphas(std::vector<float>& alphas)
+{
+    glBindVertexArray(vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, alpha_cbo);
+    glBufferData(GL_ARRAY_BUFFER, alphas.size() * sizeof(float), alphas.data(), GL_DYNAMIC_DRAW);
+    glEnableVertexAttribArray(3);
+
+    _hasAlphas = true;
+}
+
 void VolumeRenderer::setHighlights(std::vector<int>& highlights) {
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, highlightVBO);
@@ -163,7 +180,6 @@ void VolumeRenderer::setPointOpacity(const float& value) {
 
 
 void VolumeRenderer::setRenderOrder(const int& eye, std::vector<GLuint>& indices) {
-    qDebug() << "render order chamged";
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[eye]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_DYNAMIC_DRAW);
@@ -608,6 +624,7 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
         shader.uniform1i("selecting", cursorFrozen);
         shader.uniform1f("heightOfNearPlane", heightOfNearPlane);
         shader.uniform1i("hasColors", false);
+        shader.uniform1i("hasAlphas", _hasAlphas);
         shader.uniform3f("selectionColor", _selectionColor.redF(), _selectionColor.greenF(), _selectionColor.blueF());
         shader.uniform1i("live", live);
         shader.uniform1i("selectMode", selectionMode);

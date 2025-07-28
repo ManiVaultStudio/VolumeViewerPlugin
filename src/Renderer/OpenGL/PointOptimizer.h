@@ -68,6 +68,15 @@ public:
         return result;
     }*/
 
+
+    void getDistanceApproximations(
+        const QVector3D& cursor, 
+        std::vector<float>& distances, 
+        const int& maxDepth = INT_MAX, 
+        std::function<float(const float&)> transform = [](const float& x) { return x; }
+    );
+    template <typename A> void writeVectorRecursive(const A& value, std::vector<A>& distances);
+
 };
 
 
@@ -75,47 +84,102 @@ public:
 
 
 
-class WorkerThread : public QThread
+class OptimiserWorker : public QThread
 {
-    Q_OBJECT
 public:
-    explicit WorkerThread(
+    explicit OptimiserWorker(
         QObject* parent,
-        std::vector<std::vector<GLuint>>* inds,
         std::vector<float> pts,
-        std::vector<QMatrix4x4>* camMatrices,
         std::mutex* mtex
     );
-    ~WorkerThread();
+    ~OptimiserWorker();
 protected:
     Octree* pointTree = nullptr;
     const int numSlices = 100;
     std::vector<float> points;
-    std::vector<uint8_t> pointSlices; // The slice id for each coordinate for each point. Between 0 and 255
-    std::vector<std::vector<GLuint>>* indices;
-
-    std::vector<std::vector<GLuint>> sliceSorts; // Contains the pre 3 slice-based sortings, computed once
-    std::vector<std::vector<GLuint>> slicedIndexes; // Contains the list of indexes split into each slice, computed when the slices changes. For inner slice sorting
-    std::vector<QMatrix4x4>* cams = nullptr;
-    std::vector<int> previousCameraMainSliceDir; // Represents the main axis and direction for slicing (Dir based)
-    std::vector<std::vector<bool>> previousAxisSides; // On which side of each axis (position based)
 
     std::mutex* mtx = nullptr;
     
     
-    void run() override;
+    virtual void run() override = 0;
     //void shallowSliceSort();
-    void sliceSort(const bool& force);
-    uint8_t getSliceNumber(const GLuint& pointId, const int& axis);
-    QVector3D getCamPos(const int& eye);
-    QVector3D getCamDir(const int& eye);
-    void coalesceOrder(const int& cam);
+    void generateOctree();
     /*float distance(const QVector3D& a, const QVector3D& b) {
         float dx = a[0] - b[0];
         float dy = a[1] - b[1];
         float dz = a[2] - b[2];
         return sqrtf(dx * dx + dy * dy + dz * dz);
     }*/
+};
+
+
+
+
+class DepthWorker : public OptimiserWorker {
+    Q_OBJECT
+public:
+    DepthWorker(
+        QObject* parent,
+        std::vector<std::vector<GLuint>>* inds,
+        std::vector<float> pts,
+        std::vector<QMatrix4x4>* camMatrices,
+        std::mutex* mtex
+    );
+protected:
+    void run() override;
+
+    void generateSlices();
+
+    void coalesceOrder(const int& cam);
+
+    QVector3D getCamPos(const int& eye);
+    QVector3D getCamDir(const int& eye);
+
+    void sliceSort(const bool& force);
+
+    uint8_t getSliceNumber(const GLuint& pointId, const int& axis);
+
+protected:
+    std::vector<int> previousCameraMainSliceDir; // Represents the main axis and direction for slicing (Dir based)
+    std::vector<std::vector<bool>> previousAxisSides; // On which side of each axis (position based)
+
+    std::vector<uint8_t> pointSlices; // The slice id for each coordinate for each point. Between 0 and 255
+
+    std::vector<std::vector<GLuint>> sliceSorts; // Contains the pre 3 slice-based sortings, computed once
+    std::vector<std::vector<GLuint>> slicedIndexes; // Contains the list of indexes split into each slice, computed when the slices changes. For inner slice sorting
+
+    std::vector<std::vector<GLuint>>* indices;
+    std::vector<QMatrix4x4>* cams = nullptr;
+
 signals:
     void resultReady(const int& i);
+
 };
+
+
+class FlashlightWorker : public OptimiserWorker {
+    Q_OBJECT
+public:
+    FlashlightWorker(
+        QObject* parent,
+        std::vector<float>* distancesPtr,
+        QVector3D* cursorPtr,
+        std::vector<float> pts,
+        std::mutex* mtex
+    );
+protected:
+    void run() override;
+
+    void updatePointDistancesBruteForce() const;
+    void updatePointDistancesOctree() const;
+
+    static float getPointIntensity(const float& distance);
+
+protected:
+    QVector3D* cursor;
+    std::vector<float>* distances;
+
+signals:
+    void resultReady();
+};
+

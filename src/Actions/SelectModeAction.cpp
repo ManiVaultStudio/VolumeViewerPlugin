@@ -41,8 +41,8 @@ void SelectModeAction::initialize(VolumeViewerPlugin* plugin)
         _nearestAction.setChecked(selectMode == SelectionMode::Nearest);
         _sphericalAction.setChecked(selectMode == SelectionMode::Sphere);
 
-        _plugin->getOpenGLRendererWidget().setSelectionMode(getCurrentIndex());
-        _plugin->getOpenGLRendererWidget().setFocus();
+        _plugin->getOpenGLRendererWidget()->setSelectionMode(getCurrentIndex());
+        _plugin->getOpenGLRendererWidget()->setFocus();
         };
 
     currentIndexChanged();

@@ -2,8 +2,8 @@
 
 
 
-PedalManager::PedalManager(QObject* parent)
-    : QObject(parent), joystick(nullptr), sdlEventTimer(new QTimer(this))
+PedalManager::PedalManager(QObject* parent, QTimer* timer)
+    : QObject(parent), joystick(nullptr), sdlEventTimer(timer)
 {
     if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_EVENTS) < 0) {
         qDebug() << "SDL Init failed:" << SDL_GetError();
@@ -27,7 +27,6 @@ PedalManager::PedalManager(QObject* parent)
 
     // Setup event pump timer (could also be integrated with your main Qt event loop)
     connect(sdlEventTimer, &QTimer::timeout, this, &PedalManager::pumpSdlEvents);
-    sdlEventTimer->start(10); // Check SDL events every 10ms
 }
 
 PedalManager::~PedalManager() {

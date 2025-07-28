@@ -3,6 +3,7 @@
 layout(location = 0) in vec4 position;
 layout(location = 1) in float color;
 layout(location = 2) in int highlight;
+layout(location = 3) in float alpha_point;
 
 uniform mat4 projMatrix;
 uniform mat4 viewMatrix;  // Ref of the eye camera (offset)
@@ -17,6 +18,7 @@ out float v_Color;
 flat out int vHighlight;
 out float cursorDistance;
 out float depthFromCursorPlane;
+out float alpha;
 
 void main() {
     vec4 world_position = modelMatrix * position;
@@ -42,6 +44,8 @@ void main() {
     vec4 headcoords = cameraRef * world_position;
 
     depthFromCursorPlane = headcoords.z - (cameraRef*cursor).z;
+
+    alpha = alpha_point;
 
 
 }

@@ -34,6 +34,7 @@ public:
 
     uint32_t getClosestPoint(const QVector3D& cursor) const;
     std::vector<uint32_t> getPointsInSphere(const QVector3D& cursor, const float& radius) const;
+    std::vector<float> getPointDistances(const QVector3D& cursor) const;
 
 
 public:
@@ -46,6 +47,8 @@ public:
 private:
 
     VolumeViewerPlugin*     _plugin;
+
+    std::vector<float> points;
 
     OpenGLRendererWidget*   _openGLWidget;
 

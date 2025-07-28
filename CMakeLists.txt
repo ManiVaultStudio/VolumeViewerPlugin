@@ -66,8 +66,6 @@ set(PLUGIN
     src/Controllers/Pedal.cpp
     src/Controls.h
     src/Controls.cpp
-    src/ReferenceSetup.h
-    src/ReferenceSetup.cpp
 )
 
 set(RENDERERS
@@ -75,8 +73,8 @@ set(RENDERERS
     src/Renderer/OpenGL/VolumeRenderer.cpp
     src/Renderer/OpenGL/OpenGLRendererWidget.h
     src/Renderer/OpenGL/OpenGLRendererWidget.cpp
-    src/Renderer/OpenGL/DepthSorter.h
-    src/Renderer/OpenGL/DepthSorter.cpp
+    src/Renderer/OpenGL/PointOptimizer.h
+    src/Renderer/OpenGL/PointOptimizer.cpp
 )
 
 set(ACTIONS
@@ -107,6 +105,10 @@ set(WIDGETS
     src/Widgets/VolumeViewerWidget.cpp
     src/Widgets/FullScreenWidget.h
     src/Widgets/FullScreenWidget.cpp
+    src/Widgets/ReferenceSetupWidget.h
+    src/Widgets/ReferenceSetupWidget.cpp
+    src/Widgets/FlashlightWidget.h
+    src/Widgets/FlashlightWidget.cpp
 )
 
 set(QRESOURCES

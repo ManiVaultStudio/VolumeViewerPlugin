@@ -65,6 +65,11 @@ OpenGLRendererWidget::OpenGLRendererWidget() :
 
 OpenGLRendererWidget::~OpenGLRendererWidget() {
     delete _tracker;
+    if (depthWorker != nullptr) {
+        depthWorker->terminate();
+        depthWorker->wait();
+    }
+    stopFlashlightWorker();
 }
 
 //void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
@@ -73,7 +78,7 @@ OpenGLRendererWidget::~OpenGLRendererWidget() {
 //    _volumeRenderer.setTexels(width, height, depth, texels);
 //}
 
-void OpenGLRendererWidget::setData(std::vector<float>& data)
+void OpenGLRendererWidget::setData(std::vector<float>* data)
 {
 
     // Testing : Cube point cloud
@@ -97,7 +102,7 @@ void OpenGLRendererWidget::setData(std::vector<float>& data)
     points = data;
 
     for (int i = 0; i < 2; i++) {
-        renderingOrders[i] = std::vector<GLuint>(data.size() / 3);
+        renderingOrders[i] = std::vector<GLuint>(data->size() / 3);
 
     }
 
@@ -109,15 +114,15 @@ void OpenGLRendererWidget::setData(std::vector<float>& data)
     _volumeRenderer.setRenderOrder(0, renderingOrders[0]);
     _volumeRenderer.setRenderOrder(1, renderingOrders[1]);
 
-    startThreading();
+    startDepthsortWorker();
 
     update();
 }
 
-void OpenGLRendererWidget::startThreading() {
+void OpenGLRendererWidget::startDepthsortWorker() {
 
-    workerThread = new WorkerThread(this, &renderingOrders, points, &cameraInModelRef, &mtx);
-    connect(workerThread, &WorkerThread::resultReady, this, [this](const int& i) {
+    depthWorker = new DepthWorker(this, &renderingOrders, *points, &cameraInModelRef, &mtx);
+    connect(depthWorker, &DepthWorker::resultReady, this, [this](const int& i) {
         std::lock_guard<std::mutex> lock(mtx);
 
         _volumeRenderer.setRenderOrder(i, renderingOrders[i]);
@@ -131,7 +136,7 @@ void OpenGLRendererWidget::startThreading() {
 
 
         });
-    workerThread->start();
+    depthWorker->start();
 
 
     /*workerThread.push_back(new WorkerThread(this, &indicesEye2, points, localCamPosEye2));
@@ -144,11 +149,35 @@ void OpenGLRendererWidget::startThreading() {
     workerThread[workerThread.size() - 1]->start();*/
 }
 
+void OpenGLRendererWidget::startFlashlightWorker() {
+    stopFlashlightWorker();
+
+    flashlightWorker = new FlashlightWorker(this, &pointDistances, &cursor, *points, &mtx);
+    connect(flashlightWorker, &FlashlightWorker::resultReady, this, [this]() {
+        emit flashlightReady();
+
+        });
+    flashlightWorker->start();
+}
+
+void OpenGLRendererWidget::stopFlashlightWorker() {
+    if (flashlightWorker != nullptr) {
+        flashlightWorker->terminate();
+        flashlightWorker->wait();
+    }
+}
+
 
 void OpenGLRendererWidget::setColors(std::vector<float>& colorsScalars)
 {
-    makeCurrent(); 
+    makeCurrent();
     _volumeRenderer.setColors(colorsScalars);
+}
+
+void OpenGLRendererWidget::setAlphas(std::vector<float>& scalars)
+{
+    makeCurrent();
+    _volumeRenderer.setAlphas(scalars);
 }
 
 
@@ -180,7 +209,7 @@ void OpenGLRendererWidget::connectTracker()
         _tracker->Connect();
         refWidget->setTracker(_tracker);
         msgLabel->setText("Connected to tracker");
-        emit hasTracker(_tracker);
+        testReadyness();
     }
     catch (const char* err) {
         msgLabel->setText(err);
@@ -190,7 +219,7 @@ void OpenGLRendererWidget::connectTracker()
 
 void OpenGLRendererWidget::requestTracker() {
     if (_tracker == nullptr) connectTracker();
-    else emit hasTracker(_tracker);
+    else testReadyness();
 }
 
 void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
@@ -225,6 +254,7 @@ void OpenGLRendererWidget::setFullScreenWidget(FullScreenWidget* widget) {
         offset.setToIdentity();
         offset.translate(displacement/0.5f, 0, 0);
     });
+    testReadyness();
 }
 
 void OpenGLRendererWidget::toggleFullScreen() {
@@ -241,13 +271,19 @@ void OpenGLRendererWidget::toggleFullScreen() {
         msgLabel->setText("ESC - Escape full screen");
     }
 
+    viewPosSpheric.azimuthal = 0;
+    viewPosSpheric.polar = 90;
+    viewPosSpheric.distance = 1;
+
+    _volumeRenderer.setHeadPosition(getCamPos());
+
+
     _volumeRenderer.setStereo(screen()->model() == "D2343");
     
 }
 
 void OpenGLRendererWidget::setPedalManager(PedalManager* pds)
 {
-    
     pedal = pds;
     refWidget->setPedalManager(pedal);
     connect(pedal, &PedalManager::pedalPressed, this, [this](int value) {
@@ -265,7 +301,6 @@ void OpenGLRendererWidget::setPedalManager(PedalManager* pds)
 
 
     connect(pedal, &PedalManager::pedalReleased, this, [this](int value) {
-
         // Last pedal for selecting
         if (value == 2) {
             _selecting = false;
@@ -275,7 +310,8 @@ void OpenGLRendererWidget::setPedalManager(PedalManager* pds)
         }
 
     });
-    
+
+    testReadyness();
 }
 
 void OpenGLRendererWidget::adjustInterlacing() {
@@ -313,7 +349,10 @@ void OpenGLRendererWidget::initializeGL()
 void OpenGLRendererWidget::setUpdateTimer(QTimer* tmr) {
     _updateTimer = tmr;
     connect(_updateTimer, &QTimer::timeout, this, [this]() { update(); });
+    testReadyness();
 };
+
+
 
 void OpenGLRendererWidget::resizeGL(int w, int h)
 {
@@ -385,8 +424,15 @@ void OpenGLRendererWidget::paintGL()
 #ifdef CONTROLS
     _volumeRenderer.render(defaultFramebufferObject(), aspect, true, pose);
 #else
-    _volumeRenderer.render(defaultFramebufferObject(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
+    if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1) {
+        _volumeRenderer.render(defaultFramebufferObject(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
+
+    }
+    
 #endif
+    if (getVolumeRenderer().getCursorFrozen()) {
+        cursor = getVolumeRenderer().getCursor();
+    }
 }
 
 void OpenGLRendererWidget::cleanup()
@@ -515,9 +561,11 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
             viewPosSpheric.distance *= scaling;
 
+            _volumeRenderer.setHeadPosition(getCamPos());
+
             return true;
         }
-        /*case QEvent::MouseButtonPress:
+        case QEvent::MouseButtonPress:
         {
             qDebug() << "Mouse press";
             auto mouseEvent = static_cast<QMouseEvent*>(event);
@@ -531,7 +579,7 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
         }
         case QEvent::MouseMove:
         {
-            if (!_mousePressed)
+            if (!_mousePressed || isFullScreen)
                 break;
 
             auto mouseEvent = static_cast<QMouseEvent*>(event);
@@ -549,14 +597,13 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
             viewPosSpheric.polar = std::clamp<float>(viewPosSpheric.polar, 0.1f, 179.9f);
 
-
-            update();
+            _volumeRenderer.setHeadPosition(getCamPos());
 
             _previousMousePos = mousePos;
 
             return true;
      
-        }*/
+        }
     }
     return QObject::eventFilter(target, event);
 }
@@ -584,4 +631,11 @@ QVector3D OpenGLRendererWidget::getCamPos() const {
     transform.rotate(viewPosSpheric.polar, 0, 0, 1);
 
     return (transform * QVector4D(0, 1, 0, 1)).toVector3DAffine();
+}
+
+void OpenGLRendererWidget::testReadyness()
+{
+    if (_tracker != nullptr && fullScreenWidget != nullptr && pedal != nullptr && _updateTimer != nullptr) {
+        emit ready(_tracker, fullScreenWidget, pedal, _updateTimer);
+    }
 }

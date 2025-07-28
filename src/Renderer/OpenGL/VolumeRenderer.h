@@ -37,8 +37,9 @@ public:
 class VolumeRenderer : public QOpenGLFunctions_3_3_Core
 {
 public:
-    void setData(std::vector<float>& data);
+    void setData(std::vector<float>* data);
     void setColors(std::vector<float>& colors);
+    void setAlphas(std::vector<float>& alphas);
     void setHighlights(std::vector<int>& highlights);
     void setPointOpacity(const float& value);
     void setColormap(const QImage& colormap);
@@ -98,6 +99,7 @@ private:
     GLuint vao;
     GLuint vbo;
     GLuint cbo;
+    GLuint alpha_cbo;
     GLuint highlightVBO;
     int _numPoints = 0;
 
@@ -111,6 +113,7 @@ private:
 
     QColor _selectionColor = QColor(0,0,0);
     bool _hasColors = false;
+    bool _hasAlphas = false;
 
     mv::Texture2D _colormap;
     //QSize cMapSize;
@@ -137,7 +140,7 @@ private:
 
     QMatrix4x4 identity = QMatrix4x4();
 
-    std::vector<float> points;
+    //std::vector<float>* points;
     // Points can be hidden by flipping the corresponding bool to false
     std::vector<bool> rendered;
 
