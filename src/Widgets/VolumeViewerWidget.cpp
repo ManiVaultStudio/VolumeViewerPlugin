@@ -39,12 +39,16 @@ VolumeViewerWidget::VolumeViewerWidget(QObject* parent, const QString& title) :
 
 void VolumeViewerWidget::setData(Dataset<Points> pointDataset)
 {
+
     switch (_plugin->getRendererBackend())
     {
     case VolumeViewerPlugin::RendererBackend::OpenGL:
     {
         int numDimensions = pointDataset->getNumDimensions();
-        if (numDimensions != 3) qDebug() << "WARNING: DIMENSIONS ARE NOT 3";
+        if (numDimensions != 3) {
+            qDebug() << "WARNING: DIMENSIONS ARE NOT 3";
+            return;
+        }
         points = std::vector<float>(pointDataset->getNumPoints() * pointDataset->getNumDimensions());
 
         // Determine data bounds and averages
@@ -86,11 +90,12 @@ void VolumeViewerWidget::setData(Dataset<Points> pointDataset)
         //Initial render
         getOpenGLWidget()->update();
 
-        
+
 
         break;
     }
     }
+
 }
 
 uint32_t VolumeViewerWidget::getClosestPoint(const QVector3D& cursor) const {

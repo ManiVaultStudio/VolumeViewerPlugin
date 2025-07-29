@@ -27,6 +27,8 @@
 
 #include "PointOptimizer.h"
 
+#include "Widgets/FlashlightWidget.h"
+
 
 /**
  * OpenGL Volume Renderer Widget
@@ -98,6 +100,9 @@ public:
     void startFlashlightWorker();
     void stopFlashlightWorker();
 
+    FlashlightWidget* getFlashlightWidget() const { return flashlightConfigWidget; }
+    void initiateFlashlightWidget(FlashlightWidget* flw = nullptr);
+
 
 public:
     bool eventFilter(QObject* target, QEvent* event);
@@ -134,7 +139,8 @@ signals:
 
     void flashlightReady();
 
-    void ready(PSTracker* tracker, FullScreenWidget* fsWidget, PedalManager* pedals, QTimer* updateTimer); // All shared variables are defined
+    //void ready(PSTracker* tracker, FullScreenWidget* fsWidget, PedalManager* pedals, QTimer* updateTimer); // All shared variables are defined
+    void ready(const OpenGLRendererWidget* emitter);
     void exitFullScreen();
 
 private:
@@ -193,5 +199,6 @@ private:
 
     DepthWorker* depthWorker = nullptr;
     FlashlightWorker* flashlightWorker = nullptr;
+    FlashlightWidget* flashlightConfigWidget = nullptr;
 };
 

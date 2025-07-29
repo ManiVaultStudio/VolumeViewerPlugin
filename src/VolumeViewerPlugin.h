@@ -80,6 +80,8 @@ public: // Miscellaneous
 
     void setFlashlightState(const bool& state);
 
+    bool getFlashlightState() { return flashlightScalars.isValid(); }
+
     void updateFlashlight();
 
     void setRendererBackend(RendererBackend backend)

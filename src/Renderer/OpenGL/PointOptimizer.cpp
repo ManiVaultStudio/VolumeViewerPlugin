@@ -201,10 +201,10 @@ void Octree::getSortedIndicesUsingCubes(const QVector3D& position, std::vector<G
 /// <param name="cursor"></param>
 /// <param name="distances"></param>
 /// <param name="maxDepth"></param>
-void Octree::getDistanceApproximations(const QVector3D& cursor, std::vector<float>& distances, const int& maxDepth, std::function<float(const float&)> transform)
+void Octree::getDistanceApproximations(const QVector3D& cursor, std::vector<float>& distances, const int& maxDepth)
 {
     if (contained.size() > 0) {
-        const float value = transform((center - cursor).length());
+        const float value = (center - cursor).length();
         for (GLuint& i : contained) {
             distances[i] = value;
         }
@@ -213,10 +213,10 @@ void Octree::getDistanceApproximations(const QVector3D& cursor, std::vector<floa
         for (Octree* child : children) {
             if (child != nullptr) {
                 if (maxDepth > 0) {
-                    child->getDistanceApproximations(cursor, distances, maxDepth - 1, transform);
+                    child->getDistanceApproximations(cursor, distances, maxDepth - 1);
                 }
                 else {
-                    writeVectorRecursive<float>(transform((center - cursor).length()), distances);
+                    writeVectorRecursive<float>((center - cursor).length(), distances);
                 }
             }
         }
@@ -609,21 +609,19 @@ distances(distancesPtr)
 
 void FlashlightWorker::run() {
     QVector3D previousCursor = QVector3D(INT_MAX, INT_MAX, INT_MAX);
-    clock_t start = clock_t();
-
+    clock_t start = 0;
     while (true) {
         if (
             (*cursor - previousCursor).length() > 0.01f
             && clock() - start > 0.05f * CLOCKS_PER_SEC
             ) {
-
             start = clock();
         
             //updatePointDistancesBruteForce();
+            updatePointDistancesOctree();
 
             emit resultReady();
             
-            updatePointDistancesOctree();
 
             previousCursor = *cursor;
 
@@ -664,14 +662,10 @@ void FlashlightWorker::updatePointDistancesOctree() const
 
     std::vector<float> result = std::vector<float>(points.size() / 3, 0.0f);
 
-    pointTree->getDistanceApproximations(cursorvalue, result, 2, getPointIntensity);
+    pointTree->getDistanceApproximations(cursorvalue, result);
 
 
     std::lock_guard<std::mutex> lock(*mtx);
     distances->assign(result.begin(), result.end());
 }
 
-float FlashlightWorker::getPointIntensity(const float& distance)
-{
-    return 1.f - std::min(1.0f, 6*distance);
-}

@@ -70,6 +70,9 @@ OpenGLRendererWidget::~OpenGLRendererWidget() {
         depthWorker->wait();
     }
     stopFlashlightWorker();
+    delete flashlightConfigWidget;
+    delete pedal;
+    delete refWidget;
 }
 
 //void OpenGLRendererWidget::setTexels(int width, int height, int depth, std::vector<float>& texels)
@@ -130,7 +133,7 @@ void OpenGLRendererWidget::startDepthsortWorker() {
         /*std::vector<float> colors = std::vector<float>(points.size() / 3);
         for (GLuint i : indicesEye1) {
             colors[indicesEye1[i]] = i / float(indicesEye1.size());
-        }
+        } 
         _volumeRenderer.setColors(colors);*/
         // Test : colouring points by drawing order - END
 
@@ -165,6 +168,28 @@ void OpenGLRendererWidget::stopFlashlightWorker() {
         flashlightWorker->terminate();
         flashlightWorker->wait();
     }
+    delete flashlightWorker;
+    flashlightWorker = nullptr;
+}
+
+void OpenGLRendererWidget::initiateFlashlightWidget(FlashlightWidget* flw) {
+    delete flashlightConfigWidget;
+    flashlightConfigWidget = flw;
+    if (flashlightConfigWidget == nullptr) flashlightConfigWidget = new FlashlightWidget(this);
+
+    getVolumeRenderer().setFlashlightScalars(
+        flashlightConfigWidget->getDistanceCoeficient(),
+        flashlightConfigWidget->getMinTransparency()
+    );
+
+    connect(flashlightConfigWidget, &FlashlightWidget::valueChanged, this, [this]() {
+        getVolumeRenderer().setFlashlightScalars(
+            flashlightConfigWidget->getDistanceCoeficient(), 
+            flashlightConfigWidget->getMinTransparency()
+        );
+    });
+    testReadyness();
+
 }
 
 
@@ -635,7 +660,7 @@ QVector3D OpenGLRendererWidget::getCamPos() const {
 
 void OpenGLRendererWidget::testReadyness()
 {
-    if (_tracker != nullptr && fullScreenWidget != nullptr && pedal != nullptr && _updateTimer != nullptr) {
-        emit ready(_tracker, fullScreenWidget, pedal, _updateTimer);
+    if (_tracker != nullptr && fullScreenWidget != nullptr && pedal != nullptr && _updateTimer != nullptr && flashlightConfigWidget != nullptr) {
+        emit ready(this);
     }
 }

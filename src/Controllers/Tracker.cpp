@@ -202,6 +202,7 @@ bool PSTracker::getTrackerConnected() const {
 void PSTracker::Connect()
 {
     if (!_detected) throw "The PS-tech tracker is not detected";
+    if (checkTrackerStatus()) return;
 
     // Implement error handling of PSTech::TrackerException exceptions to prevent 
     // improper PST Tracker shutdown on errors.

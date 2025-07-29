@@ -72,8 +72,7 @@ public:
     void getDistanceApproximations(
         const QVector3D& cursor, 
         std::vector<float>& distances, 
-        const int& maxDepth = INT_MAX, 
-        std::function<float(const float&)> transform = [](const float& x) { return x; }
+        const int& maxDepth = INT_MAX
     );
     template <typename A> void writeVectorRecursive(const A& value, std::vector<A>& distances);
 
@@ -173,7 +172,6 @@ protected:
     void updatePointDistancesBruteForce() const;
     void updatePointDistancesOctree() const;
 
-    static float getPointIntensity(const float& distance);
 
 protected:
     QVector3D* cursor;

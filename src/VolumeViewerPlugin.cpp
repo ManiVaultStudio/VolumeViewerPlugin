@@ -122,7 +122,7 @@ void VolumeViewerPlugin::init()
 {    
 
 
-    connect(getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, [this](PSTracker* tracker, FullScreenWidget* fsWidget, PedalManager* pedals, QTimer* updateTimer) {
+    connect(getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, [this](const OpenGLRendererWidget* emitter) {
         //_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
     });
 
@@ -137,11 +137,12 @@ void VolumeViewerPlugin::init()
 	if (instances.size() > 0) {
 		VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
 
-		connect(firstInstance->getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, [this](PSTracker* tracker, FullScreenWidget* fsWidget, PedalManager* pedals, QTimer* updateTimer) {
-			getOpenGLRendererWidget()->setTracker(tracker);
-            getOpenGLRendererWidget()->setFullScreenWidget(fsWidget);
-            getOpenGLRendererWidget()->setUpdateTimer(updateTimer);
-            getOpenGLRendererWidget()->setPedalManager(pedals);
+		connect(firstInstance->getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, [this](const OpenGLRendererWidget* emitter) {
+			getOpenGLRendererWidget()->setTracker(emitter->getTracker());
+            getOpenGLRendererWidget()->setFullScreenWidget(emitter->getFullScreenWidget());
+            getOpenGLRendererWidget()->setUpdateTimer(emitter->getUpdateTimer());
+            getOpenGLRendererWidget()->setPedalManager(emitter->getPedalManager());
+            getOpenGLRendererWidget()->initiateFlashlightWidget(emitter->getFlashlightWidget());
 
 			//_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
 			});
@@ -164,6 +165,7 @@ void VolumeViewerPlugin::init()
         getOpenGLRendererWidget()->setFullScreenWidget(fsWidget);
         getOpenGLRendererWidget()->setUpdateTimer(updateTimer);
         getOpenGLRendererWidget()->setPedalManager(pedals);
+        getOpenGLRendererWidget()->initiateFlashlightWidget();
 
     }
 	// Request tracker from the first instance
@@ -634,21 +636,38 @@ void VolumeViewerPlugin::init()
 
 
 void VolumeViewerPlugin::setFlashlightState(const bool& state) {
+    getVolumeRenderer().setIsFlashlightSource(state);
+
     if (state)
     {
         if (!flashlightScalars.isValid()) {
+            getOpenGLRendererWidget()->getFlashlightWidget()->show();
+
             flashlightScalars = mv::data().createDataset<Points>("Points", "Flashlight");
 
             events().notifyDatasetAdded(flashlightScalars);
 
             getOpenGLRendererWidget()->startFlashlightWorker();
         }
-        
+
     }
     else {
         events().notifyDatasetAboutToBeRemoved(flashlightScalars);
         mv::data().removeDataset(flashlightScalars);
         getOpenGLRendererWidget()->stopFlashlightWorker();
+
+
+        // Hide flashlight widget if no plugin uses flashlight
+        const std::vector<Plugin*> instances = plugins().getPluginsByFactory(getFactory());
+        bool doHide = true;
+        for (Plugin* plugin : instances) {
+            VolumeViewerPlugin* instance = static_cast<VolumeViewerPlugin*>(plugin);
+            if (instance->getFlashlightState()) {
+                doHide = false;
+                break;
+            }
+        }
+        if(doHide) getOpenGLRendererWidget()->getFlashlightWidget()->hide();
     }
 }
 
@@ -722,6 +741,10 @@ void VolumeViewerPlugin::updatePointOpacity() {
 
         return;
     }
+
+    
+    getVolumeRenderer().setFlashlightState(_pointsOpacityPoints.getDataset()->getGuiName() == "Flashlight");
+
     std::vector<float> alphas;
     for (int i = 0; i < _pointsOpacityPoints->getNumPoints(); i++) {
         alphas.push_back(_pointsOpacityPoints->getValueAt(i));

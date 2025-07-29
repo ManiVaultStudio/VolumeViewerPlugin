@@ -42,6 +42,9 @@ public:
     void setAlphas(std::vector<float>& alphas);
     void setHighlights(std::vector<int>& highlights);
     void setPointOpacity(const float& value);
+    void setFlashlightState(const bool& state) { showingFlashlight = state; }
+    void setFlashlightScalars(const float& slope, const float& min);
+    void setIsFlashlightSource(const bool& state) { isFlashlightSouce = state; }
     void setColormap(const QImage& colormap);
     void setEyeOffset(float eyeOffset) { _eyeDistance = eyeOffset; }
     void setHeadPosition(const QVector3D& headPos);
@@ -114,6 +117,10 @@ private:
     QColor _selectionColor = QColor(0,0,0);
     bool _hasColors = false;
     bool _hasAlphas = false;
+    bool isFlashlightSouce = false;
+    bool showingFlashlight = false;
+    float flashlightSlope = -1.f;
+    float flashlightMin = 0.1f;
 
     mv::Texture2D _colormap;
     //QSize cMapSize;

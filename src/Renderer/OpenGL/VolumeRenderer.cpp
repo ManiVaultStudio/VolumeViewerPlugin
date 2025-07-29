@@ -179,6 +179,11 @@ void VolumeRenderer::setPointOpacity(const float& value) {
 };
 
 
+void VolumeRenderer::setFlashlightScalars(const float& slope, const float& min) { 
+    flashlightSlope = slope; 
+    flashlightMin = min;
+}
+
 void VolumeRenderer::setRenderOrder(const int& eye, std::vector<GLuint>& indices) {
     glBindVertexArray(vao);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[eye]);
@@ -625,6 +630,14 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
         shader.uniform1f("heightOfNearPlane", heightOfNearPlane);
         shader.uniform1i("hasColors", false);
         shader.uniform1i("hasAlphas", _hasAlphas);
+        shader.uniform1i("showingFlashlight", showingFlashlight);
+        shader.uniform1i("isFlashlightSource", isFlashlightSouce);
+        if (showingFlashlight) {
+
+            shader.uniform1f("flashlightSlope", flashlightSlope);
+            shader.uniform1f("flashlightMin", flashlightMin);
+        }
+
         shader.uniform3f("selectionColor", _selectionColor.redF(), _selectionColor.greenF(), _selectionColor.blueF());
         shader.uniform1i("live", live);
         shader.uniform1i("selectMode", selectionMode);
