@@ -220,31 +220,21 @@ void OpenGLRendererWidget::setColormap(const QImage& colormap)
 void OpenGLRendererWidget::setTracker(PSTracker* tracker)
 {
     _tracker = tracker;
+    refWidget->setTracker(_tracker);
+    testReadyness();
+    connectTracker();
 }
 
 void OpenGLRendererWidget::connectTracker()
 {
-   
-    if (_tracker == nullptr) {
-        _tracker = new PSTracker();
-        qDebug() << "Creating tracker in instace " << pluginInstanceIndex;
-    }
     try {
         _tracker->initPST();
         _tracker->Connect();
-        refWidget->setTracker(_tracker);
         msgLabel->setText("Connected to tracker");
-        testReadyness();
     }
     catch (const char* err) {
         msgLabel->setText(err);
     }
-
-}
-
-void OpenGLRendererWidget::requestTracker() {
-    if (_tracker == nullptr) connectTracker();
-    else testReadyness();
 }
 
 void OpenGLRendererWidget::setEyeOffset(float eyeOffset)
@@ -258,6 +248,17 @@ void OpenGLRendererWidget::setSelectionMode(const int32_t& mode) {
     _volumeRenderer.setSelectionMode(mode);
 }
 
+void OpenGLRendererWidget::getIdlePose(QMatrix4x4& pose)
+{
+
+    idleRotationAngle += 0.1f;
+    if (idleRotationAngle > 360) idleRotationAngle = idleRotationAngle - 360;
+    pose.setToIdentity();
+    pose.translate(-renderDisplacement, 0, 0);
+    pose.rotate(idleRotationAngle, 0, 1, 0);
+
+}
+
 void OpenGLRendererWidget::setCamDist(float camDist)
 {
     //Reinitialise position and set correct distance
@@ -269,17 +270,43 @@ void OpenGLRendererWidget::setFullScreenWidget(FullScreenWidget* widget) {
     fullScreenWidget = widget;
     connect(fullScreenWidget, &FullScreenWidget::numberChildrenChanged, this, [this]() {
         int index = fullScreenWidget->indexOf(this);
-        if (isFullScreen && index == -1) {
-            // Strangely, indexOf deosn't find the widget when it was just added. This is a hack
+        if (isFullScreen && index == -1) { // When just added, the widget will not be in the fs widget yet, so putting it at the end
             index = fullScreenWidget->getCount()-1;
         }
-        // If the widget is not full screen, it's displacement will be 0
-        float displacement = index > -1 ? float(index) - (fullScreenWidget->getCount()-1) / 2.f : 0.f;
-        qDebug() << "instance " << pluginInstanceIndex << ", index " << index << ", dispalcement : " << displacement;
-        offset.setToIdentity();
-        offset.translate(displacement/0.5f, 0, 0);
+        if (index > -1) { // If this instance is displayed in fullscreen widget
+            setRenderDisplacement(index, fullScreenWidget->getCount() - 1);
+        }
+        else {
+            setDefaultRenderDisplacement();
+        }
     });
     testReadyness();
+}
+
+void OpenGLRendererWidget::setDefaultRenderDisplacement() {
+    setRenderDisplacement(pluginInstanceIndex, numberPluginInstances - 1);
+}
+
+/// <summary>
+/// Calculate and set horizontal displacement to use several plugin instances with several targets
+/// </summary>
+/// <param name="index"></param>
+/// <param name="indexMax"></param>
+void OpenGLRendererWidget::setRenderDisplacement(const int& index, const int& indexMax) {
+    float displacement = index > -1 ? float(index) - indexMax / 2.f : 0.f;
+    setRenderDisplacement(displacement / 0.5f);
+}
+
+void OpenGLRendererWidget::setRenderDisplacement(const float& dx) {
+    offset.setToIdentity();
+    offset.translate(dx , 0, 0);
+    renderDisplacement = dx;
+}
+
+
+void OpenGLRendererWidget::setNumberPluginInstances(const int& value) { 
+    numberPluginInstances = value; 
+    setDefaultRenderDisplacement();
 }
 
 void OpenGLRendererWidget::toggleFullScreen() {
@@ -288,7 +315,6 @@ void OpenGLRendererWidget::toggleFullScreen() {
         // Leave fullscreen
         emit exitFullScreen();
         msgLabel->setText("");
-        offset.setToIdentity();
     } else {
         isFullScreen = true;
         // Go fullscreen
@@ -391,12 +417,6 @@ void OpenGLRendererWidget::resizeGL(int w, int h)
 void OpenGLRendererWidget::paintGL()
 {
 
-    int w = width();
-    int h = height();
-
-    float aspect = (float)w / h;
-
-
     if (_selecting && selectionInterval.elapsed() > 1.f) {
         selectionInterval.restart();
         emit newSelection(selectionMode, selectionReplaces);
@@ -421,7 +441,9 @@ void OpenGLRendererWidget::paintGL()
 
 #else
     if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1){ 
-        _tracker->GetTargetMatrix(pluginInstanceIndex, pose);
+        if (!_tracker->GetTargetMatrix(pluginInstanceIndex, pose)) {
+            getIdlePose(pose);
+        }
 
     }
 #endif
@@ -447,10 +469,10 @@ void OpenGLRendererWidget::paintGL()
 
     lock.unlock();
 #ifdef CONTROLS
-    _volumeRenderer.render(defaultFramebufferObject(), aspect, true, pose);
+    _volumeRenderer.render(defaultFramebufferObject(), true, pose);
 #else
     if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1) {
-        _volumeRenderer.render(defaultFramebufferObject(), aspect, _tracker->poseIsLive(pluginInstanceIndex), pose);
+        _volumeRenderer.render(defaultFramebufferObject(), _tracker->poseIsLive(pluginInstanceIndex), pose);
 
     }
     

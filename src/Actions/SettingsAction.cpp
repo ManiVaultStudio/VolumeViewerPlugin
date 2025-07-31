@@ -14,18 +14,18 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _selectModeAction(this, "Select Mode Action"),
     _positionDatasetPickerAction(this, "Position"),
     _colorDatasetPickerAction(this, "ColorPoints"),
-    _focusSelectionAction(this, "Focus Selection"),
-    _focusFloodfillAction(this, "Focus Floodfill"),
+    /*_focusSelectionAction(this, "Focus Selection"),
+    _focusFloodfillAction(this, "Focus Floodfill"),*/
     _flashlightAction(this, "Toggle flashlight"),
-    _focusSelectionNormAction(this, "SNorm"),
-    _focusFloodfillNormAction(this, "FNorm"),
+   /* _focusSelectionNormAction(this, "SNorm"),
+    _focusFloodfillNormAction(this, "FNorm"),*/
     _startCalibAction(this, "Calibrate tracker"),
     _connectToTrackerAction(this, "Connect tracker"),
     _toggleFullScreen(this, "Toggle Full Screen"),
     _clearSelectionAction(this, "Clear selection"),
-    _eyeOffsetAction(this, "Eye offset", 0, 0.2, 0.03, 3),
+    //_eyeOffsetAction(this, "Eye offset", 0.8, 2, 1.04, 3),
     _pointOpacityAction(this, "Point opacity", 0, 1, 1.0f, 2),
-    _camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
+    //_camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
     _selectionColorPicker(this, "Selection Color", QColor(255,0,0))
 {
     GroupsAction::GroupActions groupActions;
@@ -53,7 +53,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
         _colorDatasetPickerAction.setCurrentDataset(dataset);
     });
 
-    connect(&_focusSelectionAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
+   /* connect(&_focusSelectionAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
             _plugin->setFocusSelection(toggled);
     });
 
@@ -67,7 +67,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_focusFloodfillNormAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
         _plugin->setFocusFloodfillNorm(toggled);
-        });
+        });*/
 
     connect(&_flashlightAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
         _plugin->setFlashlightState(toggled);
@@ -84,9 +84,13 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
         });
 
 
-    connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget()->openCalib(); });
+    connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { 
+        _plugin->getOpenGLRendererWidget()->openCalib(); 
+        });
 
-    connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget()->setEyeOffset(value); });
+    /*connect(&_eyeOffsetAction, &DecimalAction::valueChanged, [this](const float& value) { 
+        _plugin->getOpenGLRendererWidget()->getVolumeRenderer().setEyeOffset(value); 
+      });*/
 
 
     _plugin->getOpenGLRendererWidget()->getVolumeRenderer().setPointOpacity(_pointOpacityAction.getValue());
@@ -95,7 +99,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
         });
 
 
-    connect(&_camDistAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget()->setCamDist(value); });
+    //connect(&_camDistAction, &DecimalAction::valueChanged, [this](const float& value) { _plugin->getOpenGLRendererWidget()->setCamDist(value); });
 
 
     connect(&_selectionColorPicker, &ColorAction::colorChanged, [this](const QColor& color) { _plugin->getVolumeRenderer().setSelectionColor(color); });
@@ -103,7 +107,7 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     connect(&_startCalibAction, &TriggerAction::triggered, this, [this]() { _plugin->getOpenGLRendererWidget()->openCalib(); });
 
     // Tracker connect
-    connect(&_connectToTrackerAction, &TriggerAction::triggered, _plugin, &VolumeViewerPlugin::requestTracker);
+    connect(&_connectToTrackerAction, &TriggerAction::triggered, _plugin->getOpenGLRendererWidget(), &OpenGLRendererWidget::connectTracker);
 
 }
 

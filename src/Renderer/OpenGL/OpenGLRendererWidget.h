@@ -70,18 +70,24 @@ public:
 
     void setColormap(const QImage& colormap);
     void setTracker(PSTracker* tracker = nullptr); /** Set tracker to pointer or to a new tracker object if not specified */
+    void connectTracker();
     void setEyeOffset(float eyeOffset);
     void setCamDist(float camDist);
     void setSelectionMode(const int32_t& mode);
     void openCalib() const { refWidget->setTargetIndex(pluginInstanceIndex);  refWidget->show(); }
 
-    void requestTracker();
+    void getIdlePose(QMatrix4x4& pose);
+
     PSTracker* getTracker() const { return _tracker; }
 
     void setFullScreenWidget(FullScreenWidget* widget);
+    void setRenderDisplacement(const int& index, const int& indexMax);
+    void setRenderDisplacement(const float&);
+    void setDefaultRenderDisplacement();
     FullScreenWidget* getFullScreenWidget()const { return fullScreenWidget; };
 
     void setInstanceIndex(const int& index) { pluginInstanceIndex = index; }
+    void setNumberPluginInstances(const int& value);
     //void setNumberInstances(const int& index) { numberInstances = index; }
     void toggleFullScreen();
     bool getIsFullScreen() const { return isFullScreen; };
@@ -112,6 +118,8 @@ public:
     */
     QVector3D getCamPos() const;
 
+    void testReadyness();
+
 
 protected:
 
@@ -126,9 +134,7 @@ protected:
         QWidget::showEvent(event);
     }
 
-    void connectTracker();
 
-    void testReadyness();
 
 private slots:
     void updatePixelRatio();
@@ -157,6 +163,7 @@ private:
 
 
     float _camStartDist = 1.0f;
+    float idleRotationAngle = 0.0f;
 
     bool _isInitialized = false;
 
@@ -178,6 +185,8 @@ private:
     float _pixelRatio = 1.0f; /** Current pixel ratio */
 
     int pluginInstanceIndex = -1;
+    int numberPluginInstances = 0;
+    float renderDisplacement = 0.0f;
     //int numberInstances = 0;
 
     FullScreenWidget* fullScreenWidget = nullptr;

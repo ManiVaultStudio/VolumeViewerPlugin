@@ -46,14 +46,17 @@ public:
     void setFlashlightScalars(const float& slope, const float& min);
     void setIsFlashlightSource(const bool& state) { isFlashlightSouce = state; }
     void setColormap(const QImage& colormap);
-    void setEyeOffset(float eyeOffset) { _eyeDistance = eyeOffset; }
+    void setEyeOffset(float eyeOffset);
     void setHeadPosition(const QVector3D& headPos);
+    void updateCameras();
     QVector3D getHeadPosition() const { return headPosition; }
     void setInterlacing(const int& interl) { _interlacing = interl; }
+    void setFov(const float& value);
     void setSelectionColor(const QColor& color) { _selectionColor = color; }
-    void setStereo(const bool& val) { stereo = val; }
+    void setStereo(const bool& val);
     bool isStereo() const { return stereo; }
     QVector3D getStereoCamera(const int& eye) const;
+    void updateProjectionMatrix();
     //void setCursorPosition(const QVector3D& pos) { _cursorPoint = mv::Vector3f(pos[0], pos[1], pos[2]); }
     QVector3D getCursor() const;
     bool getCursorFrozen() const { return cursorFrozen; }
@@ -67,7 +70,7 @@ public:
     void init();
     void resize(int w, int h);
 
-    void render(GLuint framebuffer, float aspect, const bool& live, const QMatrix4x4& modelMatrix);
+    void render(GLuint framebuffer, const bool& live, const QMatrix4x4& modelMatrix);
     void drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& camRef, const bool& live);
     void drawCube(mv::ShaderProgram& shader);
     void drawCursor();
@@ -111,8 +114,12 @@ private:
     GLuint _cursorVao;
     GLuint _cursorVbo;
     //mv::Vector3f _cursorPoint = mv::Vector3f(0.f,0.f,0.f);
-    float _eyeDistance = 0.065;
+    float _eyeDistance = 0.08; //0.063;
     int _interlacing = 1;
+    float fovyr = 1.0472;
+    float zNearMono = 0.1f;
+    float zNearStereo = 0.35f;
+    float aspect = 1;
 
     QColor _selectionColor = QColor(0,0,0);
     bool _hasColors = false;

@@ -106,8 +106,8 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());*/
-    _secondaryToolbarAction.addAction(&_settingsAction->getEyeOffsetAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getCamDistAction());
+    //_secondaryToolbarAction.addAction(&_settingsAction->getEyeOffsetAction());
+    //_secondaryToolbarAction.addAction(&_settingsAction->getCamDistAction());
     //_secondaryToolbarAction.addAction(&_settingsAction->getFlipInterlacingAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getSelectionColorPicker());
     _secondaryToolbarAction.addAction(&_settingsAction->getSelectModeAction());
@@ -119,14 +119,16 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 }
 
 void VolumeViewerPlugin::init()
-{    
-
+{ 
 
     connect(getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, [this](const OpenGLRendererWidget* emitter) {
-        //_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+        if (emitter->getTracker()->getTrackerConnected()) {
+            _secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+        }
+        connect(emitter->getTracker(), &PSTracker::connected, this, [this]() {
+            _secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+            });
     });
-
-    
 
 	// Detect other instances of the plugin
 	const std::vector<Plugin*> instances = plugins().getPluginsByFactory(getFactory());
@@ -134,32 +136,24 @@ void VolumeViewerPlugin::init()
 
 	// Get the tracker object from the first instance.
     qDebug() << "Number of previous instances :" << instances.size();
+
 	if (instances.size() > 0) {
 		VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
 
-		connect(firstInstance->getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, [this](const OpenGLRendererWidget* emitter) {
-			getOpenGLRendererWidget()->setTracker(emitter->getTracker());
-            getOpenGLRendererWidget()->setFullScreenWidget(emitter->getFullScreenWidget());
-            getOpenGLRendererWidget()->setUpdateTimer(emitter->getUpdateTimer());
-            getOpenGLRendererWidget()->setPedalManager(emitter->getPedalManager());
-            getOpenGLRendererWidget()->initiateFlashlightWidget(emitter->getFlashlightWidget());
 
-			//_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
-			});
+		connect(firstInstance->getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, &VolumeViewerPlugin::syncVariablesWithPlugin);
+        firstInstance->getOpenGLRendererWidget()->testReadyness();
 
     }
     else {
         // Create a new full screen widget
-        qDebug() << "Creatig FSW";
         FullScreenWidget* fsWidget = new FullScreenWidget(getVolumeViewerWidget());
      
         // Create a new update Timer
-        qDebug() << "Creatig Update Timer";
         QTimer* updateTimer = new QTimer(getVolumeViewerWidget());
         updateTimer->start(16);
 
         // Create a new pedalManager
-        qDebug() << "Creatig Pedal Manager";
         PedalManager* pedals = new PedalManager(getVolumeViewerWidget(), updateTimer);
 
         getOpenGLRendererWidget()->setFullScreenWidget(fsWidget);
@@ -167,9 +161,16 @@ void VolumeViewerPlugin::init()
         getOpenGLRendererWidget()->setPedalManager(pedals);
         getOpenGLRendererWidget()->initiateFlashlightWidget();
 
+        getOpenGLRendererWidget()->setTracker(new PSTracker());
+
+
     }
-	// Request tracker from the first instance
-	requestTracker();
+	
+    getOpenGLRendererWidget()->setNumberPluginInstances(instances.size() + 1);
+    for (Plugin* plugin : instances) {
+        VolumeViewerPlugin* instance = static_cast<VolumeViewerPlugin*>(plugin);
+        instance->getOpenGLRendererWidget()->setNumberPluginInstances(instances.size()+1);
+    }
 
 
     //// Create of search for shared variables
@@ -635,6 +636,15 @@ void VolumeViewerPlugin::init()
 }
 
 
+void VolumeViewerPlugin::syncVariablesWithPlugin(const OpenGLRendererWidget* source)
+{
+    getOpenGLRendererWidget()->setTracker(source->getTracker());
+    getOpenGLRendererWidget()->setFullScreenWidget(source->getFullScreenWidget());
+    getOpenGLRendererWidget()->setUpdateTimer(source->getUpdateTimer());
+    getOpenGLRendererWidget()->setPedalManager(source->getPedalManager());
+    getOpenGLRendererWidget()->initiateFlashlightWidget(source->getFlashlightWidget());
+}
+
 void VolumeViewerPlugin::setFlashlightState(const bool& state) {
     getVolumeRenderer().setIsFlashlightSource(state);
 
@@ -887,21 +897,21 @@ mv::gui::PluginTriggerActions VolumeViewerPluginFactory::getPluginTriggerActions
     return pluginTriggerActions;
 }
 
-void VolumeViewerPlugin::requestTracker()
-{
-	// Sync tracker object between all instances. It's the job of the first instance to create the tracker
-	
-	// Detect other instances of the plugin
-	const std::vector<Plugin*> instances = plugins().getPluginsByFactory(getFactory());
-
-	if (instances.size() > 0) {
-		VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
-		firstInstance->getOpenGLRendererWidget()->requestTracker();
-	}
-	else { // I am the first instance
-		getOpenGLRendererWidget()->requestTracker();
-	}
-}
+//void VolumeViewerPlugin::requestTracker()
+//{
+//	// Sync tracker object between all instances. It's the job of the first instance to create the tracker
+//	
+//	// Detect other instances of the plugin
+//	const std::vector<Plugin*> instances = plugins().getPluginsByFactory(getFactory());
+//
+//	if (instances.size() > 0) {
+//		VolumeViewerPlugin* firstInstance = static_cast<VolumeViewerPlugin*>(instances[0]);
+//		firstInstance->getOpenGLRendererWidget()->requestTracker();
+//	}
+//	else { // I am the first instance
+//		
+//	}
+//}
 
 
 /******************************************************************************

@@ -17,7 +17,7 @@ VolumeViewerWidget::VolumeViewerWidget(QObject* parent, const QString& title) :
 
     _openGLWidget = new OpenGLRendererWidget();
 
-    layout = new QVBoxLayout();
+    layout = new QVBoxLayout(this);
     layout->addWidget(_openGLWidget);
 
     setLayout(layout);
@@ -107,7 +107,7 @@ uint32_t VolumeViewerWidget::getClosestPoint(const QVector3D& cursor) const {
     float distanceMin = FLT_MAX;
 
 
-    for (std::uint32_t localIndex = 0; localIndex < points.size(); localIndex++) {
+    for (std::uint32_t localIndex = 0; localIndex < points.size() / numDimensions; localIndex++) {
 
         const float distance = std::sqrt(
             std::pow(cursor[0] - points[localIndex * numDimensions + 0], 2)
@@ -135,7 +135,7 @@ std::vector<uint32_t> VolumeViewerWidget::getPointsInSphere(const QVector3D& cur
     auto dataset = _plugin->getDataset();
     int numDimensions = dataset->getNumDimensions();
 
-    for (std::uint32_t localIndex = 0; localIndex < points.size(); localIndex++) {
+    for (std::uint32_t localIndex = 0; localIndex < points.size() / numDimensions; localIndex++) {
         const float distance = std::sqrt(
             std::pow(cursor[0] - points[localIndex * numDimensions + 0], 2)
             + std::pow(cursor[1] - points[localIndex * numDimensions + 1], 2)
@@ -163,7 +163,7 @@ std::vector<float> VolumeViewerWidget::getPointDistances(const QVector3D& cursor
 
     std::vector<float> result = std::vector<float>(points.size() / 3, 0.0f);
 
-    for (std::uint32_t localIndex = 0; localIndex < points.size() / 3; localIndex++) {
+    for (std::uint32_t localIndex = 0; localIndex < points.size() / numDimensions; localIndex++) {
         
         result[localIndex] = std::sqrt(
             std::pow(cursor[0] - points[localIndex * numDimensions + 0], 2)

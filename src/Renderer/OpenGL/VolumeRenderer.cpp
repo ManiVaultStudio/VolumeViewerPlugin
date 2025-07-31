@@ -222,20 +222,57 @@ void VolumeRenderer::unFreezeCursor() {
     }
 };
 
+void VolumeRenderer::setEyeOffset(float eyeOffset) { 
+    _eyeDistance = eyeOffset; 
+    updateCameras();
+}
+
 void VolumeRenderer::setHeadPosition(const QVector3D& headPos) { 
     headPosition = headPos;
+    updateCameras();
+}
 
-
+void VolumeRenderer::updateCameras()
+{
     QVector3D offsetDir = QVector3D::crossProduct(headPosition, QVector3D(0, 1, 0));
 
-    stereoCameras[0] = headPosition - offsetDir * _eyeDistance;
+    stereoCameras[0] = headPosition - offsetDir * _eyeDistance/2;
 
-    stereoCameras[1] = headPosition + offsetDir * _eyeDistance;
+    stereoCameras[1] = headPosition + offsetDir * _eyeDistance/2;
 }
 
 QVector3D VolumeRenderer::getStereoCamera(const int& eye) const
 {
     return stereoCameras[eye];
+}
+
+void VolumeRenderer::setFov(const float& value) { 
+    fovyr = value; 
+    updateProjectionMatrix();
+}
+
+void VolumeRenderer::setStereo(const bool& val) { 
+    stereo = val; 
+    updateProjectionMatrix();
+}
+
+
+void VolumeRenderer::updateProjectionMatrix()
+{
+    _projMatrix.setToIdentity();
+    float zNear = stereo ? zNearStereo : zNearMono;
+    float zFar = 100;
+    _projMatrix.data()[0] = (float)(1 / tan(fovyr / 2)) / aspect;
+    _projMatrix.data()[5] = (float)(1 / tan(fovyr / 2));
+    _projMatrix.data()[10] = (zNear + zFar) / (zNear - zFar);
+    _projMatrix.data()[11] = -1;
+    _projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
+    _projMatrix.data()[15] = 0;
+
+
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    heightOfNearPlane = (float)abs(viewport[3] - viewport[1]) / (2 * tan(fovyr));
 }
 
 /**
@@ -391,9 +428,13 @@ void VolumeRenderer::resize(int w, int h)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, w, h, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
     glViewport(0, 0, w, h);
+
+    aspect = float(w)/float(h);
+
+    updateProjectionMatrix();
 }
 
-void VolumeRenderer::render(GLuint framebuffer, float aspect, const bool& live, const QMatrix4x4& modelFrameMatrix)
+void VolumeRenderer::render(GLuint framebuffer, const bool& live, const QMatrix4x4& modelFrameMatrix)
 {
  
 
@@ -414,21 +455,7 @@ void VolumeRenderer::render(GLuint framebuffer, float aspect, const bool& live, 
     #else
 
 
-    _projMatrix.setToIdentity();
-    float fovyr = 1.0472;// 1.57079633;
-    float zNear = 0.4f;
-    float zFar = 100;
-    _projMatrix.data()[0] = (float)(1 / tan(fovyr / 2)) / aspect;
-    _projMatrix.data()[5] = (float)(1 / tan(fovyr / 2));
-    _projMatrix.data()[10] = (zNear + zFar) / (zNear - zFar);
-    _projMatrix.data()[11] = -1;
-    _projMatrix.data()[14] = (2 * zNear * zFar) / (zNear - zFar);
-    _projMatrix.data()[15] = 0;
 
-    float fovy = 60; // degrees
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    heightOfNearPlane = (float) abs(viewport[3] - viewport[1]) / (2 * tan(fovyr));
 
     _modelMatrix = modelFrameMatrix;
 
@@ -436,8 +463,6 @@ void VolumeRenderer::render(GLuint framebuffer, float aspect, const bool& live, 
     _pointsShaderProgram.bind();
 
     _pointsShaderProgram.uniform4f("cursor", _frozenCursorPosition[0], _frozenCursorPosition[1], _frozenCursorPosition[2], _frozenCursorPosition[3]);
-
-
 
     
 
@@ -617,7 +642,7 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_DEPTH_TEST);
-        glDepthMask(pointOpacity < 0.2 ? GL_FALSE : GL_TRUE);
+        glDepthMask((pointOpacity < 0.2 || showingFlashlight || _hasAlphas) ? GL_FALSE : GL_TRUE);
 
         shader.uniformMatrix4f("projMatrix", _projMatrix.data());
         shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());

@@ -77,7 +77,7 @@ void main()
                         // Make the data outside the selection sphere slightly transparent
                         if(cursorDistance > selectRadius){
                             float distanceFade = 0.3;
-                            float minAlphaFade = 0.05;
+                            float minAlphaFade = min(0.05, baseOpacity);
                             if(cursorDistance < selectRadius + distanceFade){
                                 fragColor.a = 0.7-(cursorDistance - selectRadius) * (0.7-minAlphaFade) / distanceFade;
                             }

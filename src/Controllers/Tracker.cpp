@@ -142,56 +142,46 @@ bool PSTracker::checkTrackerStatus() {
     }
     case PSTech::pstsdk::StatusMessage::NOT_INITIALIZED: {
         qDebug() << "PS Tech system is NOT_INITIALIZED";
-        throw "PS Tech system is NOT_INITIALIZED";
         break;
     }
     case PSTech::pstsdk::StatusMessage::DISCONNECTED: {
         qDebug() << "PS Tech system is DISCONNECTED";
-        throw "PS Tech system is DISCONNECTED";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_GENERAL: {
         qDebug() << "PS Tech: Unspecified grabber error ";
-        throw "PS Tech: Unspecified grabber error ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_TIMEOUT: {
         qDebug() << "PS Tech : Grabber timeout error";
-        throw "PS Tech : Grabber timeout error";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_NOCAMS_FOUND: {
         qDebug() << "PS Tech : Grabber could not detect any cameras";
-        throw "PS Tech : Grabber could not detect any cameras ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_NOTENOUGHTCAMS_FOUND: {
         qDebug() << "PS Tech : Grabber could not detect sufficient cameras";
-        throw "PS Tech : Grabber could not detect sufficient cameras ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_INITERROR: {
         qDebug() << "PS Tech : Grabber did not initialize correctly";
-        throw "PS Tech : Grabber did not initialize correctly ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_CANNOT_START_CAMS: {
         qDebug() << "PS Tech : Grabber could not start cameras";
-        throw "PS Tech : Grabber could not start cameras ";
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_CANNOT_SETUP_CAMS: {
         qDebug() << "PS Tech : Grabber failed setting up cameras";
-        throw "PS Tech : Grabber failed setting up cameras ";
         break;
     }
 
     }
 
     _connected = false;
+    return false;
 
-    qDebug() << "Unknown issue with the PS Tech";
-    throw "Unknown issue with the PS Tech";
 }
 
 bool PSTracker::getTrackerConnected() const {
@@ -202,7 +192,10 @@ bool PSTracker::getTrackerConnected() const {
 void PSTracker::Connect()
 {
     if (!_detected) throw "The PS-tech tracker is not detected";
-    if (checkTrackerStatus()) return;
+
+        if (_connected){
+            return;
+        }
 
     // Implement error handling of PSTech::TrackerException exceptions to prevent 
     // improper PST Tracker shutdown on errors.
@@ -289,9 +282,16 @@ void PSTracker::Connect()
     qDebug() << "Connected to tracker!";
 }
 
+/// <summary>
+/// Get the last pose data for a specified target, using interpolation to smooth out tracking losts.
+/// </summary>
+/// <param name="index">Target whose pose is requested</param>
+/// <param name="pose">out parameter where the last pose data recorded is written</param>
+/// <returns>Whether the pose is live (current) or not</returns>
 bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
 {
-    if (_connected && !listener.getIsIdle(index))
+
+    if (_connected/* && !listener.getIsIdle(index)*/)
     {
         pose = listener.getTragetMatrix(index);
 
@@ -300,10 +300,14 @@ bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
         pose.data()[13] *= 10;
         pose.data()[14] *= 10;
 
+
+        if (listener.getIsIdle(index)) {
+            return false;
+        }
      
         if (pose.column(3).toVector3D().length() < 0.01f) {
             // Strange bug where jumps to the origin happen here and there, just ignore these positions
-            return false;
+            return true;
         }
 
         // Prepare for interpolation for when tracking goes back live
@@ -333,15 +337,8 @@ bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
         return true;
 
     }
-    else
-    {
-        idleRotationAngle += 0.1f;
-        if (idleRotationAngle > 360) idleRotationAngle = idleRotationAngle - 360;
-        pose.setToIdentity();
-        pose.rotate(idleRotationAngle, 0, 1, 0);
 
-        return true;
-    }
+    return false;
 }
 
 QMatrix4x4 PSTracker::GetReference() const {

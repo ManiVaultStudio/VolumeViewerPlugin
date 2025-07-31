@@ -78,6 +78,8 @@ public: // Inherited from ViewPlugin
 
 public: // Miscellaneous
 
+    void syncVariablesWithPlugin(const OpenGLRendererWidget* source);
+
     void setFlashlightState(const bool& state);
 
     bool getFlashlightState() { return flashlightScalars.isValid(); }
@@ -145,7 +147,7 @@ public: // Miscellaneous
         return _volumeViewerWidget->getOpenGLWidget()->getVolumeRenderer();
     }
 
-    void requestTracker();
+    //void requestTracker();
 
     void setEyeOffset(float value)
     {

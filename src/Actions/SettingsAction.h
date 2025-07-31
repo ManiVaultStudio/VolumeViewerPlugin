@@ -55,18 +55,18 @@ public: // Action getters
     RendererSettingsAction& getRendererSettingsAction() { return _renderSettingsAction; }
     PickRendererAction& getPickRendererAction() { return _pickRendererAction; }
     SelectModeAction& getSelectModeAction() { return _selectModeAction; }
-    ToggleAction& getFocusSelectionAction() { return _focusSelectionAction; }
-    ToggleAction& getFocusFloodfillAction() { return _focusFloodfillAction; }
-    ToggleAction& getFocusSelectionNormAction() { return _focusSelectionNormAction; }
-    ToggleAction& getFocusFloodfillNormAction() { return _focusFloodfillNormAction; }
+    //ToggleAction& getFocusSelectionAction() { return _focusSelectionAction; }
+    //ToggleAction& getFocusFloodfillAction() { return _focusFloodfillAction; }
+    //ToggleAction& getFocusSelectionNormAction() { return _focusSelectionNormAction; }
+    //ToggleAction& getFocusFloodfillNormAction() { return _focusFloodfillNormAction; }
     ToggleAction& getFlashlightAction() { return _flashlightAction; }
     TriggerAction& getConnectToTrackerAction() { return _connectToTrackerAction; }
     TriggerAction& getStartCalibAction() { return _startCalibAction; }
     TriggerAction& getToggleFullScreen() { return _toggleFullScreen; }
     TriggerAction& getClearSelectionAction() { return _clearSelectionAction; }
     DecimalAction& getPointOpacityAction() { return _pointOpacityAction; }
-    DecimalAction& getEyeOffsetAction() { return _eyeOffsetAction; }
-    DecimalAction& getCamDistAction() { return _camDistAction; }
+    //DecimalAction& getEyeOffsetAction() { return _eyeOffsetAction; }
+    //DecimalAction& getCamDistAction() { return _camDistAction; }
     ColorAction& getSelectionColorPicker() { return _selectionColorPicker; }
 
 protected:
@@ -76,17 +76,17 @@ protected:
     SelectModeAction        _selectModeAction;
     DatasetPickerAction     _positionDatasetPickerAction;
     DatasetPickerAction     _colorDatasetPickerAction;
-    ToggleAction            _focusSelectionAction;
-    ToggleAction            _focusFloodfillAction;
-    ToggleAction            _focusSelectionNormAction;
-    ToggleAction            _focusFloodfillNormAction;
+    //ToggleAction            _focusSelectionAction;
+    //ToggleAction            _focusFloodfillAction;
+    //ToggleAction            _focusSelectionNormAction;
+    //ToggleAction            _focusFloodfillNormAction;
     ToggleAction            _flashlightAction;
     TriggerAction           _connectToTrackerAction;
     TriggerAction           _startCalibAction;
     TriggerAction           _clearSelectionAction;
     TriggerAction           _toggleFullScreen;
     DecimalAction           _pointOpacityAction;
-    DecimalAction           _eyeOffsetAction;
-    DecimalAction           _camDistAction;
+    //DecimalAction           _eyeOffsetAction;
+    //DecimalAction           _camDistAction;
     ColorAction             _selectionColorPicker;
 };
