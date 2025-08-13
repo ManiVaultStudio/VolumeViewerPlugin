@@ -26,7 +26,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     //_eyeOffsetAction(this, "Eye offset", 0.8, 2, 1.04, 3),
     _pointOpacityAction(this, "Point opacity", 0, 1, 1.0f, 2),
     //_camDistAction(this, "Cam dist", 0, 3, 1.75, 2),
-    _selectionColorPicker(this, "Selection Color", QColor(255,0,0))
+    _selectionColorPicker(this, "Selection Color", QColor(255,0,0)),
+    _resetViewAction(this, "Reset camera")
 {
     GroupsAction::GroupActions groupActions;
 
@@ -76,6 +77,10 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_toggleFullScreen, &TriggerAction::triggered, this, [this]() {
         _plugin->getOpenGLRendererWidget()->toggleFullScreen();
+        });
+
+    connect(&_resetViewAction, &TriggerAction::triggered, this, [this]() {
+        _plugin->getOpenGLRendererWidget()->resetViewPos();
         });
 
     connect(&_clearSelectionAction, &TriggerAction::triggered, this, [this]() {

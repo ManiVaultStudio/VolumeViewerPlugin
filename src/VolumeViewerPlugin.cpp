@@ -98,6 +98,8 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
     _primaryToolbarAction.addAction(&_settingsAction->getToggleFullScreen());
+    _primaryToolbarAction.addAction(&_settingsAction->getResetViewAction());
+    _primaryToolbarAction.addAction(&_settingsAction->getFlashlightAction());
 
 
     _secondaryToolbarAction.addAction(&_settingsAction->getStartCalibAction());
@@ -113,7 +115,6 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _secondaryToolbarAction.addAction(&_settingsAction->getSelectModeAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getClearSelectionAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getPointOpacityAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getFlashlightAction());
 
     getVolumeRenderer().setSelectionColor(_settingsAction->getSelectionColorPicker().getColor());
 }
@@ -123,10 +124,20 @@ void VolumeViewerPlugin::init()
 
     connect(getOpenGLRendererWidget(), &OpenGLRendererWidget::ready, this, [this](const OpenGLRendererWidget* emitter) {
         if (emitter->getTracker()->getTrackerConnected()) {
-            _secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+            //_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+            _settingsAction->getConnectToTrackerAction().setVisible(false);
+            getOpenGLRendererWidget()->setLabelMessage("Connected to tracker");
         }
         connect(emitter->getTracker(), &PSTracker::connected, this, [this]() {
-            _secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+            //_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+            _settingsAction->getConnectToTrackerAction().setVisible(false);
+            getOpenGLRendererWidget()->setLabelMessage("Connected to tracker");
+            });
+
+        connect(emitter->getTracker(), &PSTracker::stopped, this, [this]() {
+            //_secondaryToolbarAction.removeAction(&_settingsAction->getConnectToTrackerAction());
+            _settingsAction->getConnectToTrackerAction().setVisible(true);
+            getOpenGLRendererWidget()->setLabelMessage("Lost tracker connection");
             });
     });
 
@@ -162,6 +173,8 @@ void VolumeViewerPlugin::init()
         getOpenGLRendererWidget()->initiateFlashlightWidget();
 
         getOpenGLRendererWidget()->setTracker(new PSTracker());
+        getOpenGLRendererWidget()->connectTracker();
+
 
 
     }
@@ -595,42 +608,23 @@ void VolumeViewerPlugin::init()
     });// Selection changed connection.
 
 
-    connect(getOpenGLRendererWidget(), &OpenGLRendererWidget::newSelection, this, [this](const SelectionMode& type, const bool& replace) {
-        clock_t start, end;
-        // Perform selection of closest point
-        const QVector3D cursor = getVolumeRenderer().getCursor();
-        if (_points.isValid()) {
-            std::vector<uint32_t> selection;
 
-            switch (type) {
-            case SelectionMode::Nearest: {
-                selection.push_back(_volumeViewerWidget->getClosestPoint(cursor));
-                break;
-            }
-            case SelectionMode::Sphere: {
-                selection = _volumeViewerWidget->getPointsInSphere(cursor, getVolumeRenderer().getSelectRadius());
-                
-                break;
-            }
-            }
-
-            // If shift is down, we add to the new selection the previous selected points
-            if (!replace) {
-                std::vector<uint32_t> previousSelection = _points->getSelectionIndices();
-                // Concatenate the old selection to the new
-                selection.insert(selection.end(), previousSelection.begin(), previousSelection.end());
-                // Remove duplicates with an efficient method : Convert to unordered_set manually
-                std::unordered_set<int> s;
-                for (int i : selection)
-                    s.insert(i);
-                selection.assign(s.begin(), s.end());
-                std::sort(selection.begin(), selection.end());
-            }
-
-            _points->setSelectionIndices(selection);
-            events().notifyDatasetDataSelectionChanged(_points->getSourceDataset<Points>());
+    connect(_volumeViewerWidget, &VolumeViewerWidget::selectionReady, this, [this](std::vector<GLuint> selection, const bool& replace) {
+        // If shift is down, we add to the new selection the previous selected points
+        if (!replace) {
+            std::vector<uint32_t> previousSelection = _points->getSelectionIndices();
+            // Concatenate the old selection to the new
+            selection.insert(selection.end(), previousSelection.begin(), previousSelection.end());
+            // Remove duplicates with an efficient method : Convert to unordered_set manually
+            std::unordered_set<int> s;
+            for (int i : selection)
+                s.insert(i);
+            selection.assign(s.begin(), s.end());
+            std::sort(selection.begin(), selection.end());
         }
 
+        _points->setSelectionIndices(selection);
+        events().notifyDatasetDataSelectionChanged(_points->getSourceDataset<Points>());
     });
 
 }

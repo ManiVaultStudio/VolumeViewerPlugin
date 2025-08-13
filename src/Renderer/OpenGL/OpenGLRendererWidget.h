@@ -71,6 +71,7 @@ public:
     void setColormap(const QImage& colormap);
     void setTracker(PSTracker* tracker = nullptr); /** Set tracker to pointer or to a new tracker object if not specified */
     void connectTracker();
+    void setLabelMessage(const std::string& msg) { msgLabel->setText(QString::fromStdString(msg)); };
     void setEyeOffset(float eyeOffset);
     void setCamDist(float camDist);
     void setSelectionMode(const int32_t& mode);
@@ -90,6 +91,7 @@ public:
     void setNumberPluginInstances(const int& value);
     //void setNumberInstances(const int& index) { numberInstances = index; }
     void toggleFullScreen();
+    void resetViewPos();
     bool getIsFullScreen() const { return isFullScreen; };
 
     std::vector<float> getPointDistances() const { return pointDistances; };
@@ -105,6 +107,7 @@ public:
 
     void startFlashlightWorker();
     void stopFlashlightWorker();
+
 
     FlashlightWidget* getFlashlightWidget() const { return flashlightConfigWidget; }
     void initiateFlashlightWidget(FlashlightWidget* flw = nullptr);
@@ -207,7 +210,9 @@ private:
 
 
     DepthWorker* depthWorker = nullptr;
+    std::vector<bool> camActive = {true, false};
     FlashlightWorker* flashlightWorker = nullptr;
     FlashlightWidget* flashlightConfigWidget = nullptr;
+
 };
 

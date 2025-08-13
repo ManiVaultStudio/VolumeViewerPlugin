@@ -12,6 +12,7 @@
 #include <iostream>
 #include <mutex>
 #include <QElapsedTimer>
+#include <QTimer>
 
 #include <vector>
 #include <string>
@@ -98,7 +99,9 @@ class PSTracker : public QObject
 public:
     PSTracker(QObject* parent = nullptr);
     ~PSTracker();
+
     void Connect();
+    void Start();
     
     bool GetTargetMatrix(const int& index, QMatrix4x4& pose);
     QMatrix4x4 GetReference() const;
@@ -111,12 +114,12 @@ public:
     }
 
     bool getTrackerConnected() const;
-    void initPST();
 
 
 
 signals:
     void connected();
+    void stopped();
 
 
 private:
@@ -125,13 +128,14 @@ private:
     MyListener listener;
     PSTech::pstsdk::Tracker* _pst = nullptr;
 
-    /* Reflects whether an instance of pst exists, ie if a tracker is plugged in */
-    bool _detected = false;
     /* Reflects whether the tracker is activated and actively sending information */
     bool _connected = false;
 
     /** Timing of the animation after there has been a tracking lost */
     QElapsedTimer lerpTimer;
+
+    QTimer* connectionTimer;
+
     /** Time to animate the target between the last live position to the new one, after there has been a tracking lost */
     const qint64 lerpDuraton = 300;
     std::vector<bool> poseAcurate;
@@ -139,5 +143,7 @@ private:
     QMatrix4x4 lerpTrajectory;
     QMatrix4x4 oldPos;
     float idleRotationAngle = 0.0f;
+
+    bool triedAutoReboot = false;
 
 };

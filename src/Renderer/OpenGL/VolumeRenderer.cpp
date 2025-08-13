@@ -239,11 +239,14 @@ void VolumeRenderer::updateCameras()
     stereoCameras[0] = headPosition - offsetDir * _eyeDistance/2;
 
     stereoCameras[1] = headPosition + offsetDir * _eyeDistance/2;
-}
 
-QVector3D VolumeRenderer::getStereoCamera(const int& eye) const
-{
-    return stereoCameras[eye];
+    _viewMatrices[0].setToIdentity();
+    _viewMatrices[1].setToIdentity();
+    _viewMatrices[2].setToIdentity();
+
+    _viewMatrices[0].lookAt(headPosition, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+    _viewMatrices[1].lookAt(stereoCameras[0], QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+    _viewMatrices[2].lookAt(stereoCameras[1], QVector3D(0, 0, 0), QVector3D(0, 1, 0));
 }
 
 void VolumeRenderer::setFov(const float& value) { 
@@ -302,7 +305,8 @@ void VolumeRenderer::init()
     identity.setToIdentity();
     initializeOpenGLFunctions();
     
-    glClearColor(40.f / 255.0f, 40.f / 255.0f, 40.f / 255.0f, 1.0f);
+    //glClearColor(0.f / 255.0f, 0.f / 255.0f, 0.f / 255.0f, 1.0f);
+    glClearColor(0.f, 0.f, 0.f, 1.0f);
 
     // Make float buffer to support low alpha blending
     _colorAttachment.create();
@@ -469,8 +473,6 @@ void VolumeRenderer::render(GLuint framebuffer, const bool& live, const QMatrix4
     if(!stereo){
         glBindVertexArray(vao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-        _viewMatrix.setToIdentity();
-        _viewMatrix.lookAt(headPosition, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
         _framebuffer.bind();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
         #ifdef CUBE
@@ -479,22 +481,15 @@ void VolumeRenderer::render(GLuint framebuffer, const bool& live, const QMatrix4
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             drawCursor();
-            drawVolume(_pointsShaderProgram, _viewMatrix, live);
+            drawVolume(_pointsShaderProgram, live);
         #endif
    
 
     }
     else {
 
-        QMatrix4x4 singleCamRef = QMatrix4x4();
-        singleCamRef.setToIdentity();
-        singleCamRef.lookAt(headPosition, QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-
-
         glBindVertexArray(vao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-        _viewMatrix.setToIdentity();
-        _viewMatrix.lookAt(stereoCameras[0], QVector3D(0, 0, 0), QVector3D(0, 1, 0));
         _leftRenderFBO.bind();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
 #ifdef CUBE
@@ -502,15 +497,13 @@ void VolumeRenderer::render(GLuint framebuffer, const bool& live, const QMatrix4
 #else
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        drawCursor();
-        drawVolume(_pointsShaderProgram, singleCamRef, live);
+        drawCursor(0);
+        drawVolume(_pointsShaderProgram, live, 0);
 #endif
 
 
         glBindVertexArray(vao);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
-        _viewMatrix.setToIdentity();
-        _viewMatrix.lookAt(stereoCameras[1], QVector3D(0, 0, 0), QVector3D(0, 1, 0));
         _rightRenderFBO.bind();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
 #ifdef CUBE
@@ -518,8 +511,8 @@ void VolumeRenderer::render(GLuint framebuffer, const bool& live, const QMatrix4
 #else
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        drawCursor();
-        drawVolume(_pointsShaderProgram, singleCamRef, live);
+        drawCursor(1);
+        drawVolume(_pointsShaderProgram, live, 1);
 #endif
 
 
@@ -579,11 +572,11 @@ void VolumeRenderer::render(GLuint framebuffer, const bool& live, const QMatrix4
 
 }
 
-void VolumeRenderer::drawCursor()
+void VolumeRenderer::drawCursor(int eye)
 {
 
     _pointsShaderProgram.uniformMatrix4f("projMatrix", _projMatrix.data());
-    _pointsShaderProgram.uniformMatrix4f("viewMatrix", _viewMatrix.data());
+    _pointsShaderProgram.uniformMatrix4f("viewMatrix", _viewMatrices[eye+1].data());
 
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
@@ -622,7 +615,7 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
     glEnable(GL_DEPTH_TEST);
 
     shader.uniformMatrix4f("projMatrix", _projMatrix.data());
-    shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
+    shader.uniformMatrix4f("viewMatrix", _viewMatrices[0].data());
     shader.uniformMatrix4f("modelMatrix", _modelMatrix.data()); // For the remote work, use identity matrix instead of the tracker's
 
     glBindVertexArray(_cube.vao);
@@ -633,7 +626,7 @@ void VolumeRenderer::drawCube(mv::ShaderProgram& shader)
     glDisable(GL_DEPTH_TEST);
 }
 
-void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& camRef, const bool& live)
+void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live, int eye)
 {
     if (_numPoints > 0) {
 
@@ -645,7 +638,7 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
         glDepthMask((pointOpacity < 0.2 || showingFlashlight || _hasAlphas) ? GL_FALSE : GL_TRUE);
 
         shader.uniformMatrix4f("projMatrix", _projMatrix.data());
-        shader.uniformMatrix4f("viewMatrix", _viewMatrix.data());
+        shader.uniformMatrix4f("viewMatrix", _viewMatrices[eye+1].data());
         shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
     
         glPointSize(3);
@@ -669,7 +662,7 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& cam
         shader.uniform1f("selectRadius", sphereSelectRadius);
         shader.uniform1f("baseOpacity", pow(pointOpacity,2));
 
-        shader.uniformMatrix4f("cameraRef", camRef.data());
+        shader.uniformMatrix4f("cameraRef", _viewMatrices[0].data());
 
         if (_hasColors)
         {

@@ -1,8 +1,9 @@
 #include "VolumeViewerWidget.h"
 
-#include "VolumeViewerPlugin.h"
 
+#include "VolumeViewerPlugin.h"
 #include "Renderer/OpenGL/OpenGLRendererWidget.h"
+
 
 #include <QEvent>
 #include <QMouseEvent>
@@ -28,14 +29,6 @@ VolumeViewerWidget::VolumeViewerWidget(QObject* parent, const QString& title) :
     
 }
 
-//void VolumeViewerWidget::toggleFullScreen() {
-//    if (_openGLWidget->isFullScreen()) {
-//        _openGLWidget->setParent(this);
-//    }
-//    else {
-//    }
-//    _openGLWidget->toggleFullScreen();
-//}
 
 void VolumeViewerWidget::setData(Dataset<Points> pointDataset)
 {
@@ -96,63 +89,44 @@ void VolumeViewerWidget::setData(Dataset<Points> pointDataset)
     }
     }
 
-}
+    // Start worker for point selection
+    pointSelectorWorker = new PointSelector(this, &pointSelectionCursor, &points, &currentSelectionRadius);
+    connect(pointSelectorWorker, &PointSelector::resultReady, this, [this](const std::vector<GLuint>& selection) {
+        emit selectionReady(selection, currentSelectionReplaces);
 
-uint32_t VolumeViewerWidget::getClosestPoint(const QVector3D& cursor) const {
+    });
+    pointSelectorWorker->start();
 
-    auto dataset = _plugin->getDataset();
-    int numDimensions = dataset->getNumDimensions();
+    connect(_openGLWidget, &OpenGLRendererWidget::newSelection, this, [this](const SelectionMode& type, const bool& replace) {
 
-    uint32_t indiceMin = 0;
-    float distanceMin = FLT_MAX;
+        // Perform selection of closest point
+        const QVector3D cursor = _openGLWidget->getVolumeRenderer().getCursor();
 
-
-    for (std::uint32_t localIndex = 0; localIndex < points.size() / numDimensions; localIndex++) {
-
-        const float distance = std::sqrt(
-            std::pow(cursor[0] - points[localIndex * numDimensions + 0], 2)
-            + std::pow(cursor[1] - points[localIndex * numDimensions + 1], 2)
-            + std::pow(cursor[2] - points[localIndex * numDimensions + 2], 2)
-        );
-
-
-        if (distance < distanceMin)
-        {
-            indiceMin = localIndex;
-            distanceMin = distance;
+        switch (type) {
+        case SelectionMode::Nearest: {
+            requestSelection(cursor, replace, -1);
+            break;
         }
-
-        
-    }
-
-
-    return indiceMin;
-}
-
-std::vector<uint32_t> VolumeViewerWidget::getPointsInSphere(const QVector3D& cursor, const float& radius) const {
-    std::vector<std::uint32_t> result;
-
-    auto dataset = _plugin->getDataset();
-    int numDimensions = dataset->getNumDimensions();
-
-    for (std::uint32_t localIndex = 0; localIndex < points.size() / numDimensions; localIndex++) {
-        const float distance = std::sqrt(
-            std::pow(cursor[0] - points[localIndex * numDimensions + 0], 2)
-            + std::pow(cursor[1] - points[localIndex * numDimensions + 1], 2)
-            + std::pow(cursor[2] - points[localIndex * numDimensions + 2], 2)
-        );
-
-        if (distance < radius)
-        {
-            result.push_back(localIndex);
+        case SelectionMode::Sphere: {
+            //selection = _volumeViewerWidget->getPointsInSphere(cursor, getVolumeRenderer().getSelectRadius());
+            requestSelection(cursor, replace, _openGLWidget->getVolumeRenderer().getSelectRadius());
+            break;
+        }
         }
 
 
-    }
 
-
-    return result;
+    });
 }
+
+
+void VolumeViewerWidget::requestSelection(const QVector3D& cursor, bool replaces, float radius)
+{
+    currentSelectionRadius = radius;
+    currentSelectionReplaces = replaces;
+    pointSelectionCursor = cursor;
+}
+
 
 
 std::vector<float> VolumeViewerWidget::getPointDistances(const QVector3D& cursor) const {

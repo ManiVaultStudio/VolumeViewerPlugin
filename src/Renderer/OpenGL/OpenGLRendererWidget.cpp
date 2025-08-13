@@ -124,18 +124,18 @@ void OpenGLRendererWidget::setData(std::vector<float>* data)
 
 void OpenGLRendererWidget::startDepthsortWorker() {
 
-    depthWorker = new DepthWorker(this, &renderingOrders, *points, &cameraInModelRef, &mtx);
+    depthWorker = new DepthWorker(this, &renderingOrders, points, &cameraInModelRef, &camActive, &mtx);
     connect(depthWorker, &DepthWorker::resultReady, this, [this](const int& i) {
         std::lock_guard<std::mutex> lock(mtx);
 
         _volumeRenderer.setRenderOrder(i, renderingOrders[i]);
-        // Test : colouring points by drawing order
-        /*std::vector<float> colors = std::vector<float>(points.size() / 3);
-        for (GLuint i : indicesEye1) {
-            colors[indicesEye1[i]] = i / float(indicesEye1.size());
-        } 
-        _volumeRenderer.setColors(colors);*/
-        // Test : colouring points by drawing order - END
+        //// Test : colouring points by drawing order
+        //std::vector<float> colors = std::vector<float>(points->size() / 3);
+        //for (GLuint i : renderingOrders[0]) {
+        //    colors[renderingOrders[0][i]] = i / float(renderingOrders[0].size());
+        //} 
+        //_volumeRenderer.setColors(colors);
+        //// Test : colouring points by drawing order - END
 
 
         });
@@ -155,7 +155,7 @@ void OpenGLRendererWidget::startDepthsortWorker() {
 void OpenGLRendererWidget::startFlashlightWorker() {
     stopFlashlightWorker();
 
-    flashlightWorker = new FlashlightWorker(this, &pointDistances, &cursor, *points, &mtx);
+    flashlightWorker = new FlashlightWorker(this, &pointDistances, &cursor, points, &mtx);
     connect(flashlightWorker, &FlashlightWorker::resultReady, this, [this]() {
         emit flashlightReady();
 
@@ -171,6 +171,7 @@ void OpenGLRendererWidget::stopFlashlightWorker() {
     delete flashlightWorker;
     flashlightWorker = nullptr;
 }
+
 
 void OpenGLRendererWidget::initiateFlashlightWidget(FlashlightWidget* flw) {
     delete flashlightConfigWidget;
@@ -222,17 +223,16 @@ void OpenGLRendererWidget::setTracker(PSTracker* tracker)
     _tracker = tracker;
     refWidget->setTracker(_tracker);
     testReadyness();
-    connectTracker();
 }
 
 void OpenGLRendererWidget::connectTracker()
 {
     try {
-        _tracker->initPST();
         _tracker->Connect();
-        msgLabel->setText("Connected to tracker");
+        _tracker->Start();
     }
     catch (const char* err) {
+        qDebug() << "Failed connection";
         msgLabel->setText(err);
     }
 }
@@ -322,16 +322,24 @@ void OpenGLRendererWidget::toggleFullScreen() {
         msgLabel->setText("ESC - Escape full screen");
     }
 
+    
+    resetViewPos();
+
+    _volumeRenderer.setStereo(screen()->model() == "D2343");
+    camActive[1] = isFullScreen;
+    
+}
+
+void OpenGLRendererWidget::resetViewPos()
+{
     viewPosSpheric.azimuthal = 0;
     viewPosSpheric.polar = 90;
     viewPosSpheric.distance = 1;
 
     _volumeRenderer.setHeadPosition(getCamPos());
-
-
-    _volumeRenderer.setStereo(screen()->model() == "D2343");
-    
 }
+
+
 
 void OpenGLRendererWidget::setPedalManager(PedalManager* pds)
 {
@@ -440,38 +448,44 @@ void OpenGLRendererWidget::paintGL()
     pose = _controls->getControlMatrix();
 
 #else
-    if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1){ 
-        if (!_tracker->GetTargetMatrix(pluginInstanceIndex, pose)) {
-            getIdlePose(pose);
+    if ( pluginInstanceIndex > -1){ 
+        bool pulledImage = false;
+        if (_tracker != nullptr && _tracker->getTrackerConnected()) {
+            pulledImage = _tracker->GetTargetMatrix(pluginInstanceIndex, pose);
+
+            // Exagerrate translations to move more freely
+            pose.data()[12] *= 10;
+            pose.data()[13] *= 10;
+            pose.data()[14] *= 10;
         }
 
+        if(!pulledImage) {
+            getIdlePose(pose);
+        }
     }
 #endif
 
     std::unique_lock<std::mutex> lock(mtx);
     pose = offset * pose;
     QMatrix4x4 invertedPose = pose.inverted();
-    cameraInModelRef[0].setToIdentity();
+
+    std::vector<QMatrix4x4> views = _volumeRenderer.getViewMatrices();
+
     if (!_volumeRenderer.isStereo()) {
-        cameraInModelRef[0].lookAt(_volumeRenderer.getHeadPosition(), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
+        cameraInModelRef[0] = invertedPose * views[0].inverted();
     }
     else {
-        cameraInModelRef[1].setToIdentity();
 
+        cameraInModelRef[0] = invertedPose * views[1].inverted();
+        cameraInModelRef[1] = invertedPose * views[2].inverted();
 
-        cameraInModelRef[0].lookAt(_volumeRenderer.getStereoCamera(0), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-        cameraInModelRef[1].lookAt(_volumeRenderer.getStereoCamera(1), QVector3D(0, 0, 0), QVector3D(0, 1, 0));
-
-
-        cameraInModelRef[1] = invertedPose * cameraInModelRef[1];
     }
-    cameraInModelRef[0] = invertedPose * cameraInModelRef[0];
 
     lock.unlock();
 #ifdef CONTROLS
     _volumeRenderer.render(defaultFramebufferObject(), true, pose);
 #else
-    if (_tracker != nullptr && _tracker->getTrackerConnected() && pluginInstanceIndex > -1) {
+    if (_tracker != nullptr && pluginInstanceIndex > -1) {
         _volumeRenderer.render(defaultFramebufferObject(), _tracker->poseIsLive(pluginInstanceIndex), pose);
 
     }
@@ -606,9 +620,7 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
             
             float scaling = pow(2, -distance / 5.f);
 
-            viewPosSpheric.distance *= scaling;
-
-            _volumeRenderer.setHeadPosition(getCamPos());
+            setCamDist(viewPosSpheric.distance* scaling);
 
             return true;
         }

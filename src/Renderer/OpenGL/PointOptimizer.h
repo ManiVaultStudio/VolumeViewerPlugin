@@ -19,6 +19,7 @@ class Octree {
     std::vector<GLuint> contained;
     QVector3D center = QVector3D(0, 0, 0); // Placed at the barycenter from all points contained in the tree
     std::vector<Octree*> children;
+
     //bool pointsOnSameCell(const QVector3D& p1, const QVector3D& p2) const;
 
     QVector3D getCenter() const { return center; }
@@ -74,7 +75,14 @@ public:
         std::vector<float>& distances, 
         const int& maxDepth = INT_MAX
     );
+
     template <typename A> void writeVectorRecursive(const A& value, std::vector<A>& distances);
+
+    /*GLuint getClosestPoint(const QVector3D& cursor);
+
+    Octree* getClosestLeaf(const QVector3D& cursor, float& minDistance);*/
+
+    std::vector<GLuint> getPointsInSphere(const QVector3D& cursor, const float& radius, const float cellWidth = 1.0f);
 
 };
 
@@ -88,14 +96,14 @@ class OptimiserWorker : public QThread
 public:
     explicit OptimiserWorker(
         QObject* parent,
-        std::vector<float> pts,
+        std::vector<float>* pts,
         std::mutex* mtex
     );
     ~OptimiserWorker();
 protected:
     Octree* pointTree = nullptr;
-    const int numSlices = 100;
-    std::vector<float> points;
+    const uint8_t numSlices = 100;
+    std::vector<float>* points;
 
     std::mutex* mtx = nullptr;
     
@@ -120,8 +128,9 @@ public:
     DepthWorker(
         QObject* parent,
         std::vector<std::vector<GLuint>>* inds,
-        std::vector<float> pts,
+        std::vector<float>* pts,
         std::vector<QMatrix4x4>* camMatrices,
+        std::vector<bool>* camsAc,
         std::mutex* mtex
     );
 protected:
@@ -134,7 +143,7 @@ protected:
     QVector3D getCamPos(const int& eye);
     QVector3D getCamDir(const int& eye);
 
-    void sliceSort(const bool& force);
+    void sliceSort(const int& cam, const bool& force);
 
     uint8_t getSliceNumber(const GLuint& pointId, const int& axis);
 
@@ -149,6 +158,7 @@ protected:
 
     std::vector<std::vector<GLuint>>* indices;
     std::vector<QMatrix4x4>* cams = nullptr;
+    std::vector<bool>* camsActive = nullptr;
 
 signals:
     void resultReady(const int& i);
@@ -163,7 +173,7 @@ public:
         QObject* parent,
         std::vector<float>* distancesPtr,
         QVector3D* cursorPtr,
-        std::vector<float> pts,
+        std::vector<float>* pts,
         std::mutex* mtex
     );
 protected:
@@ -179,5 +189,31 @@ protected:
 
 signals:
     void resultReady();
+};
+
+
+
+class PointSelector : public OptimiserWorker {
+    Q_OBJECT
+public:
+    PointSelector(
+        QObject* parent,
+        QVector3D* cursorPtr,
+        std::vector<float>* pts,
+        float* radi
+    );
+protected:
+    void run() override;
+
+protected:
+    QVector3D* cursor;
+    float* radius;
+
+    GLuint getClosestPointForce(const QVector3D curs);
+    std::vector<GLuint> getPointsSphereForce(const QVector3D curs, const float& radius);
+    std::vector<GLuint> getPointsSphereOctree(const QVector3D curs, const float& radius);
+
+signals:
+    void resultReady(const std::vector<GLuint>& points);
 };
 

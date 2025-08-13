@@ -63,6 +63,7 @@ public: // Action getters
     TriggerAction& getConnectToTrackerAction() { return _connectToTrackerAction; }
     TriggerAction& getStartCalibAction() { return _startCalibAction; }
     TriggerAction& getToggleFullScreen() { return _toggleFullScreen; }
+    TriggerAction& getResetViewAction() { return _resetViewAction; }
     TriggerAction& getClearSelectionAction() { return _clearSelectionAction; }
     DecimalAction& getPointOpacityAction() { return _pointOpacityAction; }
     //DecimalAction& getEyeOffsetAction() { return _eyeOffsetAction; }
@@ -85,6 +86,7 @@ protected:
     TriggerAction           _startCalibAction;
     TriggerAction           _clearSelectionAction;
     TriggerAction           _toggleFullScreen;
+    TriggerAction           _resetViewAction;
     DecimalAction           _pointOpacityAction;
     //DecimalAction           _eyeOffsetAction;
     //DecimalAction           _camDistAction;

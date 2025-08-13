@@ -49,13 +49,12 @@ public:
     void setEyeOffset(float eyeOffset);
     void setHeadPosition(const QVector3D& headPos);
     void updateCameras();
-    QVector3D getHeadPosition() const { return headPosition; }
+    std::vector<QMatrix4x4>& getViewMatrices() { return _viewMatrices; }
     void setInterlacing(const int& interl) { _interlacing = interl; }
     void setFov(const float& value);
     void setSelectionColor(const QColor& color) { _selectionColor = color; }
     void setStereo(const bool& val);
     bool isStereo() const { return stereo; }
-    QVector3D getStereoCamera(const int& eye) const;
     void updateProjectionMatrix();
     //void setCursorPosition(const QVector3D& pos) { _cursorPoint = mv::Vector3f(pos[0], pos[1], pos[2]); }
     QVector3D getCursor() const;
@@ -71,9 +70,9 @@ public:
     void resize(int w, int h);
 
     void render(GLuint framebuffer, const bool& live, const QMatrix4x4& modelMatrix);
-    void drawVolume(mv::ShaderProgram& shader, const QMatrix4x4& camRef, const bool& live);
+    void drawVolume(mv::ShaderProgram& shader, const bool& live, int eye = -1);
     void drawCube(mv::ShaderProgram& shader);
-    void drawCursor();
+    void drawCursor(int eye = -1);
 
     void setRenderOrder(const int& eye, std::vector<GLuint>& indices);
     //void filterPoints(const float& proba);
@@ -141,7 +140,10 @@ private:
     QMatrix4x4 _projMatrix;
     QMatrix4x4 _leftProjMatrix;
     QMatrix4x4 _rightProjMatrix;
-    QMatrix4x4 _viewMatrix;
+    /// <summary>
+    /// First matrix for the center of the head, then second and thirst for left and right eye
+    /// </summary>
+    std::vector<QMatrix4x4> _viewMatrices = std::vector<QMatrix4x4>(3);
     QMatrix4x4 _modelMatrix;
 
     bool cursorFrozen = false;

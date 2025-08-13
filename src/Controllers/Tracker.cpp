@@ -48,13 +48,14 @@ void MyListener::OnTrackerData(const PSTech::pstsdk::TrackerData& td)
             // Unlocked automaically when the mutex goes out of scope
             const std::lock_guard<std::mutex> lock(mtx);
 
-             pstToQtMatrix(mat, targetMatrices[index]);
+            pstToQtMatrix(mat, targetMatrices[index]);
         
         }
 
     }
 
 }
+
 QMatrix4x4 MyListener::getTragetMatrix(const int& index) const {
     const std::lock_guard<std::mutex> lock(mtx);
     // If the viewer instance is greater than the number of targets, just use the last target
@@ -96,6 +97,14 @@ static void Exithandler(int sig)
 
 
 PSTracker::PSTracker(QObject *parent) : QObject(parent) {
+    connectionTimer = new QTimer(this);
+    connect(connectionTimer, &QTimer::timeout, this, [this]() {
+        qDebug() << "Checking connection";
+        if (!checkTrackerStatus()) {
+            emit stopped();
+        }
+        connectionTimer->stop();
+    });
     // Register the exit handler with the application
     #ifdef WIN32
         SetConsoleCtrlHandler((PHANDLER_ROUTINE)ConsoleHandler, TRUE);
@@ -107,18 +116,24 @@ PSTracker::PSTracker(QObject *parent) : QObject(parent) {
     #endif
 }
 
-void PSTracker::initPST() {
+/// <summary>
+/// Establsh connection with the PS Tech
+/// </summary>
+void PSTracker::Connect() {
     PSTech::pstsdk::EnableLogging();
-    if (_pst == nullptr) {
-        try {
-            _pst = new PSTech::pstsdk::Tracker();
-            _detected = true;
+    try {
+        Exithandler(0);
+        if (_pst != nullptr) {
+            qDebug() << "Deleting old PST instance";
+            delete _pst;
         }
-        catch (PSTech::TrackerException& e) {
-            std::cout << "Could not connect to tracker." << std::endl;
-            std::cout << e.full_description() << std::endl; // DEV 
-            throw "The PS-tech tracker is not detected";
-        }
+        qDebug() << "Creating PST instance";
+        _pst = new PSTech::pstsdk::Tracker();
+    }
+    catch (PSTech::TrackerException& e) {
+        std::cout << "Could not connect to tracker." << std::endl;
+        std::cout << e.full_description() << std::endl; // DEV 
+        throw "The PS-tech tracker is not detected";
     }
 }
 
@@ -128,8 +143,10 @@ PSTracker::~PSTracker() {
 }
 
 
+
+
 bool PSTracker::checkTrackerStatus() {
-    if (!_detected) {
+    if (_pst == nullptr) {
         throw "The PS-tech tracker is not detected";
     }
 
@@ -154,6 +171,11 @@ bool PSTracker::checkTrackerStatus() {
     }
     case PSTech::pstsdk::StatusMessage::ERR_TIMEOUT: {
         qDebug() << "PS Tech : Grabber timeout error";
+        if (!triedAutoReboot) {
+            triedAutoReboot = true;
+            qDebug() << "tryingAutoReboot";
+            Start();
+        }
         break;
     }
     case PSTech::pstsdk::StatusMessage::ERR_NOCAMS_FOUND: {
@@ -188,14 +210,16 @@ bool PSTracker::getTrackerConnected() const {
     return _connected;
 };
 
-
-void PSTracker::Connect()
+/// <summary>
+/// Start the PS Tech server and listen at target movements
+/// </summary>
+void PSTracker::Start()
 {
-    if (!_detected) throw "The PS-tech tracker is not detected";
+    if (_pst == nullptr) throw "The PS-tech tracker is not detected";
 
-        if (_connected){
-            return;
-        }
+    if (_connected){
+        return;
+    }
 
     // Implement error handling of PSTech::TrackerException exceptions to prevent 
     // improper PST Tracker shutdown on errors.
@@ -224,6 +248,9 @@ void PSTracker::Connect()
         _pst->Start();
 
 
+        triedAutoReboot = false;
+
+        _pst->DisableImageTransfer();
 
 
 
@@ -265,6 +292,11 @@ void PSTracker::Connect()
         if (checkTrackerStatus()) {
             _connected = true;
             emit connected();
+
+            qDebug() << "Tracker started";
+        }
+        else {
+            qDebug() << "Failed starting tracker";
         }
 
     }
@@ -279,7 +311,6 @@ void PSTracker::Connect()
         //return;
     }
     
-    qDebug() << "Connected to tracker!";
 }
 
 /// <summary>
@@ -295,13 +326,9 @@ bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
     {
         pose = listener.getTragetMatrix(index);
 
-        // Exagerrate translations to move more freely
-        pose.data()[12] *= 10;
-        pose.data()[13] *= 10;
-        pose.data()[14] *= 10;
-
 
         if (listener.getIsIdle(index)) {
+            if(!connectionTimer->isActive()) connectionTimer->start(5*1000);
             return false;
         }
      
@@ -338,6 +365,7 @@ bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
 
     }
 
+    if (!connectionTimer->isActive()) connectionTimer->start(5 * 1000);
     return false;
 }
 

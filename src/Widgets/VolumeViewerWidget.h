@@ -11,6 +11,8 @@
 
 #include <vector>
 
+#include "Renderer/OpenGL/PointOptimizer.h"
+
 class VolumeViewerPlugin;
 class OpenGLRendererWidget;
 
@@ -32,8 +34,8 @@ public:
 
     void setData(Dataset<Points> points);
 
-    uint32_t getClosestPoint(const QVector3D& cursor) const;
-    std::vector<uint32_t> getPointsInSphere(const QVector3D& cursor, const float& radius) const;
+    //uint32_t getClosestPoint(const QVector3D& cursor) const;
+    void requestSelection(const QVector3D& cursor, bool replaces, float radius);
     std::vector<float> getPointDistances(const QVector3D& cursor) const;
 
 
@@ -43,6 +45,8 @@ public:
         return _openGLWidget;
     }
 
+signals:
+    void selectionReady(std::vector<GLuint>, const bool& replaces);
 
 private:
 
@@ -56,4 +60,10 @@ private:
     float _maxRange;
 
     QLayout* layout;
+
+
+    PointSelector* pointSelectorWorker = nullptr;
+    QVector3D pointSelectionCursor;
+    bool currentSelectionReplaces = false;
+    float currentSelectionRadius = -1.f;
 };
