@@ -329,6 +329,7 @@ bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
 
         if (listener.getIsIdle(index)) {
             if(!connectionTimer->isActive()) connectionTimer->start(5*1000);
+
             return false;
         }
      
@@ -366,6 +367,7 @@ bool PSTracker::GetTargetMatrix(const int& index, QMatrix4x4& pose)
     }
 
     if (!connectionTimer->isActive()) connectionTimer->start(5 * 1000);
+
     return false;
 }
 

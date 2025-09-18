@@ -460,7 +460,8 @@ void OpenGLRendererWidget::paintGL()
         }
 
         if(!pulledImage) {
-            getIdlePose(pose);
+            getIdlePose(pose); // automatic rotate
+            //pose.setToIdentity(); // without rotate, might not needed
         }
     }
 #endif
@@ -486,7 +487,8 @@ void OpenGLRendererWidget::paintGL()
     _volumeRenderer.render(defaultFramebufferObject(), true, pose);
 #else
     if (_tracker != nullptr && pluginInstanceIndex > -1) {
-        _volumeRenderer.render(defaultFramebufferObject(), _tracker->poseIsLive(pluginInstanceIndex), pose);
+        bool live = _tracker->getTrackerConnected() ? _tracker->poseIsLive(pluginInstanceIndex) : true;
+        _volumeRenderer.render(defaultFramebufferObject(), live, pose);
 
     }
     

@@ -641,7 +641,7 @@ void VolumeRenderer::drawVolume(mv::ShaderProgram& shader, const bool& live, int
         shader.uniformMatrix4f("viewMatrix", _viewMatrices[eye+1].data());
         shader.uniformMatrix4f("modelMatrix", _modelMatrix.data());
     
-        glPointSize(3);
+        glPointSize(1);// might not work
         glBindVertexArray(vao);
 
         shader.uniform1i("selecting", cursorFrozen);

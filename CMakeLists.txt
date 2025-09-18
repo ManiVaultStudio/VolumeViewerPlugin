@@ -19,8 +19,9 @@ endif(MSVC)
 # -----------------------------------------------------------------------------
 # Check if the directory to the ManiVault installation has been provided
 if(NOT DEFINED PS_TECH_INSTALL_DIR)
-    set(PS_TECH_INSTALL_DIR "" CACHE PATH "Directory where PSTech is installed")
-    message(FATAL_ERROR "Please set PS_TECH_INSTALL_DIR to the directory where the PS tech SDK is installed")
+    #set(PS_TECH_INSTALL_DIR "" CACHE PATH "Directory where PSTech is installed")
+	set(PS_TECH_INSTALL_DIR "D:/Programs/pst-sdk-6.0.0-Windows-x64-portable-Release/" CACHE PATH "Directory where PSTech is installed")
+    #message(FATAL_ERROR "Please set PS_TECH_INSTALL_DIR to the directory where the PS tech SDK is installed")
 endif()
 file(TO_CMAKE_PATH ${PS_TECH_INSTALL_DIR} PS_TECH_INSTALL_DIR)
 
@@ -33,8 +34,9 @@ endif()
 
 
 if(NOT DEFINED SDL_BUILD_DIR)
-    set(SDL_BUILD_DIR "" CACHE PATH "Directory where SDL is installed")
-    message(FATAL_ERROR "Please set SDL_BUILD_DIR to the directory where the SDL library is installed")
+    #set(SDL_BUILD_DIR "" CACHE PATH "Directory where SDL is installed")
+	set(SDL_BUILD_DIR "D:/Programs/SDL3/" CACHE PATH "Directory where SDL is installed")
+    #message(FATAL_ERROR "Please set SDL_BUILD_DIR to the directory where the SDL library is installed")
 endif()
 file(TO_CMAKE_PATH ${SDL_BUILD_DIR} SDL_BUILD_DIR)
 if(NOT EXISTS ${SDL_BUILD_DIR})
@@ -48,8 +50,8 @@ endif()
 # -----------------------------------------------------------------------------
 find_package(Qt6 COMPONENTS Widgets WebEngineWidgets Xml OpenGL OpenGLWidgets REQUIRED)
 
-find_package(ManiVault COMPONENTS Core PointData CONFIG REQUIRED)
-find_package(ManiVault COMPONENTS Core PointData ClusterData CONFIG)
+find_package(ManiVault COMPONENTS Core PointData ClusterData CONFIG QUIET)
+#find_package(ManiVault COMPONENTS Core PointData ClusterData CONFIG)
 
 
 # -----------------------------------------------------------------------------
