@@ -102,10 +102,11 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
 
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
+    // TODO: temporarily hide the buttons
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction());
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
    
 }
 
