@@ -143,6 +143,34 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
         break;
     }
+    case QEvent::Wheel:
+    {
+        auto wheelEvent = static_cast<QWheelEvent*>(event);
+
+        float delta = wheelEvent->angleDelta().y();
+
+        if (delta > 0) {
+            _camDist *= 0.9f; // zoom in
+        }
+        else if (delta < 0) {
+            _camDist *= 1.1f; // zoom out
+        }
+
+        _camDist = std::clamp<float>(_camDist, 0.1f, 1000.f);
+
+        _camPos.x = _camDist * sin(_camAngle.x) * cos(_camAngle.y);
+        _camPos.y = _camDist * cos(_camAngle.x);
+        _camPos.z = _camDist * sin(_camAngle.x) * sin(_camAngle.y);
+
+        update();
+
+        break;
+    }
+    case QEvent::MouseButtonRelease:
+    {
+        _mousePressed = false;
+        break;
+    }
     }
     return QObject::eventFilter(target, event);
 }
