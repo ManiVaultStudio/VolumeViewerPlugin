@@ -102,10 +102,12 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
 
+
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getIdleRotationAction());
    
 }
 
@@ -360,7 +362,6 @@ void VolumeViewerPlugin::init()
         }
 
         _volumeViewerWidget->getOpenGLWidget()->setColors(localUV);
-        _volumeViewerWidget->getOpenGLWidget()->update();
     });
     
     // Respond when the name of the dataset in the dataset reference changes
@@ -484,6 +485,10 @@ void VolumeViewerPlugin::init()
         }
     });// Selection changed connection.
 
+}
+
+void VolumeViewerPlugin::setIdleRotation(bool idleRotation){
+    _volumeViewerWidget->getOpenGLWidget()->setRotating(idleRotation);
 }
 
 void VolumeViewerPlugin::setFocusSelection(bool focusSelection) {

@@ -126,11 +126,15 @@ public: // Miscellaneous
         return _pointsColorPoints;
     }
 
-public: // Focus selection
+public: 
+    // Focus selection
     void setFocusSelection(bool focusSelection);
     void setFocusFloodfill(bool focusFloodfill);
     void setFocusSelectionNorm(bool focusSelectionNorm);
     void setFocusFloodfillNorm(bool focusFloodfillNorm);
+
+    // Idle rotation
+    void setIdleRotation(bool idleRotation);
 
 public: // Serialization
     /**
@@ -169,7 +173,7 @@ private:
     Dataset<Points>                     _floodFillDataset;          /** For focusing on floodfill */
 
     QStringList                         _pointsDatasets;            /** Point datasets loaded in mv */
-    mv::gui::DropWidget*              _dropWidget;                /** Widget for dropping data */
+    mv::gui::DropWidget*                _dropWidget;                /** Widget for dropping data */
     QString                             _currentDatasetName;        /** Name of the current dataset */
     std::vector<int>                    _planeArray;                /** Array indicating the index+1 of the x,y and z clipping planes in the plane collection*/
     std::vector<double>                 _shadingParameters;         /** Shading parameter save vector index 0 = ambient, index 1 = diffuse and index 2 = specular*/

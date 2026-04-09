@@ -27,6 +27,7 @@ void OpenGLRendererWidget::setColors(std::vector<float>& colors)
 {
     makeCurrent();
     _volumeRenderer.setColors(colors);
+    update();
 }
 
 void OpenGLRendererWidget::setColormap(const QImage& colormap)
@@ -38,6 +39,16 @@ void OpenGLRendererWidget::setCursorPoint(mv::Vector3f cursorPoint)
 {
     _volumeRenderer.setCursorPoint(cursorPoint);
     update();
+}
+
+void OpenGLRendererWidget::setRotating(bool rotating)
+{
+    if (_rotating != rotating) {
+        _rotating = rotating;
+        if (_rotating) {
+            update(); 
+        }
+    }
 }
 
 void OpenGLRendererWidget::initializeGL()
@@ -133,7 +144,6 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
         _previousMousePos = mousePos;
 
         _mousePressed = true;
-        _rotating = false; // FIXME: improve interaction with roation
         break;
     }
     case QEvent::MouseMove:
