@@ -27,14 +27,14 @@ void VolumeViewerWidget::setData(Dataset<Points> points)
     {
     case VolumeViewerPlugin::RendererBackend::OpenGL:
     {
-        int numDimensions = points->getNumDimensions();
+        std::uint64_t numDimensions = points->getNumDimensions();
         if (numDimensions != 3) qDebug() << "WARNING: DIMENSIONS ARE NOT 3";
         std::vector<float> values(points->getNumPoints() * points->getNumDimensions());
 
         QVector3D minCoord(std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
         QVector3D maxCoord(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
         _meanCoord = QVector3D(0, 0, 0);
-        for (int i = 0; i < points->getNumPoints(); i++)
+        for (std::uint64_t i = 0; i < points->getNumPoints(); i++)
         {
             float x = points->getValueAt(i * numDimensions + 0);
             float y = points->getValueAt(i * numDimensions + 1);
@@ -51,7 +51,7 @@ void VolumeViewerWidget::setData(Dataset<Points> points)
         _meanCoord /= points->getNumPoints();
         QVector3D range = maxCoord - minCoord;
         _maxRange = std::max(range.x(), std::max(range.y(), range.z()));
-        for (int i = 0; i < points->getNumPoints(); i++)
+        for (std::uint64_t i = 0; i < points->getNumPoints(); i++)
         {
             float x = points->getValueAt(i * numDimensions + 0);
             float y = points->getValueAt(i * numDimensions + 1);
