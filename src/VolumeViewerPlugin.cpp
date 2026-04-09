@@ -102,11 +102,12 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
 
-
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
-    _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
+    // FIXME: keep or remove focus actions? 
+    // TODO: if keep, need to comply with _pointsColorCluster/_pointsColorPoints, also add check to avoid crash
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction()); 
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getIdleRotationAction());
    
 }
