@@ -85,8 +85,26 @@ void OpenGLRendererWidget::paintGL()
 
     float aspect = (float)w / h;
 
+    // Idle Rotation
+    if (_rotating) {
+        // Increment yaw angle
+        _camAngle.y += 0.005f; // faster or slower
+
+        // Keep angle bounded to prevent float precision issues over time
+        if (_camAngle.y > 6.283185f) _camAngle.y -= 6.283185f;
+
+        // Recalculate camera position
+        _camPos.x = _camDist * sin(_camAngle.x) * cos(_camAngle.y);
+        _camPos.y = _camDist * cos(_camAngle.x);
+        _camPos.z = _camDist * sin(_camAngle.x) * sin(_camAngle.y);
+
+        // Repaint continuously
+        update();
+    }
+
     _volumeRenderer.render(defaultFramebufferObject(), _camPos, _camAngle, aspect);
 }
+
 
 void OpenGLRendererWidget::cleanup()
 {
@@ -115,6 +133,7 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
         _previousMousePos = mousePos;
 
         _mousePressed = true;
+        _rotating = false; // FIXME: improve interaction with roation
         break;
     }
     case QEvent::MouseMove:

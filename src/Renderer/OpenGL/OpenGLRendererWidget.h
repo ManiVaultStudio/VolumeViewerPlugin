@@ -29,6 +29,7 @@ public:
     void setColormap(const QImage& colormap);
     void setCursorPoint(mv::Vector3f cursorPoint);
 
+
 public:
     bool eventFilter(QObject* target, QEvent* event);
 
@@ -49,4 +50,7 @@ private:
     bool _mousePressed = false;
 
     bool _isInitialized = false;
+
+    // for rotation
+    bool _rotating = true;
 };
