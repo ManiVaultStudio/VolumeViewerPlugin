@@ -105,7 +105,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     // FIXME: keep or remove focus actions? 
     // TODO: if keep, need to comply with _pointsColorCluster/_pointsColorPoints, also add check to avoid crash
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction()); 
-    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());//TODO: is this needed? 
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
     //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getIdleRotationAction());
@@ -162,37 +162,41 @@ void VolumeViewerPlugin::init()
             _volumeViewerWidget->getOpenGLWidget()->setColormap(image);
         }
 
-        // Map indices
-        std::vector<std::uint32_t> globalIndices;
-        _points->getGlobalIndices(globalIndices);
-        int totalNumPoints = _points->getNumPoints();
+        //TODO: cleanup and improve, this part is now in applyMaskToColors(), should be organized better
+        
+        //// Map indices
+        //std::vector<std::uint32_t> globalIndices;
+        //_points->getGlobalIndices(globalIndices);
+        //int totalNumPoints = _points->getNumPoints();
 
-        std::vector<float> globalUV(totalNumPoints, -1.0f);
-        std::vector<float> localUV(totalNumPoints, -1.0f);
+        //std::vector<float> globalUV(totalNumPoints, -1.0f);
+        //std::vector<float> localUV(totalNumPoints, -1.0f);
 
-        if (numClusters > 0) {
-            const float denominator = (numClusters > 1) ? float(numClusters - 1) : 1.0f;
-            for (int i = 0; i < numClusters; i++) {
-                const float uvValue = float(i) / denominator;
-                for (const auto& index : clusterVec[i].getIndices()) {
-                    if (index < globalUV.size()) {
-                        globalUV[index] = uvValue;
-                    }
-                    else 
-                      qDebug() << "Warning: Cluster index " << index << " is out of bounds for globalUV size " << globalUV.size();
-                }
-            }
-        }
+        //if (numClusters > 0) {
+        //    const float denominator = (numClusters > 1) ? float(numClusters - 1) : 1.0f;
+        //    for (int i = 0; i < numClusters; i++) {
+        //        const float uvValue = float(i) / denominator;
+        //        for (const auto& index : clusterVec[i].getIndices()) {
+        //            if (index < globalUV.size()) {
+        //                globalUV[index] = uvValue;
+        //            }
+        //            else 
+        //              qDebug() << "Warning: Cluster index " << index << " is out of bounds for globalUV size " << globalUV.size();
+        //        }
+        //    }
+        //}
 
-        // Populate local colors
-        int localColorIndex = 0;
-        for (const auto& globalIndex : globalIndices) {
-            if (globalIndex < globalUV.size() && localColorIndex < localUV.size()) {
-                localUV[localColorIndex++] = globalUV[globalIndex];
-            }
-        }
+        //// Populate local colors
+        //int localColorIndex = 0;
+        //for (const auto& globalIndex : globalIndices) {
+        //    if (globalIndex < globalUV.size() && localColorIndex < localUV.size()) {
+        //        localUV[localColorIndex++] = globalUV[globalIndex];
+        //    }
+        //}
 
-        _volumeViewerWidget->getOpenGLWidget()->setColors(localUV);
+        //_volumeViewerWidget->getOpenGLWidget()->setColors(localUV);
+
+        updateFocusMode();
         };
 
     auto updatePointColors = [this]() {
@@ -201,6 +205,7 @@ void VolumeViewerPlugin::init()
 
         auto colorMapImage = getRendererSettingsAction().getColoringAction().getColorMapAction().getColorMapImage();
         _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
+
         updateFocusMode();
         };
 
@@ -542,11 +547,29 @@ void VolumeViewerPlugin::setFocusFloodfillNorm(bool focusFloodfillNorm) {
 }
 
 void VolumeViewerPlugin::updateFocusMode() {
-    qDebug() << "Update focus mode";
+    if (!_pointsColorCluster.isValid() && !_pointsColorPoints.isValid())
+    {
+        qDebug() << "No color dataset is valid";
+    }
+
     if (!_focusSelection && !_focusFloodfill && !_focusSelectionNorm && !_focusFloodfillNorm) {
-        std::vector<float> colors;
+        /*std::vector<float> colors;
         _pointsColorPoints->extractDataForDimension(colors, 0);
-        _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
+        _volumeViewerWidget->getOpenGLWidget()->setColors(colors);*/
+
+        if (_clusterLoaded) {
+            // Restore full cluster coloring by simulating a full mask
+            std::vector<int> allIndices(_points->getNumPoints());
+            for (int i = 0; i < allIndices.size(); ++i) {
+                allIndices[i] = i;
+            }
+            applyMaskToColors(allIndices, false);
+        }
+        else {
+            std::vector<float> colors;
+            _pointsColorPoints->extractDataForDimension(colors, 0);
+            _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
+        }
     }
     else if (_focusSelection) {
         std::vector<int> indices;
@@ -625,7 +648,7 @@ void VolumeViewerPlugin::getFloodfillIndices(std::vector<int>& indices) {
 }
 
 void VolumeViewerPlugin::applyMaskToColors(const std::vector<int>& indices, bool norm) {
-    std::vector<float> colors;
+   /* std::vector<float> colors;
     _pointsColorPoints->extractDataForDimension(colors, 0);
 
     std::vector<float> maskedColors(colors.size(), 0);
@@ -637,7 +660,85 @@ void VolumeViewerPlugin::applyMaskToColors(const std::vector<int>& indices, bool
         normalizeVector(maskedColors);
     }
 
-    _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);;
+    _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);;*/
+
+    // Handle ClusterData Focusing
+    if (_clusterLoaded && _pointsColorCluster.isValid()) {
+        const QVector<Cluster>& clusterVec = _pointsColorCluster->getClusters();
+        const int numClusters = clusterVec.size();
+
+        std::vector<std::uint32_t> globalIndices;
+        _points->getGlobalIndices(globalIndices);
+
+        // Find the maximum global index securely
+        std::uint32_t maxGlobalIndex = 0;
+        for (auto gi : globalIndices) {
+            if (gi > maxGlobalIndex) maxGlobalIndex = gi;
+        }
+        std::vector<float> globalUV(maxGlobalIndex + 1, -1.0f);
+
+        if (numClusters > 0) {
+            const float denominator = (numClusters > 1) ? float(numClusters - 1) : 1.0f;
+            for (int i = 0; i < numClusters; i++) {
+                const float uvValue = float(i) / denominator;
+                for (const auto& index : clusterVec[i].getIndices()) {
+                    if (index < globalUV.size()) {
+                        globalUV[index] = uvValue;
+                    }
+                }
+            }
+        }
+
+        std::vector<float> baseColors(_points->getNumPoints(), -1.0f);
+        int localColorIndex = 0;
+        for (const auto& globalIndex : globalIndices) {
+            if (globalIndex < globalUV.size() && localColorIndex < baseColors.size()) {
+                baseColors[localColorIndex++] = globalUV[globalIndex];
+            }
+        }
+
+        // Apply mask for selected cluster vertices
+        std::vector<float> maskedColors(baseColors.size(), -1.0f);
+        for (int idx : indices) {
+            if (idx >= 0 && idx < baseColors.size()) {
+                maskedColors[idx] = baseColors[idx];
+            }
+        }
+
+        _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);
+        return;
+    }
+
+    // Handle PointData Focusing
+    if (!_pointsColorPoints.isValid()) 
+        return;
+
+    std::vector<float> colors;
+    _pointsColorPoints->extractDataForDimension(colors, 0);
+
+    std::vector<float> normalizedColors = colors;
+    normalizeVector(normalizedColors);
+
+    std::vector<float> maskedColors(colors.size(), -1.0f);
+
+    if (norm) {
+        std::vector<float> selectionRaw;
+        selectionRaw.reserve(indices.size());
+        for (int idx : indices) {
+            selectionRaw.push_back(colors[idx]);
+        }
+        normalizeVector(selectionRaw);
+        for (size_t i = 0; i < indices.size(); ++i) {
+            maskedColors[indices[i]] = selectionRaw[i];
+        }
+    }
+    else {
+        for (int idx : indices) {
+            maskedColors[idx] = normalizedColors[idx];
+        }
+    }
+
+    _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);
 }
 
 void VolumeViewerPlugin::reInitializeLayout(QHBoxLayout layout) {
