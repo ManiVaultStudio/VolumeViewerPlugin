@@ -148,9 +148,12 @@ void VolumeViewerPlugin::init()
         if (!_pointsColorCluster.isValid() || !_points.isValid())
             return;
 
+        // Create a color map with all the colors from the clusters.
+        // The number of pixels is the number of clusters
         const QVector<Cluster>& clusterVec = _pointsColorCluster->getClusters();
         const int numClusters = clusterVec.size();
 
+        // Generate Colormap Image
         if (numClusters > 0) {
             QImage image(numClusters, 1, QImage::Format_ARGB32);
             for (int i = 0; i < numClusters; ++i) {
@@ -159,6 +162,7 @@ void VolumeViewerPlugin::init()
             _volumeViewerWidget->getOpenGLWidget()->setColormap(image);
         }
 
+        // Map indices
         std::vector<std::uint32_t> globalIndices;
         _points->getGlobalIndices(globalIndices);
         int totalNumPoints = _points->getNumPoints();
@@ -174,10 +178,13 @@ void VolumeViewerPlugin::init()
                     if (index < globalUV.size()) {
                         globalUV[index] = uvValue;
                     }
+                    else 
+                      qDebug() << "Warning: Cluster index " << index << " is out of bounds for globalUV size " << globalUV.size();
                 }
             }
         }
 
+        // Populate local colors
         int localColorIndex = 0;
         for (const auto& globalIndex : globalIndices) {
             if (globalIndex < globalUV.size() && localColorIndex < localUV.size()) {
@@ -186,7 +193,6 @@ void VolumeViewerPlugin::init()
         }
 
         _volumeViewerWidget->getOpenGLWidget()->setColors(localUV);
-        _volumeViewerWidget->getOpenGLWidget()->update();
         };
 
     auto updatePointColors = [this]() {
@@ -270,7 +276,6 @@ void VolumeViewerPlugin::init()
                                 _pointsOpacityPoints = candidateDataset;
                                 _clusterLoaded = false;
                                 updatePointColors();
-                                qDebug() << "Colors and opacity set";
                             }
                         });
 
@@ -363,76 +368,11 @@ void VolumeViewerPlugin::init()
         _dataLoaded = true;
     });
 
-    //connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this]() {
-    //    if (_rendererBackend == RendererBackend::OpenGL)
-    //    {
-    //        qDebug() << "_pointsColorPoints datachanged";
-    //        updateFocusMode();
-    //        // FIXME: should updatePointColor
-    //    }
-    //});
-
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this, updateClusterColors]() {
-
         if (_clusterLoaded) {
             updateClusterColors();
         }
-        //_clusterLoaded = true;
-
-        //if (!_pointsColorCluster.isValid() || !_points.isValid())
-        //    return;
-
-        //// Create a color map with all the colors from the clusters.
-        //// The number of pixels is the number of clusters
-        //const QVector<Cluster>& clusterVec = _pointsColorCluster->getClusters();
-        //const int numClusters = clusterVec.size();
-
-        //// Generate Colormap Image
-        //if (numClusters > 0) {
-        //    QImage image(numClusters, 1, QImage::Format_ARGB32);
-
-        //    for (int i = 0; i < numClusters; ++i) {
-        //        image.setPixelColor(i, 0, clusterVec[i].getColor());
-        //    }
-
-        //    _volumeViewerWidget->getOpenGLWidget()->setColormap(image);
-        //}
-
-        //// Map indices
-        //std::vector<std::uint32_t> globalIndices;
-        //_points->getGlobalIndices(globalIndices);
-        //int totalNumPoints = _points->getNumPoints();
-
-        //std::vector<float> globalUV(totalNumPoints, -1.0f);
-        //std::vector<float> localUV(totalNumPoints, -1.0f);
-
-        //if (numClusters > 0) {
-        //    // Prevent Division by Zero if there's only 1 cluster
-        //    const float denominator = (numClusters > 1) ? float(numClusters - 1) : 1.0f;
-
-        //    // Populate global colors
-        //    for (int i = 0; i < numClusters; i++) {
-        //        const float uvValue = float(i) / denominator;
-        //        for (const auto& index : clusterVec[i].getIndices()) {
-        //            if (index < globalUV.size()) { // Safeguard against out-of-bounds
-        //                globalUV[index] = uvValue;
-        //            }
-        //            else 
-        //                qDebug() << "Warning: Cluster index " << index << " is out of bounds for globalUV size " << globalUV.size();
-        //        }
-        //    }
-        //}
-
-        //// Populate local colors
-        //int localColorIndex = 0;
-        //for (const auto& globalIndex : globalIndices) {
-        //    if (globalIndex < globalUV.size() && localColorIndex < localUV.size()) {
-        //        localUV[localColorIndex++] = globalUV[globalIndex];
-        //    }
-        //}
-
-        //_volumeViewerWidget->getOpenGLWidget()->setColors(localUV);
     });
     
     // Respond when the name of the dataset in the dataset reference changes
@@ -447,11 +387,7 @@ void VolumeViewerPlugin::init()
 
         if (_rendererBackend == RendererBackend::OpenGL)
         {
-            auto& colorMapAction = getRendererSettingsAction().getColoringAction().getColorMapAction();
-            auto colorMapImage = colorMapAction.getColorMapImage();
-            _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
-
-            updateFocusMode();
+            updatePointColors();
         }*/
     });
 

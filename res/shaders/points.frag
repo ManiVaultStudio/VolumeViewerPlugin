@@ -25,13 +25,6 @@ void main()
 		// good for color point data - Color and Opacity points by scalars
     //}
 	
-	//if (hasColors && v_Color >= 0.0)// If this specific point belongs to a cluster (v_Color >= 0)
-    //{	
-		//vec3 color = texture(colormap, vec2(v_Color, 0.5)).rgb;
-        //fragColor = vec4(color, 0.3);
-		//good for color cluster data
-    //}
-	
 	if (hasColors && v_Color >= 0.0) 
    {    vec3 color = texture(colormap, vec2(v_Color, 0.5)).rgb;
         if (useOpacityModulation) {       
