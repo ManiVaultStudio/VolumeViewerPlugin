@@ -29,6 +29,7 @@ public:
     void setColormap(const QImage& colormap);
     void setCursorPoint(mv::Vector3f cursorPoint);
     void setRotating(bool rotating);
+    void setOpacityModulation(bool opacityModulation);
 
 public:
     bool eventFilter(QObject* target, QEvent* event);

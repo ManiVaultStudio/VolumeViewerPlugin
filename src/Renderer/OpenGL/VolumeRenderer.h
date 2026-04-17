@@ -26,6 +26,7 @@ public:
     void setColormap(const QImage& colormap);
     void setCursorPoint(mv::Vector3f cursorPoint);
     void reloadShader();
+    void setOpacityModulation(bool opacityModulation);
 
     void init();
     void resize(int w, int h);
@@ -57,4 +58,6 @@ private:
     QMatrix4x4 _projMatrix;
     QMatrix4x4 _viewMatrix;
     QMatrix4x4 _modelMatrix;
+
+    bool _useOpacityModulation = false;
 };

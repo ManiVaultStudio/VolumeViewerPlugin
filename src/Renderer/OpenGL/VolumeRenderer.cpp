@@ -74,6 +74,11 @@ void VolumeRenderer::setCursorPoint(mv::Vector3f cursorPoint)
     qDebug() << _cursorPoint.x << _cursorPoint.y << _cursorPoint.z;
 }
 
+void VolumeRenderer::setOpacityModulation(bool useOpacityModulation)
+{
+    _useOpacityModulation = useOpacityModulation;
+}
+
 void VolumeRenderer::reloadShader()
 {
     _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/points.frag");
@@ -231,6 +236,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     if (_hasColors)
     {
         _pointsShaderProgram.uniform1i("hasColors", _hasColors);
+        _pointsShaderProgram.uniform1i("useOpacityModulation", _useOpacityModulation);
 
         if (_colormap.isCreated())
         {
@@ -239,7 +245,10 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
         }    
     }
     else
+    {
         _pointsShaderProgram.uniform1i("hasColors", false);
+        _pointsShaderProgram.uniform1i("useOpacityModulation", false);
+    }
 
     glDrawArrays(GL_POINTS, 0, _numPoints);
 

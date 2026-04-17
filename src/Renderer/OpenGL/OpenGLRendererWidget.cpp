@@ -51,6 +51,12 @@ void OpenGLRendererWidget::setRotating(bool rotating)
     }
 }
 
+void OpenGLRendererWidget::setOpacityModulation(bool opacityModulation)
+{
+    _volumeRenderer.setOpacityModulation(opacityModulation);
+    update();
+}
+
 void OpenGLRendererWidget::initializeGL()
 {
     initializeOpenGLFunctions();
