@@ -45,10 +45,16 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_focusSelectionAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
         _plugin->setFocusSelection(toggled);
+
+        if (toggled)
+            _focusFloodfillAction.setChecked(false);
     });
 
     connect(&_focusFloodfillAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
         _plugin->setFocusFloodfill(toggled);
+
+        if (toggled)
+            _focusSelectionAction.setChecked(false);
     });
 
     connect(&_focusSelectionNormAction, &ToggleAction::toggled, this, [this](const bool& toggled) {

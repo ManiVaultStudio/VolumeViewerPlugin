@@ -104,9 +104,9 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 
     // FIXME: keep or remove focus actions? 
     // TODO: if keep, need to comply with _pointsColorCluster/_pointsColorPoints, also add check to avoid crash
-    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction()); 
+    _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction()); 
     //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
-    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
     //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getIdleRotationAction());
    
@@ -547,7 +547,6 @@ void VolumeViewerPlugin::updateFocusMode() {
         std::vector<float> colors;
         _pointsColorPoints->extractDataForDimension(colors, 0);
         _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
-        _volumeViewerWidget->getOpenGLWidget()->update();
     }
     else if (_focusSelection) {
         std::vector<int> indices;
@@ -556,6 +555,13 @@ void VolumeViewerPlugin::updateFocusMode() {
         applyMaskToColors(indices, false);
     }
     else if (_focusFloodfill) {
+        if (!_floodFillDataset.isValid())
+        {
+            QMessageBox::warning(nullptr, "Warning", "No valid floodfill dataset");
+            _settingsAction->getFocusFloodfillAction().setChecked(false);
+            return;
+        }
+
         std::vector<int> indices;
         getFloodfillIndices(indices);
         applyMaskToColors(indices, false);
@@ -567,6 +573,13 @@ void VolumeViewerPlugin::updateFocusMode() {
         applyMaskToColors(indices, true);
     }
     else if (_focusFloodfillNorm) {
+        if (!_floodFillDataset.isValid())
+        {
+            QMessageBox::warning(nullptr, "Warning", "No valid floodfill dataset");
+            _settingsAction->getFocusFloodfillNormAction().setChecked(false);
+            return;
+        }
+
         std::vector<int> indices;
         getFloodfillIndices(indices);
         applyMaskToColors(indices, true);
@@ -624,8 +637,7 @@ void VolumeViewerPlugin::applyMaskToColors(const std::vector<int>& indices, bool
         normalizeVector(maskedColors);
     }
 
-    _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);
-    _volumeViewerWidget->getOpenGLWidget()->update();
+    _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);;
 }
 
 void VolumeViewerPlugin::reInitializeLayout(QHBoxLayout layout) {
