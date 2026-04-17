@@ -227,7 +227,6 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
 
     _pointsShaderProgram.uniform1i("hasColors", false);
 
-    glDrawArrays(GL_POINTS, 0, _numPoints);
 
     if (_hasColors)
     {
@@ -237,10 +236,12 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
         {
             _colormap.bind(0);
             _pointsShaderProgram.uniform1i("colormap", 0);
-        }
-
-        glDrawArrays(GL_POINTS, 0, _numPoints);
+        }    
     }
+    else
+        _pointsShaderProgram.uniform1i("hasColors", false);
+
+    glDrawArrays(GL_POINTS, 0, _numPoints);
 
     // Draw the cursor
     _pointsShaderProgram.uniform1i("isCursor", 1);

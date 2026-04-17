@@ -334,8 +334,8 @@ void VolumeViewerPlugin::init()
         _points->getGlobalIndices(globalIndices);
         int totalNumPoints = _points->getNumPoints();
 
-        std::vector<float> globalUV(totalNumPoints, 0.0f);
-        std::vector<float> localUV(totalNumPoints, 0.0f);
+        std::vector<float> globalUV(totalNumPoints, -1.0f);
+        std::vector<float> localUV(totalNumPoints, -1.0f);
 
         if (numClusters > 0) {
             // Prevent Division by Zero if there's only 1 cluster
