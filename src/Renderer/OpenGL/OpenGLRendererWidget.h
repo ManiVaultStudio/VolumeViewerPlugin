@@ -28,6 +28,8 @@ public:
     void setColors(std::vector<float>& colors);
     void setColormap(const QImage& colormap);
     void setCursorPoint(mv::Vector3f cursorPoint);
+    void setRotating(bool rotating);
+    void setOpacityModulation(bool opacityModulation);
 
 public:
     bool eventFilter(QObject* target, QEvent* event);
@@ -49,4 +51,6 @@ private:
     bool _mousePressed = false;
 
     bool _isInitialized = false;
+
+    bool _rotating = false;
 };

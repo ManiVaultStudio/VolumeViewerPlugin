@@ -102,11 +102,14 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 
     _primaryToolbarAction.addAction(&_settingsAction->getPickRendererAction(), 4, GroupAction::Horizontal);
 
-    // TODO: temporarily hide the buttons
-    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction());
-    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());
+
+    // FIXME: keep or remove focus actions? 
+    // TODO: if keep, need to comply with _pointsColorCluster/_pointsColorPoints, also add check to avoid crash
+    _secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionAction()); 
+    //_secondaryToolbarAction.addAction(&_settingsAction->getFocusSelectionNormAction());//TODO: is this needed? 
     //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
     //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
+    _secondaryToolbarAction.addAction(&_settingsAction->getIdleRotationAction());
    
 }
 
@@ -141,8 +144,75 @@ void VolumeViewerPlugin::init()
     // Set the drop indicator widget (the widget that indicates that the view is eligible for data dropping)
     _dropWidget->setDropIndicatorWidget(new DropWidget::DropIndicatorWidget(&getWidget(), "No data loaded", "Drag an item from the data hierarchy and drop it here to visualize data..."));
 
+
+    auto updateClusterColors = [this]() {
+        if (!_pointsColorCluster.isValid() || !_points.isValid())
+            return;
+
+        // Create a color map with all the colors from the clusters.
+        // The number of pixels is the number of clusters
+        const QVector<Cluster>& clusterVec = _pointsColorCluster->getClusters();
+        const int numClusters = clusterVec.size();
+
+        // Generate Colormap Image
+        if (numClusters > 0) {
+            QImage image(numClusters, 1, QImage::Format_ARGB32);
+            for (int i = 0; i < numClusters; ++i) {
+                image.setPixelColor(i, 0, clusterVec[i].getColor());
+            }
+            _volumeViewerWidget->getOpenGLWidget()->setColormap(image);
+        }
+
+        //TODO: cleanup and improve, this part is now in applyMaskToColors(), should be organized better
+        
+        //// Map indices
+        //std::vector<std::uint32_t> globalIndices;
+        //_points->getGlobalIndices(globalIndices);
+        //int totalNumPoints = _points->getNumPoints();
+
+        //std::vector<float> globalUV(totalNumPoints, -1.0f);
+        //std::vector<float> localUV(totalNumPoints, -1.0f);
+
+        //if (numClusters > 0) {
+        //    const float denominator = (numClusters > 1) ? float(numClusters - 1) : 1.0f;
+        //    for (int i = 0; i < numClusters; i++) {
+        //        const float uvValue = float(i) / denominator;
+        //        for (const auto& index : clusterVec[i].getIndices()) {
+        //            if (index < globalUV.size()) {
+        //                globalUV[index] = uvValue;
+        //            }
+        //            else 
+        //              qDebug() << "Warning: Cluster index " << index << " is out of bounds for globalUV size " << globalUV.size();
+        //        }
+        //    }
+        //}
+
+        //// Populate local colors
+        //int localColorIndex = 0;
+        //for (const auto& globalIndex : globalIndices) {
+        //    if (globalIndex < globalUV.size() && localColorIndex < localUV.size()) {
+        //        localUV[localColorIndex++] = globalUV[globalIndex];
+        //    }
+        //}
+
+        //_volumeViewerWidget->getOpenGLWidget()->setColors(localUV);
+
+        updateFocusMode();
+        };
+
+    auto updatePointColors = [this]() {
+        if (!_pointsColorPoints.isValid() || !_points.isValid())
+            return;
+
+        auto colorMapImage = getRendererSettingsAction().getColoringAction().getColorMapAction().getColorMapImage();
+        _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
+
+        updateFocusMode();
+        };
+
+
     // Initialize the drop regions
-    _dropWidget->initialize([this](const QMimeData* mimeData) -> DropWidget::DropRegions {
+    _dropWidget->initialize([this, updatePointColors, updateClusterColors](const QMimeData* mimeData) -> DropWidget::DropRegions {
 
         DropWidget::DropRegions dropRegions;
 
@@ -204,18 +274,24 @@ void VolumeViewerPlugin::init()
                             //groupActions << &_rendererSettingsAction.getDimensionAction() << &_rendererSettingsAction.getSlicingAction() << &_rendererSettingsAction.getColoringAction() << &_rendererSettingsAction.getSelectedPointsAction();
                             //_rendererSettingsAction.setGroupActions(groupActions);
                         });
-                        dropRegions << new DropWidget::DropRegion(this, "Colors and Point Opacity", "Color and Opacity points by scalars", "palette", true, [this, candidateDataset]() {
+                        dropRegions << new DropWidget::DropRegion(this, "Colors and Point Opacity", "Color and Opacity points by scalars", "palette", true, [this, candidateDataset, updatePointColors]() {
                             //_points = candidateDataset;
                             if (_points->getDataHierarchyItem().hasParent()) {
+                                _volumeViewerWidget->getOpenGLWidget()->setOpacityModulation(true);
                                 _pointsColorPoints = candidateDataset;
                                 _pointsOpacityPoints = candidateDataset;
+                                _clusterLoaded = false;
+                                updatePointColors();
                             }
                         });
 
-                        dropRegions << new DropWidget::DropRegion(this, "Colors", "Color points by scalars", "palette", true, [this, candidateDataset]() {
+                        dropRegions << new DropWidget::DropRegion(this, "Colors", "Color points by scalars", "palette", true, [this, candidateDataset, updatePointColors]() {
                             //_points = candidateDataset;
                             if (_points->getDataHierarchyItem().hasParent()) {
+                                _volumeViewerWidget->getOpenGLWidget()->setOpacityModulation(false);
                                 _pointsColorPoints = candidateDataset;
+                                _clusterLoaded = false;
+                                updatePointColors();
                             }
                         });
                         
@@ -255,9 +331,11 @@ void VolumeViewerPlugin::init()
                 if (true) {
 
                     // The clusters dataset is already loaded
-                    dropRegions << new DropWidget::DropRegion(this, "Color", description, "palette", true, [this, candidateDataset]() {
-                        
+                    dropRegions << new DropWidget::DropRegion(this, "Color", description, "palette", true, [this, candidateDataset, updateClusterColors]() {
+                        _volumeViewerWidget->getOpenGLWidget()->setOpacityModulation(false);
                         _pointsColorCluster = candidateDataset;
+                        _clusterLoaded = true;
+                        updateClusterColors();
                     });
                 }
                 else {
@@ -296,34 +374,34 @@ void VolumeViewerPlugin::init()
         _dataLoaded = true;
     });
 
-    connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this]() {
-        if (_rendererBackend == RendererBackend::OpenGL)
-        {
-            updateFocusMode();
-        }
-    });
-
     // Respond when the name of the dataset in the dataset reference changes
-    connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this]() {
-        _clusterLoaded = true;
+    connect(&_pointsColorCluster, &Dataset<Clusters>::changed, this, [this, updateClusterColors]() {
+        if (_clusterLoaded) {
+            updateClusterColors();
+        }
     });
     
     // Respond when the name of the dataset in the dataset reference changes
-    connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this]() {
-        if (_clusterLoaded) {
+    connect(&_pointsColorPoints, &Dataset<Points>::changed, this, [this, updatePointColors]() {
+        if (!_clusterLoaded) {
+            updatePointColors();
+        }
+        /*if (_clusterLoaded) {
             _clusterLoaded = false;
         }
         _pointColorLoaded = true;
 
         if (_rendererBackend == RendererBackend::OpenGL)
         {
-            auto& colorMapAction = getRendererSettingsAction().getColoringAction().getColorMapAction();
-            auto colorMapImage = colorMapAction.getColorMapImage();
-            _volumeViewerWidget->getOpenGLWidget()->setColormap(colorMapImage);
-
-            updateFocusMode();
-        }
+            updatePointColors();
+        }*/
     });
+
+    connect(&_pointsColorPoints, &Dataset<Points>::dataChanged, this, [this, updatePointColors]() {
+        if (!_clusterLoaded) {
+            updatePointColors();
+        }
+        });
 
     // Respond when the name of the dataset in the dataset reference changes
     connect(&_pointsOpacityPoints, &Dataset<Points>::changed, this, [this]() {
@@ -431,6 +509,10 @@ void VolumeViewerPlugin::init()
 
 }
 
+void VolumeViewerPlugin::setIdleRotation(bool idleRotation){
+    _volumeViewerWidget->getOpenGLWidget()->setRotating(idleRotation);
+}
+
 void VolumeViewerPlugin::setFocusSelection(bool focusSelection) {
     _focusSelection = focusSelection;
     qDebug() << "Focus selection: " << _focusSelection;
@@ -466,12 +548,29 @@ void VolumeViewerPlugin::setFocusFloodfillNorm(bool focusFloodfillNorm) {
 }
 
 void VolumeViewerPlugin::updateFocusMode() {
-    qDebug() << "Update focus mode";
+    if (!_pointsColorCluster.isValid() && !_pointsColorPoints.isValid())
+    {
+        qDebug() << "No color dataset is valid";
+    }
+
     if (!_focusSelection && !_focusFloodfill && !_focusSelectionNorm && !_focusFloodfillNorm) {
-        std::vector<float> colors;
+        /*std::vector<float> colors;
         _pointsColorPoints->extractDataForDimension(colors, 0);
-        _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
-        _volumeViewerWidget->getOpenGLWidget()->update();
+        _volumeViewerWidget->getOpenGLWidget()->setColors(colors);*/
+
+        if (_clusterLoaded) {
+            // Restore full cluster coloring by simulating a full mask
+            std::vector<int> allIndices(_points->getNumPoints());
+            for (int i = 0; i < allIndices.size(); ++i) {
+                allIndices[i] = i;
+            }
+            applyMaskToColors(allIndices, false);
+        }
+        else {
+            std::vector<float> colors;
+            _pointsColorPoints->extractDataForDimension(colors, 0);
+            _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
+        }
     }
     else if (_focusSelection) {
         std::vector<int> indices;
@@ -480,6 +579,13 @@ void VolumeViewerPlugin::updateFocusMode() {
         applyMaskToColors(indices, false);
     }
     else if (_focusFloodfill) {
+        if (!_floodFillDataset.isValid())
+        {
+            QMessageBox::warning(nullptr, "Warning", "No valid floodfill dataset");
+            _settingsAction->getFocusFloodfillAction().setChecked(false);
+            return;
+        }
+
         std::vector<int> indices;
         getFloodfillIndices(indices);
         applyMaskToColors(indices, false);
@@ -491,6 +597,13 @@ void VolumeViewerPlugin::updateFocusMode() {
         applyMaskToColors(indices, true);
     }
     else if (_focusFloodfillNorm) {
+        if (!_floodFillDataset.isValid())
+        {
+            QMessageBox::warning(nullptr, "Warning", "No valid floodfill dataset");
+            _settingsAction->getFocusFloodfillNormAction().setChecked(false);
+            return;
+        }
+
         std::vector<int> indices;
         getFloodfillIndices(indices);
         applyMaskToColors(indices, true);
@@ -536,7 +649,7 @@ void VolumeViewerPlugin::getFloodfillIndices(std::vector<int>& indices) {
 }
 
 void VolumeViewerPlugin::applyMaskToColors(const std::vector<int>& indices, bool norm) {
-    std::vector<float> colors;
+   /* std::vector<float> colors;
     _pointsColorPoints->extractDataForDimension(colors, 0);
 
     std::vector<float> maskedColors(colors.size(), 0);
@@ -548,8 +661,85 @@ void VolumeViewerPlugin::applyMaskToColors(const std::vector<int>& indices, bool
         normalizeVector(maskedColors);
     }
 
+    _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);;*/
+
+    // Handle ClusterData Focusing
+    if (_clusterLoaded && _pointsColorCluster.isValid()) {
+        const QVector<Cluster>& clusterVec = _pointsColorCluster->getClusters();
+        const int numClusters = clusterVec.size();
+
+        std::vector<std::uint32_t> globalIndices;
+        _points->getGlobalIndices(globalIndices);
+
+        // Find the maximum global index securely
+        std::uint32_t maxGlobalIndex = 0;
+        for (auto gi : globalIndices) {
+            if (gi > maxGlobalIndex) maxGlobalIndex = gi;
+        }
+        std::vector<float> globalUV(maxGlobalIndex + 1, -1.0f);
+
+        if (numClusters > 0) {
+            const float denominator = (numClusters > 1) ? float(numClusters - 1) : 1.0f;
+            for (int i = 0; i < numClusters; i++) {
+                const float uvValue = float(i) / denominator;
+                for (const auto& index : clusterVec[i].getIndices()) {
+                    if (index < globalUV.size()) {
+                        globalUV[index] = uvValue;
+                    }
+                }
+            }
+        }
+
+        std::vector<float> baseColors(_points->getNumPoints(), -1.0f);
+        int localColorIndex = 0;
+        for (const auto& globalIndex : globalIndices) {
+            if (globalIndex < globalUV.size() && localColorIndex < baseColors.size()) {
+                baseColors[localColorIndex++] = globalUV[globalIndex];
+            }
+        }
+
+        // Apply mask for selected cluster vertices
+        std::vector<float> maskedColors(baseColors.size(), -1.0f);
+        for (int idx : indices) {
+            if (idx >= 0 && idx < baseColors.size()) {
+                maskedColors[idx] = baseColors[idx];
+            }
+        }
+
+        _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);
+        return;
+    }
+
+    // Handle PointData Focusing
+    if (!_pointsColorPoints.isValid()) 
+        return;
+
+    std::vector<float> colors;
+    _pointsColorPoints->extractDataForDimension(colors, 0);
+
+    std::vector<float> normalizedColors = colors;
+    normalizeVector(normalizedColors);
+
+    std::vector<float> maskedColors(colors.size(), -1.0f);
+
+    if (norm) {
+        std::vector<float> selectionRaw;
+        selectionRaw.reserve(indices.size());
+        for (int idx : indices) {
+            selectionRaw.push_back(colors[idx]);
+        }
+        normalizeVector(selectionRaw);
+        for (size_t i = 0; i < indices.size(); ++i) {
+            maskedColors[indices[i]] = selectionRaw[i];
+        }
+    }
+    else {
+        for (int idx : indices) {
+            maskedColors[idx] = normalizedColors[idx];
+        }
+    }
+
     _volumeViewerWidget->getOpenGLWidget()->setColors(maskedColors);
-    _volumeViewerWidget->getOpenGLWidget()->update();
 }
 
 void VolumeViewerPlugin::reInitializeLayout(QHBoxLayout layout) {

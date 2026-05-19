@@ -27,6 +27,7 @@ void OpenGLRendererWidget::setColors(std::vector<float>& colors)
 {
     makeCurrent();
     _volumeRenderer.setColors(colors);
+    update();
 }
 
 void OpenGLRendererWidget::setColormap(const QImage& colormap)
@@ -37,6 +38,22 @@ void OpenGLRendererWidget::setColormap(const QImage& colormap)
 void OpenGLRendererWidget::setCursorPoint(mv::Vector3f cursorPoint)
 {
     _volumeRenderer.setCursorPoint(cursorPoint);
+    update();
+}
+
+void OpenGLRendererWidget::setRotating(bool rotating)
+{
+    if (_rotating != rotating) {
+        _rotating = rotating;
+        if (_rotating) {
+            update(); 
+        }
+    }
+}
+
+void OpenGLRendererWidget::setOpacityModulation(bool opacityModulation)
+{
+    _volumeRenderer.setOpacityModulation(opacityModulation);
     update();
 }
 
@@ -85,8 +102,26 @@ void OpenGLRendererWidget::paintGL()
 
     float aspect = (float)w / h;
 
+    // Idle Rotation
+    if (_rotating) {
+        // Increment yaw angle
+        _camAngle.y += 0.005f; // faster or slower
+
+        // Keep angle bounded to prevent float precision issues over time
+        if (_camAngle.y > 6.283185f) _camAngle.y -= 6.283185f;
+
+        // Recalculate camera position
+        _camPos.x = _camDist * sin(_camAngle.x) * cos(_camAngle.y);
+        _camPos.y = _camDist * cos(_camAngle.x);
+        _camPos.z = _camDist * sin(_camAngle.x) * sin(_camAngle.y);
+
+        // Repaint continuously
+        update();
+    }
+
     _volumeRenderer.render(defaultFramebufferObject(), _camPos, _camAngle, aspect);
 }
+
 
 void OpenGLRendererWidget::cleanup()
 {
@@ -141,6 +176,34 @@ bool OpenGLRendererWidget::eventFilter(QObject* target, QEvent* event)
 
         _previousMousePos = mousePos;
 
+        break;
+    }
+    case QEvent::Wheel:
+    {
+        auto wheelEvent = static_cast<QWheelEvent*>(event);
+
+        float delta = wheelEvent->angleDelta().y();
+
+        if (delta > 0) {
+            _camDist *= 0.9f; // zoom in
+        }
+        else if (delta < 0) {
+            _camDist *= 1.1f; // zoom out
+        }
+
+        _camDist = std::clamp<float>(_camDist, 0.1f, 1000.f);
+
+        _camPos.x = _camDist * sin(_camAngle.x) * cos(_camAngle.y);
+        _camPos.y = _camDist * cos(_camAngle.x);
+        _camPos.z = _camDist * sin(_camAngle.x) * sin(_camAngle.y);
+
+        update();
+
+        break;
+    }
+    case QEvent::MouseButtonRelease:
+    {
+        _mousePressed = false;
         break;
     }
     }

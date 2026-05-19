@@ -16,7 +16,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusSelectionAction(this, "Focus Selection"),
     _focusFloodfillAction(this, "Focus Floodfill"),
     _focusSelectionNormAction(this, "SNorm"),
-    _focusFloodfillNormAction(this, "FNorm")
+    _focusFloodfillNormAction(this, "FNorm"),
+    _idleRotationAction(this, "Idle Rotation")
 {
     GroupsAction::GroupActions groupActions;
 
@@ -43,20 +44,31 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     });
 
     connect(&_focusSelectionAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
-            _plugin->setFocusSelection(toggled);
+        _plugin->setFocusSelection(toggled);
+
+        if (toggled)
+            _focusFloodfillAction.setChecked(false);
     });
 
     connect(&_focusFloodfillAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
-            _plugin->setFocusFloodfill(toggled);
+        _plugin->setFocusFloodfill(toggled);
+
+        if (toggled)
+            _focusSelectionAction.setChecked(false);
     });
 
     connect(&_focusSelectionNormAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
-            _plugin->setFocusSelectionNorm(toggled);
+        _plugin->setFocusSelectionNorm(toggled);
     });
 
     connect(&_focusFloodfillNormAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
-            _plugin->setFocusFloodfillNorm(toggled);
+        _plugin->setFocusFloodfillNorm(toggled);
     });
+
+    connect(&_idleRotationAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
+        _plugin->setIdleRotation(toggled);
+    });
+
 }
 
 QMenu* SettingsAction::getContextMenu(QWidget* parent /*= nullptr*/)
@@ -74,6 +86,8 @@ void SettingsAction::fromVariantMap(const QVariantMap& variantMap)
 
     _positionDatasetPickerAction.fromParentVariantMap(variantMap);
     _colorDatasetPickerAction.fromParentVariantMap(variantMap);
+
+    _idleRotationAction.fromParentVariantMap(variantMap);
 
     auto positionDataset = _positionDatasetPickerAction.getCurrentDataset();
     if (positionDataset.isValid())
@@ -98,6 +112,8 @@ QVariantMap SettingsAction::toVariantMap() const
 
     _positionDatasetPickerAction.insertIntoVariantMap(variantMap);
     _colorDatasetPickerAction.insertIntoVariantMap(variantMap);
+
+    _idleRotationAction.insertIntoVariantMap(variantMap);
 
     return variantMap;
 }
