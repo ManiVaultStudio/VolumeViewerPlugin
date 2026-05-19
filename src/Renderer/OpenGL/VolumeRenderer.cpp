@@ -253,7 +253,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     glDrawArrays(GL_POINTS, 0, _numPoints);
 
     // Draw the cursor
-    _pointsShaderProgram.uniform1i("isCursor", 1);
+   /* _pointsShaderProgram.uniform1i("isCursor", 1);
     glBindVertexArray(_cursorVao);
     glBindBuffer(GL_ARRAY_BUFFER, _cursorVbo);
     glBufferData(GL_ARRAY_BUFFER, 3 * sizeof(float), &_cursorPoint, GL_STATIC_DRAW);
@@ -262,7 +262,7 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     glPointSize(15);
     glDrawArrays(GL_POINTS, 0, 1);
     _pointsShaderProgram.uniform1i("isCursor", 0);
-    glDisable(GL_POINT_SMOOTH);
+    glDisable(GL_POINT_SMOOTH);*/
 
     ///////////////////////////////////////////////////////////////////////
     // Draw the color framebuffer
