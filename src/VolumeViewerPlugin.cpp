@@ -566,6 +566,8 @@ void VolumeViewerPlugin::updateFocusMode() {
             applyMaskToColors(allIndices, false);
         }
         else {
+            if (!_pointsColorPoints.isValid())
+                return;
             std::vector<float> colors;
             _pointsColorPoints->extractDataForDimension(colors, 0);
             _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
