@@ -61,6 +61,7 @@ public: // Action getters
     ToggleAction& getIdleRotationAction() { return _idleRotationAction; }
 
     DecimalAction& getPointSizeAction() { return _pointSizeAction; }
+    DecimalAction& getPointOpacityAction() { return _pointOpacityAction; }
 
 protected:
     VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
@@ -76,4 +77,5 @@ protected:
 
     // experimental settings
     DecimalAction           _pointSizeAction;
+    DecimalAction           _pointOpacityAction;
 };

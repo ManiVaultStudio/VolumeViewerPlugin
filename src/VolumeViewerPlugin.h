@@ -137,6 +137,7 @@ public:
     void setIdleRotation(bool idleRotation);
 
     void updatePointSize(float value);
+    void updatePointOpacity(float value);
 
 public: // Serialization
     /**

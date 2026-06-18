@@ -18,7 +18,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
     _idleRotationAction(this, "Idle Rotation"),
-    _pointSizeAction(this, "Point Size", 0.5, 10.0, 3.0, 1)
+    _pointSizeAction(this, "Point Size", 0.5, 10.0, 3.0, 1),
+    _pointOpacityAction(this, "Point Opacity", 0.0, 1.0, 0.3, 1)
 {
     GroupsAction::GroupActions groupActions;
 
@@ -72,6 +73,10 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
 
     connect(&_pointSizeAction, &DecimalAction::valueChanged, this, [this](const float& value) {
         _plugin->updatePointSize(value);
+        });
+
+    connect(&_pointOpacityAction, &DecimalAction::valueChanged, this, [this](const float& value) {
+        _plugin->updatePointOpacity(value);
         });
 
 }

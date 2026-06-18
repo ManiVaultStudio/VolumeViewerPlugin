@@ -28,6 +28,7 @@ public:
     void reloadShader();
     void setOpacityModulation(bool opacityModulation);
     void setPointSize(float pointSize);
+    void setPointOpacity(float opacity);
 
     void init();
     void resize(int w, int h);
@@ -63,4 +64,5 @@ private:
     bool _useOpacityModulation = false;
 
     float _pointSize = 3.0f;
+    float _pointOpacity = 0.3f;
 };

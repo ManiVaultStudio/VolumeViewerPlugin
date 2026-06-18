@@ -85,6 +85,11 @@ void VolumeRenderer::setPointSize(float pointSize)
     glPointSize(_pointSize);
 }
 
+void VolumeRenderer::setPointOpacity(float opacity)
+{
+    _pointOpacity = opacity;
+}
+
 void VolumeRenderer::reloadShader()
 {
     _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/points.frag");
@@ -232,6 +237,8 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _pointsShaderProgram.uniformMatrix4f("projMatrix", _projMatrix.data());
     _pointsShaderProgram.uniformMatrix4f("viewMatrix", _viewMatrix.data());
     _pointsShaderProgram.uniformMatrix4f("modelMatrix", _modelMatrix.data());
+
+    _pointsShaderProgram.uniform1f("baseOpacity", _pointOpacity);
     
     //glPointSize(3); 
     // Set point size for rendering points

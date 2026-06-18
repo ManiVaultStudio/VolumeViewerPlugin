@@ -112,6 +112,7 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
 
     // Add actions to the options menu on the side of the viewer
     _settingsAction->addAction(&_settingsAction->getPointSizeAction());
+    _settingsAction->addAction(&_settingsAction->getPointOpacityAction());
    
 }
 
@@ -808,6 +809,11 @@ void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {
 void VolumeViewerPlugin::updatePointSize(float value)
 {
     _volumeViewerWidget->getOpenGLWidget()->setPointSize(value);
+}
+
+void VolumeViewerPlugin::updatePointOpacity(float value)
+{
+    _volumeViewerWidget->getOpenGLWidget()->setPointOpacity(value);
 }
 
 /******************************************************************************
