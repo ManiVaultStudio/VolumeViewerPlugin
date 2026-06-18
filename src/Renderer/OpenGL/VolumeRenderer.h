@@ -27,6 +27,7 @@ public:
     void setCursorPoint(mv::Vector3f cursorPoint);
     void reloadShader();
     void setOpacityModulation(bool opacityModulation);
+    void setPointSize(float pointSize);
 
     void init();
     void resize(int w, int h);
@@ -60,4 +61,6 @@ private:
     QMatrix4x4 _modelMatrix;
 
     bool _useOpacityModulation = false;
+
+    float _pointSize = 3.0f;
 };

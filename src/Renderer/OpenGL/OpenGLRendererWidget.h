@@ -30,6 +30,7 @@ public:
     void setCursorPoint(mv::Vector3f cursorPoint);
     void setRotating(bool rotating);
     void setOpacityModulation(bool opacityModulation);
+    void setPointSize(float pointSize);
 
 public:
     bool eventFilter(QObject* target, QEvent* event);

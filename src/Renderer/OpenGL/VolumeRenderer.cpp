@@ -79,6 +79,12 @@ void VolumeRenderer::setOpacityModulation(bool useOpacityModulation)
     _useOpacityModulation = useOpacityModulation;
 }
 
+void VolumeRenderer::setPointSize(float pointSize)
+{
+    _pointSize = pointSize;
+    glPointSize(_pointSize);
+}
+
 void VolumeRenderer::reloadShader()
 {
     _pointsShaderProgram.loadShaderFromFile(":shaders/points.vert", ":shaders/points.frag");
@@ -124,7 +130,7 @@ void VolumeRenderer::init()
     glBlendEquationSeparate(GL_FUNC_ADD, GL_FUNC_ADD);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
 
-    glPointSize(3);
+    glPointSize(_pointSize); // initial point size
 
     glGenVertexArrays(1, &_cursorVao);
     glBindVertexArray(_cursorVao);
@@ -227,7 +233,9 @@ void VolumeRenderer::render(GLuint framebuffer, mv::Vector3f camPos, mv::Vector2
     _pointsShaderProgram.uniformMatrix4f("viewMatrix", _viewMatrix.data());
     _pointsShaderProgram.uniformMatrix4f("modelMatrix", _modelMatrix.data());
     
-    glPointSize(3);
+    //glPointSize(3); 
+    // Set point size for rendering points
+    glPointSize(_pointSize);
     glBindVertexArray(vao);
 
     _pointsShaderProgram.uniform1i("hasColors", false);

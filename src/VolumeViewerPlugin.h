@@ -136,6 +136,8 @@ public:
     // Idle rotation
     void setIdleRotation(bool idleRotation);
 
+    void updatePointSize(float value);
+
 public: // Serialization
     /**
     * Load plugin from variant map

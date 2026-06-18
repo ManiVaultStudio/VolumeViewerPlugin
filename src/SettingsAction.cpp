@@ -17,7 +17,8 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusFloodfillAction(this, "Focus Floodfill"),
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
-    _idleRotationAction(this, "Idle Rotation")
+    _idleRotationAction(this, "Idle Rotation"),
+    _pointSizeAction(this, "Point Size", 0.5, 10.0, 3.0, 1)
 {
     GroupsAction::GroupActions groupActions;
 
@@ -68,6 +69,10 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     connect(&_idleRotationAction, &ToggleAction::toggled, this, [this](const bool& toggled) {
         _plugin->setIdleRotation(toggled);
     });
+
+    connect(&_pointSizeAction, &DecimalAction::valueChanged, this, [this](const float& value) {
+        _plugin->updatePointSize(value);
+        });
 
 }
 

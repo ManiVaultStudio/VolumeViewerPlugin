@@ -109,6 +109,9 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     _secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
     //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getIdleRotationAction());
+
+    // Add actions to the options menu on the side of the viewer
+    _settingsAction->addAction(&_settingsAction->getPointSizeAction());
    
 }
 
@@ -800,6 +803,11 @@ void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {
     _position[1] = y;
     _position[2] = z;
 
+}
+
+void VolumeViewerPlugin::updatePointSize(float value)
+{
+    _volumeViewerWidget->getOpenGLWidget()->setPointSize(value);
 }
 
 /******************************************************************************
