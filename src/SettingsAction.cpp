@@ -107,6 +107,8 @@ void SettingsAction::fromVariantMap(const QVariantMap& variantMap)
         Dataset pickedDataset = mv::data().getDataset(colorDataset.getDatasetId());
         _plugin->getColorDataset() = pickedDataset;
     }
+
+    _pointSizeAction.fromParentVariantMap(variantMap);
 }
 
 QVariantMap SettingsAction::toVariantMap() const
@@ -119,6 +121,8 @@ QVariantMap SettingsAction::toVariantMap() const
     _colorDatasetPickerAction.insertIntoVariantMap(variantMap);
 
     _idleRotationAction.insertIntoVariantMap(variantMap);
+
+    _pointSizeAction.insertIntoVariantMap(variantMap);
 
     return variantMap;
 }
