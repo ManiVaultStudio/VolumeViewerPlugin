@@ -114,6 +114,7 @@ void SettingsAction::fromVariantMap(const QVariantMap& variantMap)
     }
 
     _pointSizeAction.fromParentVariantMap(variantMap);
+    _pointOpacityAction.fromParentVariantMap(variantMap);
 }
 
 QVariantMap SettingsAction::toVariantMap() const
@@ -128,6 +129,7 @@ QVariantMap SettingsAction::toVariantMap() const
     _idleRotationAction.insertIntoVariantMap(variantMap);
 
     _pointSizeAction.insertIntoVariantMap(variantMap);
+    _pointOpacityAction.insertIntoVariantMap(variantMap);
 
     return variantMap;
 }
