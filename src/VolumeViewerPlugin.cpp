@@ -12,6 +12,8 @@
 #include <actions/PluginTriggerAction.h>
 #include <DatasetsMimeData.h>
 
+#include <util/Serialization.h>
+
 /** mv headers*/
 #include "PointData/PointData.h"
 #include <ClusterData/Cluster.h>
