@@ -4,6 +4,8 @@
 #include <QDebug>
 #include <QMimeData>
 #include <QLayout>
+#include <QMessageBox>
+
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
 //#include "Transfer/CustomColorMapEditor.h"
