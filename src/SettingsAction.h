@@ -3,6 +3,7 @@
 #include "RendererSettingsAction.h"
 #include "Actions/PickRendererAction.h"
 #include "actions/DatasetPickerAction.h"
+#include "actions/DecimalAction.h"
 
 #include <actions/GroupAction.h>
 
@@ -59,6 +60,9 @@ public: // Action getters
     ToggleAction& getFocusFloodfillNormAction() { return _focusFloodfillNormAction; }
     ToggleAction& getIdleRotationAction() { return _idleRotationAction; }
 
+    DecimalAction& getPointSizeAction() { return _pointSizeAction; }
+    DecimalAction& getPointOpacityAction() { return _pointOpacityAction; }
+
 protected:
     VolumeViewerPlugin*     _plugin;                /** Pointer to volume viewer plugin */
     RendererSettingsAction  _renderSettingsAction;
@@ -70,4 +74,8 @@ protected:
     ToggleAction            _focusSelectionNormAction;
     ToggleAction            _focusFloodfillNormAction;
     ToggleAction            _idleRotationAction;
+
+    // experimental settings
+    DecimalAction           _pointSizeAction;
+    DecimalAction           _pointOpacityAction;
 };

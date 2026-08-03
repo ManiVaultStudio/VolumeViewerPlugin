@@ -4,6 +4,8 @@
 #include <QDebug>
 #include <QMimeData>
 #include <QLayout>
+#include <QMessageBox>
+
 /** Plugin headers*/
 #include "VolumeViewerPlugin.h"
 //#include "Transfer/CustomColorMapEditor.h"
@@ -11,6 +13,8 @@
 
 #include <actions/PluginTriggerAction.h>
 #include <DatasetsMimeData.h>
+
+#include <util/Serialization.h>
 
 /** mv headers*/
 #include "PointData/PointData.h"
@@ -110,6 +114,10 @@ VolumeViewerPlugin::VolumeViewerPlugin(const PluginFactory* factory) :
     //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillAction());
     //_secondaryToolbarAction.addAction(&_settingsAction->getFocusFloodfillNormAction());
     _secondaryToolbarAction.addAction(&_settingsAction->getIdleRotationAction());
+
+    // Add actions to the options menu on the side of the viewer
+    _settingsAction->addAction(&_settingsAction->getPointSizeAction());
+    _settingsAction->addAction(&_settingsAction->getPointOpacityAction());
    
 }
 
@@ -567,6 +575,8 @@ void VolumeViewerPlugin::updateFocusMode() {
             applyMaskToColors(allIndices, false);
         }
         else {
+            if (!_pointsColorPoints.isValid())
+                return;
             std::vector<float> colors;
             _pointsColorPoints->extractDataForDimension(colors, 0);
             _volumeViewerWidget->getOpenGLWidget()->setColors(colors);
@@ -799,6 +809,16 @@ void VolumeViewerPlugin::setSelectionPosition(double x, double y, double z) {
     _position[1] = y;
     _position[2] = z;
 
+}
+
+void VolumeViewerPlugin::updatePointSize(float value)
+{
+    _volumeViewerWidget->getOpenGLWidget()->setPointSize(value);
+}
+
+void VolumeViewerPlugin::updatePointOpacity(float value)
+{
+    _volumeViewerWidget->getOpenGLWidget()->setPointOpacity(value);
 }
 
 /******************************************************************************

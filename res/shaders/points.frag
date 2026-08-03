@@ -3,6 +3,7 @@
 uniform bool hasColors;
 uniform bool isCursor;
 uniform bool useOpacityModulation;
+uniform float baseOpacity;
 
 uniform sampler2D colormap;
 
@@ -28,15 +29,13 @@ void main()
 	if (hasColors && v_Color >= 0.0) 
    {    vec3 color = texture(colormap, vec2(v_Color, 0.5)).rgb;
         if (useOpacityModulation) {       
-            fragColor = vec4(color, min(0.3, max(v_Color * 6.0 - 2.5, 0.0))); // fade out pt with low scalar values
+            fragColor = vec4(color, min(baseOpacity, max(v_Color * 6.0 - 2.5, 0.0))); // fade out pt with low scalar values
         } else 
 		{    
-            fragColor = vec4(color, 0.3);//for cluster data
+            fragColor = vec4(color, baseOpacity);//for cluster data
         }
     }
 	
     else
-        fragColor = vec4(1, 1, 1, 0.3/255);
-		
-	
+        fragColor = vec4(1, 1, 1, baseOpacity/255.0);
 }

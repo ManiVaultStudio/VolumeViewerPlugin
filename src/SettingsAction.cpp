@@ -17,7 +17,9 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
     _focusFloodfillAction(this, "Focus Floodfill"),
     _focusSelectionNormAction(this, "SNorm"),
     _focusFloodfillNormAction(this, "FNorm"),
-    _idleRotationAction(this, "Idle Rotation")
+    _idleRotationAction(this, "Idle Rotation"),
+    _pointSizeAction(this, "Point Size", 0.5, 10.0, 3.0, 1),
+    _pointOpacityAction(this, "Point Opacity", 0.0, 1.0, 0.3, 1)
 {
     GroupsAction::GroupActions groupActions;
 
@@ -69,6 +71,14 @@ SettingsAction::SettingsAction(QObject* parent, const QString& title) :
         _plugin->setIdleRotation(toggled);
     });
 
+    connect(&_pointSizeAction, &DecimalAction::valueChanged, this, [this](const float& value) {
+        _plugin->updatePointSize(value);
+        });
+
+    connect(&_pointOpacityAction, &DecimalAction::valueChanged, this, [this](const float& value) {
+        _plugin->updatePointOpacity(value);
+        });
+
 }
 
 QMenu* SettingsAction::getContextMenu(QWidget* parent /*= nullptr*/)
@@ -102,6 +112,9 @@ void SettingsAction::fromVariantMap(const QVariantMap& variantMap)
         Dataset pickedDataset = mv::data().getDataset(colorDataset.getDatasetId());
         _plugin->getColorDataset() = pickedDataset;
     }
+
+    _pointSizeAction.fromParentVariantMap(variantMap);
+    _pointOpacityAction.fromParentVariantMap(variantMap);
 }
 
 QVariantMap SettingsAction::toVariantMap() const
@@ -114,6 +127,9 @@ QVariantMap SettingsAction::toVariantMap() const
     _colorDatasetPickerAction.insertIntoVariantMap(variantMap);
 
     _idleRotationAction.insertIntoVariantMap(variantMap);
+
+    _pointSizeAction.insertIntoVariantMap(variantMap);
+    _pointOpacityAction.insertIntoVariantMap(variantMap);
 
     return variantMap;
 }

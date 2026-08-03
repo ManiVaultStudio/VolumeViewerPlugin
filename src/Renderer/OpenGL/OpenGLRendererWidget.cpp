@@ -57,6 +57,18 @@ void OpenGLRendererWidget::setOpacityModulation(bool opacityModulation)
     update();
 }
 
+void OpenGLRendererWidget::setPointSize(float pointSize)
+{
+    _volumeRenderer.setPointSize(pointSize);
+    update();
+}
+
+void OpenGLRendererWidget::setPointOpacity(float opacity)
+{
+    _volumeRenderer.setPointOpacity(opacity);
+    update();
+}
+
 void OpenGLRendererWidget::initializeGL()
 {
     initializeOpenGLFunctions();
