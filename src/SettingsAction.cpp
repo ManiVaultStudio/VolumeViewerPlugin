@@ -97,7 +97,7 @@ void SettingsAction::fromVariantMap(const QVariantMap& variantMap)
     _positionDatasetPickerAction.fromParentVariantMap(variantMap);
     _colorDatasetPickerAction.fromParentVariantMap(variantMap);
 
-    _idleRotationAction.fromParentVariantMap(variantMap);
+    _idleRotationAction.fromParentVariantMap(variantMap, true);
 
     auto positionDataset = _positionDatasetPickerAction.getCurrentDataset();
     if (positionDataset.isValid())
@@ -113,8 +113,8 @@ void SettingsAction::fromVariantMap(const QVariantMap& variantMap)
         _plugin->getColorDataset() = pickedDataset;
     }
 
-    _pointSizeAction.fromParentVariantMap(variantMap);
-    _pointOpacityAction.fromParentVariantMap(variantMap);
+    _pointSizeAction.fromParentVariantMap(variantMap, true);
+    _pointOpacityAction.fromParentVariantMap(variantMap, true);
 }
 
 QVariantMap SettingsAction::toVariantMap() const
